@@ -1,0 +1,353 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>GPV Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f3f4f6;
+            overscroll-behavior: none;
+        }
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2563eb;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chat-container {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #2563eb #e5e7eb;
+            padding: 32px;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 10px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 5px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #2563eb;
+            border-radius: 5px;
+        }
+        .message {
+            animation: fadeIn 0.5s ease-out;
+            transition: all 0.2s ease;
+        }
+        .message:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-bubble {
+            position: relative;
+            border-radius: 20px;
+            padding: 16px 20px;
+            max-width: 40ch;
+            min-width: 10ch;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            white-space: normal;
+            word-break: break-word;
+            border: 1px solid #bfdbfe;
+            transition: box-shadow 0.3s ease;
+        }
+        .message-bubble:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        .message-bubble::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: 12px solid transparent;
+        }
+        .message-left .message-bubble {
+            background: #eff6ff;
+            color: #1e3a8a;
+        }
+        .message-left .message-bubble::after {
+            border-right-color: #eff6ff;
+            border-left: 0;
+            left: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .message-right .message-bubble {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .message-right .message-bubble::after {
+            border-left-color: #2563eb;
+            border-right: 0;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .typing-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 32px;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 8px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            color: #1e40af;
+            font-size: 0.9rem;
+            animation: typingBounce 1s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .typing-indicator i {
+            color: #2563eb;
+        }
+        .typing-indicator::after {
+            content: '.';
+            display: inline-block;
+            width: 20px;
+            text-align: left;
+            color: #2563eb;
+            animation: ellipsis 1.5s infinite;
+        }
+        @keyframes typingBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes ellipsis {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+            100% { content: '.'; }
+        }
+    </style>
+</head>
+<body>
+    <div className="loading-screen" id="loading-screen">
+        <div className="loading-spinner"></div>
+        <p className="mt-4 text-lg">Iniciando GPV Chat...</p>
+    </div>
+    <div id="root"></div>
+    <script type="text/babel">
+        const ChatMessage = ({ usuario, mensagem, data, fotoPerfil, isRight }) => {
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                return date.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+            const cleanMessage = mensagem.replace(/[\r\n]+/g, ' ').trim();
+            return (
+                <div className={`flex ${isRight ? 'justify-end' : 'justify-start'} mb-8 message message-${isRight ? 'right' : 'left'}`}>
+                    <div className={`flex ${isRight ? 'flex-row-reverse' : 'flex-row'} items-start max-w-4xl w-full`}>
+                        <img
+                            src={fotoPerfil || 'https://i.postimg.cc/XN9502BK/Gemini-Generated-Image-yfjksjyfjksjyfjk-removebg-preview.png'}
+                            alt="Profile"
+                            className="w-14 h-14 rounded-full object-cover shadow-lg mt-2"
+                        />
+                        <div className="flex flex-col mx-5">
+                            <div className="message-bubble">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-base font-semibold whitespace-nowrap" style={{ color: isRight ? '#fef3c7' : '#f59e0b' }}>
+                                        {usuario}
+                                    </span>
+                                </div>
+                                <p className="text-sm leading-relaxed">{cleanMessage}</p>
+                                <div className="flex items-center justify-end mt-2">
+                                    <i className="fas fa-check text-xs opacity-70 mr-2" style={{ color: isRight ? '#bfdbfe' : '#93c5fd' }}></i>
+                                    <span className="text-xs opacity-70" style={{ color: isRight ? '#bfdbfe' : '#93c5fd' }}>
+                                        {formatDate(data)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ChatApp = () => {
+            const [messages, setMessages] = React.useState([]);
+            const [typingUser, setTypingUser] = React.useState(null);
+            const [isLoading, setIsLoading] = React.useState(true);
+            const messagesEndRef = React.useRef(null);
+
+            const fetchMessages = async () => {
+                try {
+                    const response = await axios({
+                        method: "GET",
+                        url: "https://api.baserow.io/api/database/rows/table/459281/?user_field_names=true",
+                        headers: { Authorization: "Token UkqZsuMMnwE59fMqs8OwXX60SASP7FOd" }
+                    });
+                    setMessages(response.data.results);
+                } catch (error) {
+                    console.error("Error fetching messages:", error);
+                }
+            };
+
+            const fetchTypingStatus = async () => {
+                try {
+                    const response = await axios({
+                        method: "GET",
+                        url: "https://api.baserow.io/api/database/rows/table/314649/?user_field_names=true",
+                        headers: { Authorization: "Token UkqZsuMMnwE59fMqs8OwXX60SASP7FOd" }
+                    });
+                    const typingData = response.data.results.find(user => user.digitandotruefalse === "true");
+                    setTypingUser(typingData ? typingData.DigitandoUser : null);
+                } catch (error) {
+                    console.error("Error fetching typing status:", error);
+                    setTypingUser(null);
+                }
+            };
+
+            React.useEffect(() => {
+                const initializeApp = async () => {
+                    await Promise.all([fetchMessages(), fetchTypingStatus()]);
+                    setTimeout(() => {
+                        setIsLoading(false);
+                        document.getElementById('loading-screen').classList.add('hidden');
+                    }, 1000);
+                };
+
+                initializeApp();
+                const messageInterval = setInterval(fetchMessages, 5000);
+                const typingInterval = setInterval(fetchTypingStatus, 2000);
+
+                return () => {
+                    clearInterval(messageInterval);
+                    clearInterval(typingInterval);
+                };
+            }, []);
+
+            React.useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
+
+            return (
+                <div className="chat-container">
+                    <div className="chat-messages">
+                        {messages.map((msg, index) => (
+                            <ChatMessage
+                                key={msg.id}
+                                usuario={msg.Usuario}
+                                mensagem={msg.DIGIOTOU}
+                                data={msg.DATAENVIO}
+                                fotoPerfil={msg.FOTOPERFIL}
+                                isRight={index % 2 === 1}
+                            />
+                        ))}
+                        {typingUser && (
+                            <div className="typing-indicator">
+                                <i className="fas fa-pencil-alt"></i>
+                                <span>{typingUser} está digitando</span>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                </div>
+            );
+        };
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+            });
+        }
+
+        ReactDOM.render(<ChatApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
