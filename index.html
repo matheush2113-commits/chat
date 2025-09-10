@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -55,9 +16,27 @@
     <style>
         body {
             margin: 0;
-            font-family: 'Inter', sans-serif;
-            background: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #ffffff, #e6f7ff, #f0f7ff);
             overscroll-behavior: none;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"%3E%3Ccircle fill="%230066cc" fill-opacity="0.15" cx="100" cy="100" r="4"/%3E%3Ccircle fill="%23ffcc00" fill-opacity="0.1" cx="200" cy="600" r="3"/%3E%3Ccircle fill="%230066cc" fill-opacity="0.2" cx="400" cy="300" r="5"/%3E%3Ccircle fill="%23ffcc00" fill-opacity="0.15" cx="600" cy="700" r="4"/%3E%3Ccircle fill="%230066cc" fill-opacity="0.1" cx="700" cy="200" r="3"/%3E%3C/svg%3E');
+            background-size: 200%;
+            animation: particleDrift 40s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        @keyframes particleDrift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
         }
         .loading-screen {
             position: fixed;
@@ -65,12 +44,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #2563eb;
+            background: #0066cc;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: white;
+            color: #ffffff;
             z-index: 9999;
             transition: opacity 0.5s ease-out;
         }
@@ -80,7 +59,7 @@
         }
         .loading-spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
+            border-top: 4px solid #ffcc00;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -98,114 +77,241 @@
             overflow: hidden;
             touch-action: manipulation;
         }
+        .chat-header {
+            background: #0066cc;
+            color: #ffffff;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+        .chat-tabs {
+            display: flex;
+            gap: 16px;
+            margin-left: auto;
+        }
+        .chat-tab {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            transition: background 0.3s ease;
+        }
+        .chat-tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .chat-tab.active {
+            background: #ffcc00;
+            color: #0066cc;
+        }
         .chat-messages {
             flex: 1;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #2563eb #e5e7eb;
-            padding: 32px;
+            scrollbar-color: #0066cc #e5e7eb;
+            padding: 16px;
+            background: transparent;
+            width: 100%;
+            padding-bottom: 60px; /* Space for typing indicator */
         }
         .chat-messages::-webkit-scrollbar {
-            width: 10px;
+            width: 6px;
         }
         .chat-messages::-webkit-scrollbar-track {
             background: #e5e7eb;
-            border-radius: 5px;
         }
         .chat-messages::-webkit-scrollbar-thumb {
-            background: #2563eb;
-            border-radius: 5px;
+            background: #0066cc;
+            border-radius: 3px;
         }
         .message {
-            animation: fadeIn 0.5s ease-out;
-            transition: all 0.2s ease;
-        }
-        .message:hover {
-            transform: translateY(-2px);
+            animation: fadeIn 0.3s ease-out;
+            width: 100%;
+            position: relative;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .message-bubble {
             position: relative;
-            border-radius: 20px;
-            padding: 16px 20px;
-            max-width: 40ch;
-            min-width: 10ch;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            white-space: normal;
-            word-break: break-word;
-            border: 1px solid #bfdbfe;
-            transition: box-shadow 0.3s ease;
+            border-radius: 10px;
+            padding: 10px 14px;
+            max-width: 90%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            word-wrap: normal;
+            margin-bottom: 4px;
+            display: inline-block;
         }
-        .message-bubble:hover {
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        .message-bubble.radiate {
+            animation: radiateBorder 0.5s ease-out;
+        }
+        @keyframes radiateBorder {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+            }
+            100% {
+                box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+            }
         }
         .message-bubble::after {
             content: '';
             position: absolute;
             width: 0;
             height: 0;
-            border: 12px solid transparent;
+            border: 8px solid transparent;
         }
         .message-left .message-bubble {
-            background: #eff6ff;
-            color: #1e3a8a;
+            background: #f0f7ff;
+            color: #000000;
         }
         .message-left .message-bubble::after {
-            border-right-color: #eff6ff;
+            border-right-color: #f0f7ff;
             border-left: 0;
-            left: -12px;
-            top: 50%;
-            transform: translateY(-50%);
+            left: -8px;
+            top: 12px;
         }
         .message-right .message-bubble {
-            background: #2563eb;
-            color: #ffffff;
+            background: #ffeb99;
+            color: #000000;
         }
         .message-right .message-bubble::after {
-            border-left-color: #2563eb;
+            border-left-color: #ffeb99;
             border-right: 0;
-            right: -12px;
-            top: 50%;
-            transform: translateY(-50%);
+            right: -8px;
+            top: 12px;
         }
-        .typing-indicator {
+        .message-image {
+            max-width: 200px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: block;
+        }
+        .fullscreen-image {
             position: fixed;
-            bottom: 20px;
-            left: 32px;
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 8px 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            color: #1e40af;
-            font-size: 0.9rem;
-            animation: typingBounce 1s ease-in-out infinite;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .fullscreen-image img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ffcc00;
+            color: #0066cc;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .like-button {
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
+            color: #ff0000;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            transition: transform 0.2s ease;
         }
-        .typing-indicator i {
-            color: #2563eb;
+        .like-button:hover {
+            transform: scale(1.1);
         }
-        .typing-indicator::after {
-            content: '.';
-            display: inline-block;
-            width: 20px;
-            text-align: left;
-            color: #2563eb;
-            animation: ellipsis 1.5s infinite;
+        .heart-rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
         }
-        @keyframes typingBounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
+        .heart {
+            position: absolute;
+            color: #ff0000;
+            font-size: 12px;
+            opacity: 0;
+            animation: heartRain 1s ease-out forwards;
         }
-        @keyframes ellipsis {
-            0% { content: '.'; }
-            33% { content: '..'; }
-            66% { content: '...'; }
-            100% { content: '.'; }
+        @keyframes heartRain {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100px) scale(0.5);
+            }
+        }
+        .mention {
+            color: #0066cc;
+            font-weight: bold;
+        }
+        .typing-indicator {
+            position: sticky;
+            bottom: 0;
+            left: 16px;
+            background: #f0f7ff;
+            border-radius: 10px;
+            padding: 6px 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            color: #000000;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: pulse 1.5s ease-in-out infinite;
+            margin-top: 8px;
+            width: fit-content;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #0066cc;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        .dot:nth-child(2) {
+            animation-delay: -0.4s;
+        }
+        .dot:nth-child(3) {
+            animation-delay: -0.8s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-5px);
+            }
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
         }
     </style>
 </head>
@@ -216,43 +322,103 @@
     </div>
     <div id="root"></div>
     <script type="text/babel">
-        const ChatMessage = ({ usuario, mensagem, data, fotoPerfil, isRight }) => {
+        const ChatMessage = ({ id, usuario, mensagem, data, fotoPerfil, isRight, mensacao, onLike, onImageClick }) => {
+            const [isAnimating, setIsAnimating] = React.useState(false);
+            const [hearts, setHearts] = React.useState([]);
+
             const formatDate = (dateString) => {
                 const date = new Date(dateString);
                 return date.toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
                 });
             };
+
+            const handleLike = () => {
+                if (!isAnimating) {
+                    setIsAnimating(true);
+                    const newHearts = Array.from({ length: 10 }, (_, i) => ({
+                        id: i,
+                        left: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 0.5}s`
+                    }));
+                    setHearts(newHearts);
+                    onLike(id, mensacao);
+                    setTimeout(() => {
+                        setIsAnimating(false);
+                        setHearts([]);
+                    }, 1000);
+                }
+            };
+
+            const isImage = /\.(jpg|png|gif)$/i.test(mensagem);
             const cleanMessage = mensagem.replace(/[\r\n]+/g, ' ').trim();
+            const parts = cleanMessage.split(/(@\w+)/g);
+            const renderedMessage = parts.map((part, index) => {
+                if (part.startsWith('@')) {
+                    return <span key={index} className="mention">{part}</span>;
+                }
+                return part;
+            });
+            const likeCount = parseInt(mensacao || '0', 10);
+            const likeText = likeCount > 0 ? `${likeCount} pessoa${likeCount > 1 ? 's' : ''} curtiram essa mensagem` : '';
+
             return (
-                <div className={`flex ${isRight ? 'justify-end' : 'justify-start'} mb-8 message message-${isRight ? 'right' : 'left'}`}>
-                    <div className={`flex ${isRight ? 'flex-row-reverse' : 'flex-row'} items-start max-w-4xl w-full`}>
+                <div className={`flex ${isRight ? 'justify-end' : 'justify-start'} mb-4 message message-${isRight ? 'right' : 'left'}`}>
+                    <div className={`flex ${isRight ? 'flex-row-reverse' : 'flex-row'} items-start w-full`}>
                         <img
                             src={fotoPerfil || 'https://i.postimg.cc/XN9502BK/Gemini-Generated-Image-yfjksjyfjksjyfjk-removebg-preview.png'}
                             alt="Profile"
-                            className="w-14 h-14 rounded-full object-cover shadow-lg mt-2"
+                            className="w-10 h-10 rounded-full object-cover mt-2"
                         />
-                        <div className="flex flex-col mx-5">
-                            <div className="message-bubble">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-base font-semibold whitespace-nowrap" style={{ color: isRight ? '#fef3c7' : '#f59e0b' }}>
-                                        {usuario}
-                                    </span>
-                                </div>
-                                <p className="text-sm leading-relaxed">{cleanMessage}</p>
-                                <div className="flex items-center justify-end mt-2">
-                                    <i className="fas fa-check text-xs opacity-70 mr-2" style={{ color: isRight ? '#bfdbfe' : '#93c5fd' }}></i>
-                                    <span className="text-xs opacity-70" style={{ color: isRight ? '#bfdbfe' : '#93c5fd' }}>
-                                        {formatDate(data)}
-                                    </span>
+                        <div className="flex flex-col mx-2 w-full relative">
+                            <div className={`message-bubble ${isAnimating ? 'radiate' : ''}`}>
+                                <span className="text-xs font-semibold" style={{ color: isRight ? '#0066cc' : '#ffcc00' }}>{usuario}</span>
+                                {isImage ? (
+                                    <img
+                                        src={mensagem}
+                                        alt="Message"
+                                        className="message-image"
+                                        onClick={() => onImageClick(mensagem)}
+                                    />
+                                ) : (
+                                    <p className="text-sm leading-relaxed mt-1">{renderedMessage}</p>
+                                )}
+                                <div className="flex items-center justify-end mt-1">
+                                    <span className="text-xs text-gray-500">{formatDate(data)}</span>
+                                    {isRight && <i className="fas fa-check text-xs text-gray-500 ml-1"></i>}
                                 </div>
                             </div>
+                            <div className="heart-rain">
+                                {hearts.map(heart => (
+                                    <i
+                                        key={heart.id}
+                                        className="fas fa-heart heart"
+                                        style={{
+                                            left: heart.left,
+                                            animationDelay: heart.animationDelay
+                                        }}
+                                    ></i>
+                                ))}
+                            </div>
+                            <div className="like-button" onClick={handleLike}>
+                                <i className="fas fa-heart"></i>
+                                <span>{likeCount}</span>
+                            </div>
+                            {likeText && <span className="text-xs text-gray-500">{likeText}</span>}
                         </div>
                     </div>
+                </div>
+            );
+        };
+
+        const FullscreenImage = ({ src, onClose }) => {
+            return (
+                <div className="fullscreen-image" onClick={onClose}>
+                    <img src={src} alt="Fullscreen" />
+                    <button className="close-button" onClick={onClose}>
+                        <i className="fas fa-times"></i>
+                    </button>
                 </div>
             );
         };
@@ -261,7 +427,12 @@
             const [messages, setMessages] = React.useState([]);
             const [typingUser, setTypingUser] = React.useState(null);
             const [isLoading, setIsLoading] = React.useState(true);
+            const [tab, setTab] = React.useState('all');
+            const [fullscreenImage, setFullscreenImage] = React.useState(null);
             const messagesEndRef = React.useRef(null);
+
+            // Define the current user (replace 'CurrentUser' with the actual user name or dynamic logic)
+            const currentUser = "CurrentUser";
 
             const fetchMessages = async () => {
                 try {
@@ -291,6 +462,30 @@
                 }
             };
 
+            const likeMessage = async (id, currentLikes) => {
+                try {
+                    const currentCount = parseInt(currentLikes || '0', 10);
+                    const newCount = currentCount + 1;
+                    await axios({
+                        method: "PATCH",
+                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
+                        data: { mensacao: newCount.toString() },
+                        headers: { Authorization: "Token UkqZsuMMnwE59fMqs8OwXX60SASP7FOd" }
+                    });
+                    fetchMessages();
+                } catch (error) {
+                    console.error("Error liking message:", error);
+                }
+            };
+
+            const handleImageClick = (src) => {
+                setFullscreenImage(src);
+            };
+
+            const closeFullscreenImage = () => {
+                setFullscreenImage(null);
+            };
+
             React.useEffect(() => {
                 const initializeApp = async () => {
                     await Promise.all([fetchMessages(), fetchTypingStatus()]);
@@ -312,29 +507,47 @@
 
             React.useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-            }, [messages]);
+            }, [messages, typingUser]);
+
+            const filteredMessages = tab === 'all' ? messages : messages.filter(msg => msg.mensacao && parseInt(msg.mensacao, 10) > 0);
 
             return (
                 <div className="chat-container">
+                    <div className="chat-header">
+                        <h1 className="text-lg font-semibold">GPV Chat</h1>
+                        <div className="chat-tabs">
+                            <div className={`chat-tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>Todos</div>
+                            <div className={`chat-tab ${tab === 'mentions' ? 'active' : ''}`} onClick={() => setTab('mentions')}>Menções</div>
+                        </div>
+                    </div>
                     <div className="chat-messages">
-                        {messages.map((msg, index) => (
+                        {filteredMessages.map((msg) => (
                             <ChatMessage
                                 key={msg.id}
+                                id={msg.id}
                                 usuario={msg.Usuario}
                                 mensagem={msg.DIGIOTOU}
                                 data={msg.DATAENVIO}
                                 fotoPerfil={msg.FOTOPERFIL}
-                                isRight={index % 2 === 1}
+                                isRight={msg.Usuario === currentUser}
+                                mensacao={msg.mensacao}
+                                onLike={likeMessage}
+                                onImageClick={handleImageClick}
                             />
                         ))}
                         {typingUser && (
                             <div className="typing-indicator">
-                                <i className="fas fa-pencil-alt"></i>
                                 <span>{typingUser} está digitando</span>
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                                <div className="dot"></div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
+                    {fullscreenImage && (
+                        <FullscreenImage src={fullscreenImage} onClose={closeFullscreenImage} />
+                    )}
                 </div>
             );
         };
