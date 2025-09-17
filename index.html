@@ -15,18 +15,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         :root {
-            --primary-color: #0066cc;
+            --primary-color: #0047ab; /* Azul mais forte */
             --secondary-color: #e6f7ff;
             --background-color: #ffffff;
             --text-color: #000000;
             --message-bg-left: #e6f7ff;
             --message-bg-right: #ffffff;
-            --header-bg: #0066cc;
+            --header-bg: #0047ab;
             --footer-bg: #ffffff;
             --border-color: #e5e7eb;
             --text-size: 14px;
             --progress-bar-bg: #e5e7eb;
-            --progress-bar-fill: #0066cc;
+            --progress-bar-fill: #0047ab;
             --quoted-color: #f0f0f0; /* Nova cor para citação */
         }
 
@@ -75,6 +75,7 @@
         .text-medium { --text-size: 14px; }
         .text-large { --text-size: 16px; }
         .text-xlarge { --text-size: 18px; }
+        .text-xxlarge { --text-size: 20px; } /* Novo tamanho extra extra large */
 
         .loading-screen {
             position: fixed;
@@ -248,7 +249,7 @@
             padding: 8px;
             background: #f0f0f0;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
@@ -257,25 +258,15 @@
             display: flex;
             gap: 2px;
             flex: 1;
-            height: 20px;
-            align-items: center;
+            height: 30px;
+            align-items: flex-end;
         }
 
         .wave-bar {
             width: 4px;
             background: var(--primary-color);
             border-radius: 2px;
-            animation: audioWave 1.5s infinite ease-in-out;
-        }
-
-        .wave-bar:nth-child(2) { animation-delay: -0.3s; }
-        .wave-bar:nth-child(3) { animation-delay: -0.6s; }
-        .wave-bar:nth-child(4) { animation-delay: -0.9s; }
-        .wave-bar:nth-child(5) { animation-delay: -1.2s; }
-
-        @keyframes audioWave {
-            0%, 100% { height: 10px; }
-            50% { height: 20px; }
+            transition: height 0.3s ease;
         }
 
         .fullscreen-image {
@@ -626,20 +617,20 @@
 
         .recording-wave-bar {
             width: 6px;
-            height: 20px;
             background: var(--primary-color);
             border-radius: 3px;
             animation: wave 1.2s infinite ease-in-out;
         }
 
-        .recording-wave-bar:nth-child(2) { animation-delay: -0.3s; }
-        .recording-wave-bar:nth-child(3) { animation-delay: -0.6s; }
-        .recording-wave-bar:nth-child(4) { animation-delay: -0.9s; }
-        .recording-wave-bar:nth-child(5) { animation-delay: -1.2s; }
+        .recording-wave-bar:nth-child(1) { height: 10px; animation-delay: 0s; }
+        .recording-wave-bar:nth-child(2) { height: 20px; animation-delay: -0.3s; }
+        .recording-wave-bar:nth-child(3) { height: 15px; animation-delay: -0.6s; }
+        .recording-wave-bar:nth-child(4) { height: 25px; animation-delay: -0.9s; }
+        .recording-wave-bar:nth-child(5) { height: 18px; animation-delay: -1.2s; }
 
         @keyframes wave {
             0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(2.5); }
+            50% { transform: scaleY(1.5); }
         }
 
         @keyframes pulseIcon {
@@ -761,6 +752,35 @@
         .winning {
             font-weight: bold;
         }
+
+        .quoted-image {
+            max-width: 100px;
+            border-radius: 8px;
+        }
+
+        .quoted-audio {
+            font-style: italic;
+            color: var(--primary-color);
+        }
+
+        .stop-recording-button {
+            background: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .stop-recording-button:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -778,6 +798,22 @@
             const audioRef = React.useRef(null);
             const [isPlaying, setIsPlaying] = React.useState(false);
             const [progress, setProgress] = React.useState(0);
+            const [duration, setDuration] = React.useState(0);
+            const [waveHeights, setWaveHeights] = React.useState(Array(30).fill(1));
+
+            React.useEffect(() => {
+                if (audioRef.current) {
+                    audioRef.current.addEventListener('loadedmetadata', () => {
+                        setDuration(audioRef.current.duration);
+                    });
+                    audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+                }
+                return () => {
+                    if (audioRef.current) {
+                        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+                    }
+                };
+            }, []);
 
             const togglePlay = () => {
                 if (isPlaying) {
@@ -790,8 +826,17 @@
 
             const handleTimeUpdate = () => {
                 const current = audioRef.current.currentTime;
-                const duration = audioRef.current.duration;
-                setProgress((current / duration) * 100);
+                const dur = audioRef.current.duration;
+                const prog = (current / dur) * 100;
+                setProgress(prog);
+
+                // Simulate wave animation based on progress
+                const newHeights = waveHeights.map((h, i) => {
+                    const pos = i / waveHeights.length;
+                    const dist = Math.abs(pos - (prog / 100));
+                    return Math.max(1, 30 * (1 - dist * 5) + Math.random() * 5);
+                });
+                setWaveHeights(newHeights);
             };
 
             const handleSeek = (e) => {
@@ -806,11 +851,11 @@
                         <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
                     </button>
                     <div className="waveform">
-                        {Array.from({ length: 10 }).map((_, i) => (
+                        {waveHeights.map((height, i) => (
                             <div
                                 key={i}
                                 className="wave-bar"
-                                style={{ height: `${10 + Math.random() * 10}px` }}
+                                style={{ height: `${height}px` }}
                             ></div>
                         ))}
                     </div>
@@ -820,12 +865,11 @@
                         onChange={handleSeek}
                         min="0"
                         max="100"
-                        className="w-full h-1 bg-gray-200 rounded-lg"
+                        className="w-full h-1 bg-gray-200 rounded-lg opacity-0 absolute" // Hide the straight line
                     />
                     <audio
                         ref={audioRef}
                         src={src}
-                        onTimeUpdate={handleTimeUpdate}
                         onEnded={() => setIsPlaying(false)}
                     />
                 </div>
@@ -850,7 +894,20 @@
                 }
             } catch {}
 
-            if (!isJsonPoll) {
+            if (isJsonPoll) {
+                if (votes && votes.includes(':')) {
+                    votes.split('-').forEach(part => {
+                        if (part) {
+                            const [opt, cnt] = part.split(':');
+                            if (opt && options.includes(opt)) {
+                                const count = parseInt(cnt, 10) || 0;
+                                voteCounts[opt] = count;
+                                total += count;
+                            }
+                        }
+                    });
+                }
+            } else {
                 if (votes && votes.includes(':')) {
                     votes.split('-').forEach(part => {
                         if (part) {
@@ -885,7 +942,7 @@
                     <p className="font-bold">{pollQuestion}</p>
                     {options.map((opt, index) => (
                         <div key={opt}>
-                            <p>{opt}: {voteCounts[opt]} ({getPercent(opt).toFixed(1)}%)</p>
+                            <p>{opt}: {voteCounts[opt] || 0} ({getPercent(opt).toFixed(1)}%)</p>
                             <div className="poll-bar">
                                 <div className="poll-bar-fill" style={{ width: `${getPercent(opt)}%`, background: colors[index % colors.length] }}></div>
                             </div>
@@ -979,6 +1036,19 @@
             const replyText = quotedMsg ? 'Resposta ao' : '';
             const userDisplay = usuario && usuario !== 'string' ? usuario : 'Anônimo';
 
+            let quotedContent = null;
+            if (quotedMsg) {
+                const qIsImage = /\.(jpg|png|gif)$/i.test(quotedMsg.DIGIOTOU);
+                const qIsAudio = quotedMsg.ArquivosGravados && quotedMsg.ArquivosGravados.length > 0;
+                if (qIsImage) {
+                    quotedContent = <img src={quotedMsg.DIGIOTOU} alt="Imagem citada" className="quoted-image" />;
+                } else if (qIsAudio) {
+                    quotedContent = <p className="quoted-audio">Áudio citado</p>;
+                } else {
+                    quotedContent = <p className="quoted-text">{quotedMsg.DIGIOTOU}</p>;
+                }
+            }
+
             return (
                 <div className={`flex ${isRight ? 'justify-end' : 'justify-start'} mb-4 message message-${isRight ? 'right' : 'left'}`}>
                     <div className={`flex ${isRight ? 'flex-row-reverse' : 'flex-row'} items-start w-full`}>
@@ -993,7 +1063,7 @@
                                 {quotedMsg && (
                                     <div className="quoted-message">
                                         <span className="quoted-user">{quotedMsg.Usuario}</span>
-                                        <p className="quoted-text">{quotedMsg.DIGIOTOU}</p>
+                                        {quotedContent}
                                     </div>
                                 )}
                                 {citacao && <p className="quoted-text">{citacao}</p>}
@@ -1081,7 +1151,7 @@
             );
         };
 
-        const RecordingAnimation = ({ duration }) => {
+        const RecordingAnimation = ({ duration, onStop }) => {
             return (
                 <div className="recording-animation">
                     <i className="fas fa-microphone recording-icon"></i>
@@ -1095,6 +1165,9 @@
                     <span className="text-xs font-semibold" style={{ color: 'var(--primary-color)' }}>
                         Gravando... {duration}s
                     </span>
+                    <button className="stop-recording-button" onClick={onStop}>
+                        <i className="fas fa-stop"></i>
+                    </button>
                 </div>
             );
         };
@@ -1484,34 +1557,18 @@
             };
 
             const createPoll = async () => {
-                const question = prompt('Digite a pergunta da enquete:');
-                if (!question) return;
-                const optionsStr = prompt('Digite as opções separadas por vírgula (ex: Sim,Não,Eu,Jornane):');
-                if (!optionsStr) return;
-                const options = optionsStr.split(',').map(o => o.trim());
-                const initialVotes = options.map(o => `${o}:0`).join('-');
-                const data = {
-                    Usuario: currentUser,
-                    DIGIOTOU: question,
-                    DATAENVIO: new Date().toISOString(),
-                    FOTOPERFIL: userData?.PERFIL || defaultProfilePic,
-                    mensacao: '0',
-                    laughs: '0',
-                    sads: '0',
-                    enquete: initialVotes,
-                    QuotedId: quotedMessage ? quotedMessage.id.toString() : null,
-                };
-                try {
-                    await axios({
-                        method: 'POST',
-                        url: 'https://api.baserow.io/api/database/rows/table/459281/?user_field_names=true',
-                        data,
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    setQuotedMessage(null);
-                    fetchMessages();
-                } catch (error) {
-                    console.error('Erro ao criar enquete:', error);
+                const fullInput = prompt('Digite a pergunta da enquete seguida das opções separadas por vírgula (ex: Quem vai ganhar, Eu, Jornane):');
+                if (fullInput) {
+                    const parts = fullInput.split(',');
+                    const question = parts[0].trim();
+                    const options = parts.slice(1).map(o => o.trim()).filter(o => o);
+                    if (options.length < 2) {
+                        alert('Por favor, forneça pelo menos duas opções.');
+                        return;
+                    }
+                    const pollData = { question, options };
+                    const initialVotes = options.map(o => `${o}:0`).join('-');
+                    await handleSendMessage(null, JSON.stringify(pollData), initialVotes);
                 }
             };
 
@@ -1541,12 +1598,12 @@
                 }
             };
 
-            const handleSendMessage = async (fileData = null) => {
-                if (inputText.trim() || fileData) {
+            const handleSendMessage = async (fileData = null, pollJson = null, initialVotes = '') => {
+                if (inputText.trim() || fileData || pollJson) {
                     try {
                         const data = {
                             Usuario: currentUser,
-                            DIGIOTOU: inputText || (fileData && !fileData.isAudio ? fileData.url : ''),
+                            DIGIOTOU: pollJson || inputText || (fileData && !fileData.isAudio ? fileData.url : ''),
                             DATAENVIO: new Date().toISOString(),
                             FOTOPERFIL: userData?.PERFIL || defaultProfilePic,
                             mensacao: '0'
@@ -1556,6 +1613,9 @@
                         }
                         if (fileData && fileData.isAudio) {
                             data.ArquivosGravados = [{ name: fileData.name, url: fileData.url }];
+                        }
+                        if (pollJson) {
+                            data.enquete = initialVotes;
                         }
                         await axios({
                             method: 'POST',
@@ -1572,12 +1632,13 @@
                         setMessages([...messages, {
                             id: Date.now(),
                             Usuario: currentUser,
-                            DIGIOTOU: inputText || (fileData && !fileData.isAudio ? fileData.url : ''),
+                            DIGIOTOU: pollJson || inputText || (fileData && !fileData.isAudio ? fileData.url : ''),
                             DATAENVIO: new Date().toISOString(),
                             FOTOPERFIL: userData?.PERFIL || defaultProfilePic,
                             mensacao: '0',
                             QuotedId: quotedMessage ? quotedMessage.id.toString() : null,
-                            ArquivosGravados: fileData && fileData.isAudio ? [{ name: fileData.name, url: fileData.url }] : []
+                            ArquivosGravados: fileData && fileData.isAudio ? [{ name: fileData.name, url: fileData.url }] : [],
+                            enquete: pollJson ? initialVotes : null
                         }]);
                         setInputText('');
                         setQuotedMessage(null);
@@ -1593,12 +1654,17 @@
                 setFullscreenImage(null);
             };
 
+            const stopRecording = () => {
+                if (mediaRecorder) {
+                    mediaRecorder.stop();
+                }
+                setIsRecording(false);
+                setFabOpen(false);
+            };
+
             const handleRecordAudio = async () => {
                 if (isRecording) {
-                    if (mediaRecorder) {
-                        mediaRecorder.stop();
-                    }
-                    setFabOpen(false);
+                    stopRecording();
                     return;
                 }
 
@@ -1893,7 +1959,7 @@
                         <div ref={messagesEndRef} />
                     </div>
                     <div className="chat-footer">
-                        {isRecording && <RecordingAnimation duration={recordingDuration} />}
+                        {isRecording && <RecordingAnimation duration={recordingDuration} onStop={stopRecording} />}
                         {uploadProgress !== null && <ProgressBar progress={uploadProgress} />}
                         {quotedMessage && (
                             <div className="quoted-preview">
@@ -1974,6 +2040,7 @@
                                     <div className="fab-sub-menu-item" onClick={() => changeFontSize('medium')}>Médio</div>
                                     <div className="fab-sub-menu-item" onClick={() => changeFontSize('large')}>Grande</div>
                                     <div className="fab-sub-menu-item" onClick={() => changeFontSize('xlarge')}>Extra Grande</div>
+                                    <div className="fab-sub-menu-item" onClick={() => changeFontSize('xxlarge')}>Extra Extra Grande</div>
                                 </div>
                             </div>
                         </div>
