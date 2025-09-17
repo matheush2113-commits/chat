@@ -19,7 +19,8 @@
             --secondary-color: #e6f7ff;
             --background-color: #ffffff;
             --text-color: #000000;
-            --message-bg-left: #e6f7ff;
+            --message-bg-left: #0047ab; /* Azul mais forte para mensagens de outros */
+            --message-text-left: #ffffff; /* Texto branco para mensagens de outros */
             --message-bg-right: #ffffff;
             --header-bg: #0047ab;
             --footer-bg: #ffffff;
@@ -99,9 +100,8 @@
         }
 
         .loading-logo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            width: 150px;
+            height: 150px;
             object-fit: cover;
             margin-bottom: 20px;
             box-shadow: 0 0 15px rgba(0, 102, 204, 0.2);
@@ -214,7 +214,7 @@
 
         .message-left .message-bubble {
             background: var(--message-bg-left);
-            color: var(--primary-color);
+            color: var(--message-text-left);
         }
 
         .message-left .message-bubble::after {
@@ -249,24 +249,36 @@
             padding: 8px;
             background: #f0f0f0;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            align-items: center;
             gap: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            height: 40px; /* Limit height for compactness */
         }
 
         .waveform {
             display: flex;
             gap: 2px;
             flex: 1;
-            height: 30px;
-            align-items: flex-end;
+            height: 20px;
+            align-items: center;
         }
 
         .wave-bar {
             width: 4px;
             background: var(--primary-color);
             border-radius: 2px;
-            transition: height 0.3s ease;
+            animation: audioWave 1.5s infinite ease-in-out;
+        }
+
+        .wave-bar:nth-child(2) { animation-delay: -0.3s; }
+        .wave-bar:nth-child(3) { animation-delay: -0.6s; }
+        .wave-bar:nth-child(4) { animation-delay: -0.9s; }
+        .wave-bar:nth-child(5) { animation-delay: -1.2s; }
+
+        @keyframes audioWave {
+            0%, 100% { height: 10px; }
+            50% { height: 20px; }
         }
 
         .fullscreen-image {
@@ -1271,6 +1283,11 @@
                 document.body.setAttribute('data-theme', theme);
                 document.body.className = `text-${fontSize}`;
             }, [theme, fontSize]);
+
+            // Scroll to bottom when messages change
+            React.useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
 
             // Atualizar status de digitação
             const updateTypingStatus = async (isTyping) => {
