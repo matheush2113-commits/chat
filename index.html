@@ -833,28 +833,70 @@
         };
 
         const PollComponent = ({ id, question, votes, onVote }) => {
-            const voteArray = votes ? votes.split('-') : [];
-            const simCount = voteArray.filter(v => v === 'sim').length;
-            const naoCount = voteArray.length - simCount;
-            const total = simCount + naoCount;
-            const simPercent = total > 0 ? (simCount / total) * 100 : 0;
-            const naoPercent = 100 - simPercent;
-            const winner = simCount > naoCount ? 'Sim' : simCount < naoCount ? 'Não' : 'Empate';
+            let options = [];
+            let voteCounts = {};
+            let total = 0;
+            let pollQuestion = question;
+            let isJsonPoll = false;
+
+            try {
+                const parsed = JSON.parse(question);
+                if (parsed.options && Array.isArray(parsed.options)) {
+                    isJsonPoll = true;
+                    options = parsed.options;
+                    pollQuestion = parsed.question || "Enquete";
+                    options.forEach(opt => voteCounts[opt] = 0);
+                    total = 0;
+                }
+            } catch {}
+
+            if (!isJsonPoll) {
+                if (votes && votes.includes(':')) {
+                    votes.split('-').forEach(part => {
+                        if (part) {
+                            const [opt, cnt] = part.split(':');
+                            if (opt) {
+                                const count = parseInt(cnt, 10) || 0;
+                                voteCounts[opt] = count;
+                                total += count;
+                            }
+                        }
+                    });
+                    options = Object.keys(voteCounts);
+                } else {
+                    const voteArray = votes ? votes.split('-').filter(v => v) : [];
+                    options = ['Sim', 'Não'];
+                    voteCounts['Sim'] = voteArray.filter(v => v === 'sim').length;
+                    voteCounts['Não'] = voteArray.filter(v => v === 'nao').length;
+                    total = voteArray.length;
+                }
+            }
+
+            const getPercent = (opt) => total > 0 ? (voteCounts[opt] / total) * 100 : 0;
+
+            const maxCount = Math.max(...Object.values(voteCounts), 0);
+            const winners = options.filter(opt => voteCounts[opt] === maxCount);
+            const winnerText = winners.length > 1 ? 'Empate' : (winners[0] || 'Nenhum voto');
+
+            const colors = ['#4caf50', '#f44336', '#2196f3', '#ffeb3b', '#9c27b0'];
 
             return (
                 <div className="poll-container">
-                    <p>{question}</p>
-                    <div className="poll-bar">
-                        <div className="poll-bar-fill poll-bar-sim" style={{ width: `${simPercent}%` }}></div>
+                    <p className="font-bold">{pollQuestion}</p>
+                    {options.map((opt, index) => (
+                        <div key={opt}>
+                            <p>{opt}: {voteCounts[opt]} ({getPercent(opt).toFixed(1)}%)</p>
+                            <div className="poll-bar">
+                                <div className="poll-bar-fill" style={{ width: `${getPercent(opt)}%`, background: colors[index % colors.length] }}></div>
+                            </div>
+                        </div>
+                    ))}
+                    <p className="winning">Vencedor atual: {winnerText}</p>
+                    <div className="flex flex-wrap gap-2">
+                        {options.map(opt => (
+                            <button key={opt} onClick={() => onVote(id, opt)} className="bg-primary-color text-white px-4 py-2 rounded">{opt}</button>
+                        ))}
                     </div>
-                    <p>Sim: {simCount} ({simPercent.toFixed(1)}%)</p>
-                    <div className="poll-bar">
-                        <div className="poll-bar-fill poll-bar-nao" style={{ width: `${naoPercent}%` }}></div>
-                    </div>
-                    <p>Não: {naoCount} ({naoPercent.toFixed(1)}%)</p>
-                    <p className="winning">Vencedor atual: {winner}</p>
-                    <button onClick={() => onVote(id, 'sim')}>Sim</button>
-                    <button onClick={() => onVote(id, 'nao')}>Não</button>
                 </div>
             );
         };
@@ -908,7 +950,16 @@
 
             const isImage = /\.(jpg|png|gif)$/i.test(mensagem);
             const isVideo = /\.(mp4|webm|ogg)$/i.test(mensagem);
-            const isPoll = enquete && enquete.trim() !== '';
+            let pollOptions = null;
+            let pollQuestion = mensagem;
+            try {
+                const parsed = JSON.parse(mensagem);
+                if (parsed.options && Array.isArray(parsed.options)) {
+                    pollOptions = parsed.options;
+                    pollQuestion = parsed.question || "Enquete";
+                }
+            } catch {}
+            const isPoll = (enquete && enquete.trim() !== '') || pollOptions !== null;
             const cleanMessage = mensagem ? mensagem.replace(/[\r\n]+/g, ' ').trim() : '';
             const parts = cleanMessage.split(/(@\w+)/g);
             const renderedMessage = parts.map((part, index) => {
@@ -947,7 +998,7 @@
                                 )}
                                 {citacao && <p className="quoted-text">{citacao}</p>}
                                 {isPoll ? (
-                                    <PollComponent id={id} question={mensagem} votes={enquete} onVote={onVote} />
+                                    <PollComponent id={id} question={pollQuestion} votes={enquete} onVote={onVote} />
                                 ) : isImage ? (
                                     <img
                                         src={mensagem}
@@ -1361,8 +1412,32 @@
                         url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
                         headers: { Authorization: `Token ${apiToken}` }
                     });
-                    const currentVotes = response.data.enquete || '';
-                    const newVotes = currentVotes ? currentVotes + '-' + vote : vote;
+                    let currentVotes = response.data.enquete || '';
+                    if (!currentVotes) {
+                        const msg = response.data.DIGIOTOU;
+                        try {
+                            const parsed = JSON.parse(msg);
+                            if (parsed.options && Array.isArray(parsed.options)) {
+                                currentVotes = parsed.options.map(o => `${o}:0`).join('-');
+                            }
+                        } catch {}
+                    }
+                    let newVotes = '';
+                    if (currentVotes.includes(':')) {
+                        let voteMap = {};
+                        currentVotes.split('-').forEach(part => {
+                            if (part) {
+                                const [opt, cnt] = part.split(':');
+                                voteMap[opt] = parseInt(cnt, 10) || 0;
+                            }
+                        });
+                        if (voteMap.hasOwnProperty(vote)) {
+                            voteMap[vote] += 1;
+                        }
+                        newVotes = Object.entries(voteMap).map(([opt, cnt]) => `${opt}:${cnt}`).join('-');
+                    } else {
+                        newVotes = currentVotes ? currentVotes + '-' + vote.toLowerCase() : vote.toLowerCase();
+                    }
                     await axios({
                         method: 'PATCH',
                         url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
@@ -1410,8 +1485,33 @@
 
             const createPoll = async () => {
                 const question = prompt('Digite a pergunta da enquete:');
-                if (question) {
-                    await handleSendMessage({ DIGIOTOU: question, enquete: '' });
+                if (!question) return;
+                const optionsStr = prompt('Digite as opções separadas por vírgula (ex: Sim,Não,Eu,Jornane):');
+                if (!optionsStr) return;
+                const options = optionsStr.split(',').map(o => o.trim());
+                const initialVotes = options.map(o => `${o}:0`).join('-');
+                const data = {
+                    Usuario: currentUser,
+                    DIGIOTOU: question,
+                    DATAENVIO: new Date().toISOString(),
+                    FOTOPERFIL: userData?.PERFIL || defaultProfilePic,
+                    mensacao: '0',
+                    laughs: '0',
+                    sads: '0',
+                    enquete: initialVotes,
+                    QuotedId: quotedMessage ? quotedMessage.id.toString() : null,
+                };
+                try {
+                    await axios({
+                        method: 'POST',
+                        url: 'https://api.baserow.io/api/database/rows/table/459281/?user_field_names=true',
+                        data,
+                        headers: { Authorization: `Token ${apiToken}` }
+                    });
+                    setQuotedMessage(null);
+                    fetchMessages();
+                } catch (error) {
+                    console.error('Erro ao criar enquete:', error);
                 }
             };
 
