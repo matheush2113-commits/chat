@@ -2,18 +2,15 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>GPV Chat</title>
-    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js"></script>
     <style>
         :root {
             --primary-color: #0066cc;
@@ -31,6 +28,8 @@
             --quoted-color: #f0f0f0;
             --error-bg: #fef2f2;
             --error-text: #ef4444;
+            --reaction-bg: #f0f0f0;
+            --reaction-icon-color: #4a5568;
         }
         [data-theme="dark"] {
             --primary-color: #4a9eff;
@@ -47,6 +46,8 @@
             --quoted-color: #2d3748;
             --error-bg: #451a1a;
             --error-text: #fca5a5;
+            --reaction-bg: #4a5568;
+            --reaction-icon-color: #a0aec0;
         }
         [data-theme="nature"] {
             --primary-color: #22c55e;
@@ -63,6 +64,8 @@
             --quoted-color: #dcfce7;
             --error-bg: #fef2f2;
             --error-text: #ef4444;
+            --reaction-bg: #dcfce7;
+            --reaction-icon-color: #166534;
         }
         body {
             margin: 0;
@@ -325,7 +328,34 @@
             cursor: pointer;
             font-size: 20px;
         }
-        .like-button, .quote-button, .delete-button, .vote-button {
+        .reaction-button {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: calc(var(--text-size) * 0.8);
+            margin-top: 4px;
+            background: var(--reaction-bg);
+            border-radius: 20px;
+            padding: 4px 8px;
+            transition: background 0.3s;
+        }
+        .reaction-button:hover {
+            background: var(--secondary-color);
+        }
+        .reaction-button i {
+            color: var(--reaction-icon-color);
+        }
+        .reaction-button.like-button i {
+            color: #ff6347; /* Tomato */
+        }
+        .reaction-button.laugh-button i {
+            color: #ff6347; /* Tomato */
+        }
+        .reaction-button.sad-button i {
+            color: #ff6347; /* Tomato */
+        }
+        .quote-button, .delete-button {
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -333,12 +363,12 @@
             color: var(--primary-color);
             font-size: calc(var(--text-size) * 0.8);
             margin-top: 4px;
-            background: #f0f0f0;
+            background: var(--reaction-bg);
             border-radius: 20px;
             padding: 4px 8px;
             transition: background 0.3s;
         }
-        .like-button:hover, .quote-button:hover, .delete-button:hover, .vote-button:hover {
+        .quote-button:hover, .delete-button:hover {
             background: var(--secondary-color);
         }
         .heart-rain {
@@ -521,8 +551,8 @@
             color: #ffffff;
             border: none;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -531,6 +561,8 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             opacity: 0;
             transform: scale(0);
+            position: relative;
+            overflow: hidden;
         }
         .send-button.visible {
             opacity: 1;
@@ -540,6 +572,24 @@
             background: var(--secondary-color);
             color: var(--primary-color);
             transform: scale(1.1);
+        }
+        .send-button .particle-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: shootParticles 1s ease-out forwards;
+        }
+        @keyframes shootParticles {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y)) scale(0);
+                opacity: 0;
+            }
         }
         .fab-sub-menu {
             position: absolute;
@@ -681,6 +731,14 @@
             align-items: center;
             gap: 8px;
             width: 100%;
+        }
+        .input-icons-wrapper {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
         }
         .reply-text {
             color: var(--primary-color);
@@ -844,7 +902,7 @@
             width: 100%;
             max-width: 500px;
             height: 0;
-            padding-bottom: 75%; /* 4:3 Aspect Ratio */
+            padding-bottom: 75%;
             background: black;
         }
         #qr-scanner-video {
@@ -894,9 +952,6 @@
             color: var(--primary-color);
         }
         .paste-button {
-            position: absolute;
-            bottom: 60px;
-            left: 16px;
             background: var(--primary-color);
             color: #ffffff;
             border: none;
@@ -912,156 +967,170 @@
             z-index: 9;
             opacity: 0;
             transform: scale(0);
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
         }
         .paste-button.visible {
             opacity: 1;
-            transform: scale(1);
+            transform: translateY(-50%) scale(1);
+        }
+        .audio-player-container {
+            display: flex;
+            align-items: center;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 8px 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-width: 250px;
+        }
+        .audio-player-container.right {
+            background: #dcf8c6;
+        }
+        .play-button {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            margin-right: 8px;
+        }
+        .wave-line {
+            height: 20px;
+            flex-grow: 1;
+            position: relative;
+        }
+        .wave-line::before, .wave-line::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #ccc;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 1px;
+        }
+        .audio-seeker {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 4px;
+            background: #ccc;
+            outline: none;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+            margin: 0 8px;
+        }
+        .audio-seeker::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .audio-time {
+            font-size: 0.75rem;
+            color: #777;
         }
     </style>
 </head>
 <body>
-    <div class="loading-screen" id="loading-screen">
-        <img src="https://i.postimg.cc/Ssk9kkHb/1757343420124.png" alt="GPV Logo" class="loading-logo" />
-        <p class="loading-text">Iniciando GVC CHAT...</p>
-    </div>
     <div id="root"></div>
 
-    <div id="qr-scanner-container">
-        <div class="modal w-full h-full flex flex-col justify-center items-center">
-            <h2 class="modal-header">Câmera</h2>
-            <div class="camera-preview-box w-full max-w-sm relative">
-                <video id="qr-scanner-video" playsinline muted></video>
-                <div id="interactive-camera-content"></div>
-            </div>
-            <div id="qr-camera-buttons" class="mt-4 flex flex-row gap-4">
-                <button id="photo-button" class="qr-camera-button"><i class="fas fa-camera-retro mr-2"></i>Tirar Foto</button>
-                <button id="qr-button" class="qr-camera-button"><i class="fas fa-qrcode mr-2"></i>Ler QR Code</button>
-                <button id="switch-camera-button" class="qr-camera-button"><i class="fas fa-sync-alt mr-2"></i>Trocar Câmera</button>
-            </div>
-            <div class="modal-buttons mt-4">
-                <button id="close-qr-scanner" class="modal-button cancel">Cancelar</button>
-            </div>
-        </div>
-    </div>
     <script type="text/babel">
-        const ErrorMessage = ({ message, onClose }) => {
-            if (!message) return null;
-            return (
-                <div className="error-message" onClick={onClose}>
-                    <i className="fas fa-exclamation-triangle mr-2"></i>
-                    {message}
-                </div>
-            );
-        };
-        const AudioPlayer = ({ src }) => {
-            const audioRef = React.useRef(null);
-            const [isPlaying, setIsPlaying] = React.useState(false);
-            const [progress, setProgress] = React.useState(0);
-            const togglePlay = () => {
-                if (isPlaying) {
-                    audioRef.current.pause();
-                } else {
-                    audioRef.current.play();
-                }
-                setIsPlaying(!isPlaying);
-            };
-            const handleTimeUpdate = () => {
-                const current = audioRef.current.currentTime;
-                const duration = audioRef.current.duration;
-                setProgress((current / duration) * 100);
-            };
-            const handleSeek = (e) => {
-                const seekTime = (e.target.value / 100) * audioRef.current.duration;
-                audioRef.current.currentTime = seekTime;
-                setProgress(e.target.value);
-            };
-            return (
-                <div className="message-audio">
-                    <button onClick={togglePlay} className="control-button">
-                        <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
-                    </button>
-                    <div className="waveform">
-                        {Array.from({ length: 10 }).map((_, i) => (
-                            <div key={i} className="wave-bar" style={{ height: `${10 + Math.random() * 10}px` }}></div>
-                        ))}
-                    </div>
-                    <input type="range" value={progress} onChange={handleSeek} min="0" max="100" className="w-full h-1 bg-gray-200 rounded-lg" />
-                    <audio ref={audioRef} src={src} onTimeUpdate={handleTimeUpdate} onEnded={() => setIsPlaying(false)} />
-                </div>
-            );
-        };
-        const PollComponent = ({ id, question, options, votes, onVote }) => {
-            const [voted, setVoted] = React.useState(false);
-            const [votedOption, setVotedOption] = React.useState(null);
-            const votesMap = votes ? votes : {};
-            const totalVotes = Object.values(votesMap).reduce((sum, count) => sum + count, 0);
-            
-            React.useEffect(() => {
-                const hasVoted = localStorage.getItem(`poll_${id}_voted`);
-                if (hasVoted) {
-                    setVoted(true);
-                    setVotedOption(localStorage.getItem(`poll_${id}_voted_option`));
-                }
-            }, [id]);
-            
-            const handleVote = (option) => {
-                if (!voted) {
-                    localStorage.setItem(`poll_${id}_voted`, 'true');
-                    localStorage.setItem(`poll_${id}_voted_option`, option);
-                    setVoted(true);
-                    setVotedOption(option);
-                    onVote(id, option);
-                }
-            };
-            
-            const findWinner = () => {
-                if (totalVotes === 0) return null;
-                const sortedOptions = options.map(option => ({
-                    option,
-                    count: votesMap[option] || 0
-                })).sort((a, b) => b.count - a.count);
-                const winner = sortedOptions[0];
-                const winners = sortedOptions.filter(opt => opt.count === winner.count);
-                if (winners.length > 1) {
-                    return `Empate entre: ${winners.map(w => w.option).join(' e ')}`;
-                }
-                return `${winner.option} está ganhando com ${winner.count} votos!`;
-            };
+        const { useState, useEffect, useRef } = React;
 
+        const initialMessages = [
+            {
+                id: 1,
+                Usuario: 'Bot Cordeiro',
+                FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                DIGIOTOU: 'Olá! Sou seu assistente de chat. Como posso ajudar hoje?',
+                DATAENVIO: '2025-01-01T10:00:00Z',
+                mensacao: '0',
+                laughs: '0',
+                sads: '0',
+                is_read: false
+            },
+            {
+                id: 2,
+                Usuario: 'Anônimo',
+                FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                DIGIOTOU: 'Olá! Estou feliz em falar com você.',
+                DATAENVIO: '2025-01-01T10:05:00Z',
+                mensacao: '5',
+                laughs: '0',
+                sads: '0',
+                is_read: true
+            }
+        ];
+
+        const generateRandomId = () => Math.floor(Math.random() * 1000000);
+
+        const LoadingScreen = () => {
+            const [isLoaded, setIsLoaded] = useState(false);
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setIsLoaded(true);
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, []);
             return (
-                <div className="poll-container">
-                    <p className="poll-question">{question}</p>
-                    {options.map((option, index) => {
-                        const count = votesMap[option] || 0;
-                        const percent = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
-                        const isVotedOption = voted && votedOption === option;
-                        return (
-                            <div key={index} className="mb-2">
-                                <button
-                                    className={`poll-option-button ${isVotedOption ? 'voted-option' : ''}`}
-                                    onClick={() => handleVote(option)}
-                                    disabled={voted}
-                                >
-                                    <span className="poll-option-text">{option}</span>
-                                </button>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className="poll-option-bar-container">
-                                        <div className="poll-option-bar" style={{ width: `${percent}%` }}></div>
-                                    </div>
-                                    <span className="poll-option-count">{count}</span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                    {voted && totalVotes > 0 && (
-                        <p className="poll-winner-message">{findWinner()}</p>
-                    )}
+                <div className={`loading-screen ${isLoaded ? 'hidden' : ''}`}>
+                    <img src="https://i.postimg.cc/Ssk9kkHb/1757343420124.png" alt="Logo" className="loading-logo" />
+                    <p className="loading-text">Carregando...</p>
                 </div>
             );
         };
+
+        const ParticlesBackground = () => {
+            const [particles, setParticles] = useState([]);
+            useEffect(() => {
+                const newParticles = Array.from({ length: 30 }, (_, i) => ({
+                    id: i,
+                    size: `${Math.random() * 10 + 5}px`,
+                    x: `${Math.random() * 100}vw`,
+                    y: `${Math.random() * 100}vh`,
+                    animationDuration: `${Math.random() * 10 + 10}s`,
+                    animationDelay: `${Math.random() * 5}s`,
+                    endX: `${(Math.random() - 0.5) * 50}vw`,
+                    endY: `${(Math.random() - 0.5) * 50}vh`
+                }));
+                setParticles(newParticles);
+            }, []);
+            return (
+                <div className="particles-background">
+                    {particles.map(p => (
+                        <div
+                            key={p.id}
+                            className="particle"
+                            style={{
+                                width: p.size,
+                                height: p.size,
+                                top: p.y,
+                                left: p.x,
+                                animationDuration: p.animationDuration,
+                                animationDelay: p.animationDelay,
+                                '--x': p.endX,
+                                '--y': p.endY
+                            }}
+                        ></div>
+                    ))}
+                </div>
+            );
+        };
+
         const ChatMessage = ({ id, Usuario, DIGIOTOU, DATAENVIO, FOTOPERFIL, isRight, mensacao, laughs, sads, ArquivosGravados, quotedMsg, EnqueteArmazenamento, citacao, onLike, onLaugh, onSad, onQuote, onImageClick, onDelete, onVote, onCopyText }) => {
-            const [isAnimating, setIsAnimating] = React.useState(false);
-            const [hearts, setHearts] = React.useState([]);
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [hearts, setHearts] = useState([]);
             const formatDate = (dateString) => {
                 const date = new Date(dateString);
                 return date.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1084,7 +1153,7 @@
             };
             const handleLaugh = () => { onLaugh(id, laughs); };
             const handleSad = () => { onSad(id, sads); };
-            const handleQuote = () => { onQuote({ id, Usuario, DIGIOTOU, DATAENVIO, FOTOPERFIL, mensacao, laughs, sads, ArquivosGravados }); };
+            const handleQuote = () => { onQuote({ id, Usuario, DIGIOTOU, DATAENVOS, FOTOPERFIL, mensacao, laughs, sads, ArquivosGravados }); };
             const handleDelete = async () => {
                 const password = prompt('Tem certeza que deseja apagar esta mensagem para todos?');
                 if (password === 'admincordeiro') {
@@ -1125,13 +1194,12 @@
                         <div className="flex flex-col mx-2 w-full relative">
                             <div className={`message-bubble ${isAnimating ? 'radiate' : ''}`} onDoubleClick={() => onCopyText(DIGIOTOU)}>
                                 <span className="text-xs font-semibold" style={{ color: isRight ? 'var(--primary-color)' : '#ffffff' }}>{userDisplay}</span>
-                                {quotedMsg && (
+                                {(quotedMsg || citacao) && (
                                     <div className="quoted-message">
-                                        <span className="quoted-user">{quotedMsg.Usuario}</span>
-                                        <p className="quoted-text">{quotedMsg.DIGIOTOU}</p>
+                                        <span className="quoted-user">{quotedMsg ? quotedMsg.Usuario : 'Mensagem citada'}</span>
+                                        <p className="quoted-text">{quotedMsg ? quotedMsg.DIGIOTOU : citacao}</p>
                                     </div>
                                 )}
-                                {citacao && <p className="quoted-text">{citacao}</p>}
                                 {isPoll && pollData ? (
                                     <PollComponent id={id} question={pollData.question} options={pollData.options} votes={pollData.votes} onVote={onVote} />
                                 ) : isImage ? (
@@ -1155,19 +1223,19 @@
                             </div>
                             <div className="flex gap-2">
                                 {!isRight && (
-                                    <div className="like-button" onClick={handleLike}>
+                                    <div className="reaction-button like-button" onClick={handleLike}>
                                         <i className="fas fa-heart"></i>
                                         <span>{likeCount}</span>
                                     </div>
                                 )}
                                 {!isRight && (
-                                    <div className="laugh-button" onClick={handleLaugh}>
+                                    <div className="reaction-button laugh-button" onClick={handleLaugh}>
                                         <i className="fas fa-laugh"></i>
                                         <span>{laughCount}</span>
                                     </div>
                                 )}
                                 {!isRight && (
-                                    <div className="sad-button" onClick={handleSad}>
+                                    <div className="reaction-button sad-button" onClick={handleSad}>
                                         <i className="fas fa-sad-tear"></i>
                                         <span>{sadCount}</span>
                                     </div>
@@ -1186,696 +1254,586 @@
                 </div>
             );
         };
-        const FullscreenImage = ({ src, onClose }) => {
+
+        const AudioPlayer = ({ src }) => {
+            const wavesurferRef = useRef(null);
+            const waveformRef = useRef(null);
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [duration, setDuration] = useState(0);
+
+            useEffect(() => {
+                if (waveformRef.current) {
+                    const wavesurfer = WavesSurfer.create({
+                        container: waveformRef.current,
+                        waveColor: 'var(--primary-color)',
+                        progressColor: 'var(--primary-color)',
+                        cursorColor: 'transparent',
+                        barWidth: 2,
+                        barRadius: 3,
+                        responsive: true,
+                        height: 30,
+                    });
+                    wavesurfer.load(src);
+                    wavesurfer.on('ready', () => {
+                        setDuration(wavesurfer.getDuration());
+                    });
+                    wavesurfer.on('audioprocess', () => {
+                        setCurrentTime(wavesurfer.getCurrentTime());
+                    });
+                    wavesurfer.on('finish', () => {
+                        setIsPlaying(false);
+                    });
+                    wavesurferRef.current = wavesurfer;
+                    return () => wavesurfer.destroy();
+                }
+            }, [src]);
+
+            const handlePlayPause = () => {
+                if (wavesurferRef.current) {
+                    wavesurferRef.current.playPause();
+                    setIsPlaying(wavesurferRef.current.isPlaying());
+                }
+            };
+
+            const formatTime = (time) => {
+                const minutes = Math.floor(time / 60);
+                const seconds = Math.floor(time % 60);
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            };
+
             return (
-                <div className="fullscreen-image" onClick={onClose}>
-                    <img src={src} alt="Fullscreen" />
-                    <button className="close-button" onClick={onClose}>
-                        <i className="fas fa-times"></i>
+                <div className="audio-player-container">
+                    <button className="play-button" onClick={handlePlayPause}>
+                        <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'}`}></i>
                     </button>
+                    <div ref={waveformRef} className="wave-line"></div>
+                    <span className="audio-time">{formatTime(currentTime)} / {formatTime(duration)}</span>
                 </div>
             );
         };
+
+        const PollComponent = ({ id, question, options, votes, onVote }) => {
+            const totalVotes = votes.reduce((sum, v) => sum + v, 0);
+            const [voted, setVoted] = useState(false);
+            const handleVote = (index) => {
+                onVote(id, index);
+                setVoted(true);
+            };
+            const winningOptionIndex = votes.indexOf(Math.max(...votes));
+            return (
+                <div className="poll-container">
+                    <p className="poll-question">{question}</p>
+                    {options.map((option, index) => {
+                        const voteCount = votes[index];
+                        const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
+                        return (
+                            <button
+                                key={index}
+                                className={`poll-option-button ${voted ? 'disabled' : ''} ${index === winningOptionIndex ? 'voted-option' : ''}`}
+                                onClick={() => handleVote(index)}
+                                disabled={voted}
+                            >
+                                <span className="poll-option-text">{option}</span>
+                                <div className="poll-option-bar-container">
+                                    <div className="poll-option-bar" style={{ width: `${percentage}%` }}></div>
+                                </div>
+                                <span className="poll-option-count">{voteCount}</span>
+                            </button>
+                        );
+                    })}
+                    {voted && totalVotes > 0 && (
+                        <p className="poll-winner-message">"{options[winningOptionIndex]}" está ganhando!</p>
+                    )}
+                </div>
+            );
+        };
+
         const RecordingAnimation = ({ duration }) => {
+            const formatTime = (seconds) => {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            };
             return (
                 <div className="recording-animation">
                     <i className="fas fa-microphone recording-icon"></i>
                     <div className="recording-wave">
-                        <div className="recording-wave-bar"></div>
-                        <div className="recording-wave-bar"></div>
-                        <div className="recording-wave-bar"></div>
-                        <div className="recording-wave-bar"></div>
-                        <div className="recording-wave-bar"></div>
+                        <span className="recording-wave-bar"></span>
+                        <span className="recording-wave-bar"></span>
+                        <span className="recording-wave-bar"></span>
+                        <span className="recording-wave-bar"></span>
+                        <span className="recording-wave-bar"></span>
                     </div>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--primary-color)' }}>
-                        Gravando... {duration}s
-                    </span>
+                    <span className="text-sm font-semibold">{formatTime(duration)}</span>
                 </div>
             );
         };
+
         const ProgressBar = ({ progress }) => {
             return (
                 <div className="progress-bar-container">
                     <div className="progress-bar">
                         <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
                     </div>
-                    <div className="progress-text">Enviando: {Math.round(progress)}%</div>
+                    <p className="progress-text">Enviando... {progress}%</p>
                 </div>
             );
         };
-        const ParticlesBackground = () => {
-            const particles = Array.from({ length: 50 }).map((_, i) => (
-                <div
-                    key={i}
-                    className="particle"
-                    style={{
-                        width: `${Math.random() * 5 + 2}px`,
-                        height: `${Math.random() * 5 + 2}px`,
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        '--x': `${(Math.random() - 0.5) * 200}px`,
-                        '--y': `${(Math.random() - 0.5) * 200}px`,
-                        animationDelay: `${Math.random() * 20}s`,
-                        animationDuration: `${Math.random() * 15 + 10}s`
-                    }}
-                ></div>
-            ));
-            return <div className="particles-background">{particles}</div>;
-        };
-        const TypingIndicator = ({ user, avatar }) => {
-            return (
-                <div className="typing-indicator">
-                    <img src={avatar || 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png'} alt="Avatar" className="typing-avatar" />
-                    <span className="typing-text">{user} está digitando</span>
-                    <div className="flex gap-1">
-                        <div className="dot"></div>
-                        <div className="dot"></div>
-                        <div className="dot"></div>
-                    </div>
-                </div>
-            );
-        };
-        const ChatApp = () => {
-            const [messages, setMessages] = React.useState([]);
-            const [typingUser, setTypingUser] = React.useState(null);
-            const [typingUserData, setTypingUserData] = React.useState(null);
-            const [isLoading, setIsLoading] = React.useState(true);
-            const [fullscreenImage, setFullscreenImage] = React.useState(null);
-            const [inputText, setInputText] = React.useState('');
-            const [isRecording, setIsRecording] = React.useState(false);
-            const [userData, setUserData] = React.useState(null);
-            const [currentUserId, setCurrentUserId] = React.useState(null);
-            const [mediaRecorder, setMediaRecorder] = React.useState(null);
-            const [theme, setTheme] = React.useState('light');
-            const [fontSize, setFontSize] = React.useState('medium');
-            const [showThemeMenu, setShowThemeMenu] = React.useState(false);
-            const [showFontMenu, setShowFontMenu] = React.useState(false);
-            const [uploadProgress, setUploadProgress] = React.useState(null);
-            const [fabOpen, setFabOpen] = React.useState(false);
-            const [recordingDuration, setRecordingDuration] = React.useState(0);
-            const [quotedMessage, setQuotedMessage] = React.useState(null);
-            const [chatError, setChatError] = React.useState(null);
-            const [showPollModal, setShowPollModal] = React.useState(false);
-            const [pollQuestion, setPollQuestion] = React.useState('');
-            const [pollOptions, setPollOptions] = React.useState(['', '']);
-            const [copiedText, setCopiedText] = React.useState('');
-            const [showPasteButton, setShowPasteButton] = React.useState(false);
-            const messagesEndRef = React.useRef(null);
-            const currentUser = userData?.Usuario || "Usuário";
-            const defaultProfilePic = 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png';
-            const apiToken = 'UkqZsuMMnwE59fMqs8OwXX60SASP7FOd';
 
-            const mockMessages = [{ id: 1, Usuario: "Usuário Mock", DIGIOTOU: "Bem-vindo ao GPV Chat!", DATAENVIO: new Date().toISOString(), FOTOPERFIL: defaultProfilePic, mensacao: '0', laughs: '0', sads: '0', ArquivosGravados: [], EnqueteArmazenamento: null, citacao: null }];
-            const mockUserData = { Usuario: "Usuário", FOTOPERFIL: defaultProfilePic };
-            const mockTypingUser = { DigitandoUser: "Usuário Mock", PERFIL: defaultProfilePic };
+        const App = () => {
+            const [messages, setMessages] = useState(initialMessages);
+            const [inputText, setInputText] = useState('');
+            const [isTyping, setIsTyping] = useState(false);
+            const [showFullscreenImage, setShowFullscreenImage] = useState(null);
+            const [fabOpen, setFabOpen] = useState(false);
+            const [showThemeMenu, setShowThemeMenu] = useState(false);
+            const [showFontMenu, setShowFontMenu] = useState(false);
+            const [theme, setTheme] = useState('light');
+            const [isCameraOpen, setIsCameraOpen] = useState(false);
+            const [qrScanner, setQrScanner] = useState(null);
+            const [qrCodeResult, setQrCodeResult] = useState('');
+            const [quotedMessage, setQuotedMessage] = useState(null);
+            const [isPollModalOpen, setIsPollModalOpen] = useState(false);
+            const [pollQuestion, setPollQuestion] = useState('');
+            const [pollOptions, setPollOptions] = useState(['', '', '']);
+            const [mediaRecorder, setMediaRecorder] = useState(null);
+            const [audioChunks, setAudioChunks] = useState([]);
+            const [isRecording, setIsRecording] = useState(false);
+            const [recordingDuration, setRecordingDuration] = useState(0);
+            const [recordingInterval, setRecordingInterval] = useState(null);
+            const [uploadProgress, setUploadProgress] = useState(null);
+            const [showPasteButton, setShowPasteButton] = useState(false);
+            const [sendParticles, setSendParticles] = useState([]);
+            const messagesEndRef = useRef(null);
+            const chatInputRef = useRef(null);
 
-            React.useEffect(() => {
-                document.body.setAttribute('data-theme', theme);
-                document.body.className = `text-${fontSize}`;
-            }, [theme, fontSize]);
+            useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [messages]);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const handleInputChange = (e) => {
+                setInputText(e.target.value);
+                setIsTyping(e.target.value.length > 0);
+                if (quotedMessage) {
+                    const mention = `@${quotedMessage.Usuario.replace(/\s/g, '')} `;
+                    if (!e.target.value.startsWith(mention)) {
+                        setQuotedMessage(null);
+                    }
+                }
+                setShowPasteButton(e.target.value.length === 0 && !!navigator.clipboard?.readText);
+                resizeInput();
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    handleSendMessage();
+                }
+            };
             
-            React.useEffect(() => {
-                if (chatError) {
-                    const timer = setTimeout(() => {
-                        setChatError(null);
-                    }, 5000);
-                    return () => clearTimeout(timer);
+            const resizeInput = () => {
+                const input = chatInputRef.current;
+                if (input) {
+                    const rightWidth = inputText.trim() ? 135 : 90;
+                    input.style.paddingRight = `${rightWidth}px`;
+                    const leftWidth = showPasteButton ? 55 : 16;
+                    input.style.paddingLeft = `${leftWidth}px`;
                 }
-            }, [chatError]);
+            };
 
-            const updateTypingStatus = async (isTyping) => {
-                if (!currentUserId) return;
-                try {
-                    await axios({
-                        method: 'PATCH',
-                        url: `https://api.baserow.io/api/database/rows/table/314649/${currentUserId}/?user_field_names=true`,
-                        headers: { Authorization: `Token ${apiToken}` },
-                        data: { digitandotruefalse: isTyping ? 'true' : 'false', DigitandoUser: currentUser }
-                    });
-                } catch (error) {
-                    setChatError('Falha ao atualizar status de digitação.');
-                }
+            useEffect(() => {
+                resizeInput();
+                window.addEventListener('resize', resizeInput);
+                return () => window.removeEventListener('resize', resizeInput);
+            }, [isRecording, inputText, showPasteButton]);
+
+            const handleSendMessage = () => {
+                if (inputText.trim() === '') return;
+                const newMessage = {
+                    id: generateRandomId(),
+                    Usuario: 'Anônimo',
+                    FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                    DIGIOTOU: inputText,
+                    DATAENVIO: new Date().toISOString(),
+                    mensacao: '0',
+                    laughs: '0',
+                    sads: '0',
+                    is_read: false,
+                    quotedMsg: quotedMessage
+                };
+                setMessages(prevMessages => [...prevMessages, newMessage]);
+                setInputText('');
+                setIsTyping(false);
+                setQuotedMessage(null);
+                
+                // Particle Effect
+                const newParticles = Array.from({ length: 15 }, (_, i) => ({
+                    id: i,
+                    size: `${Math.random() * 5 + 2}px`,
+                    x: `${(Math.random() - 0.5) * 60}px`,
+                    y: `${-Math.random() * 60 - 20}px`
+                }));
+                setSendParticles(newParticles);
+                setTimeout(() => setSendParticles([]), 1000);
+
+                setTimeout(() => scrollToBottom(), 100);
             };
-            const fetchUserData = async () => {
-                try {
-                    const response = await axios({
-                        method: 'GET',
-                        url: 'https://api.baserow.io/api/database/rows/table/221009/?user_field_names=true',
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    const activeUserRow = response.data.results.find(row => row.ultimoclick && row.ultimoclick.trim() !== '');
-                    if (activeUserRow) {
-                        setCurrentUserId(activeUserRow.id);
-                        setUserData({ Usuario: activeUserRow.NOME, FOTOPERFIL: activeUserRow.PERFIL });
-                        await axios({
-                            method: 'PATCH',
-                            url: `https://api.baserow.io/api/database/rows/table/221009/${activeUserRow.id}/?user_field_names=true`,
-                            headers: { Authorization: `Token ${apiToken}` },
-                            data: { ultimoclick: '' }
-                        });
-                    } else {
-                        console.log('Nenhum usuário ativo encontrado. Usando dados mock.');
-                        setCurrentUserId(340);
-                        setUserData(mockUserData);
-                    }
-                } catch (error) {
-                    setChatError('Falha ao carregar dados do usuário. Recarregue a página.');
-                    setCurrentUserId(340);
-                    setUserData(mockUserData);
-                }
+
+            const handleLike = (id, currentLikes) => {
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        msg.id === id ? { ...msg, mensacao: (parseInt(currentLikes, 10) + 1).toString() } : msg
+                    )
+                );
             };
-            const fetchMessages = async () => {
-                try {
-                    const response = await axios({
-                        method: 'GET',
-                        url: 'https://api.baserow.io/api/database/rows/table/459281/?user_field_names=true',
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    const results = response.data.results;
-                    const processedMessages = results.map(msg => {
-                        if (msg.QuotedId) {
-                            const quotedId = parseInt(msg.QuotedId, 10);
-                            const quotedMsg = results.find(m => m.id === quotedId);
-                            return { ...msg, quotedMsg };
-                        }
-                        return msg;
-                    });
-                    setMessages(processedMessages);
-                } catch (error) {
-                    setChatError('Falha ao carregar mensagens. Tente novamente mais tarde.');
-                    setMessages(mockMessages);
-                }
+
+            const handleLaugh = (id, currentLaughs) => {
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        msg.id === id ? { ...msg, laughs: (parseInt(currentLaughs, 10) + 1).toString() } : msg
+                    )
+                );
             };
-            const fetchTypingStatus = async () => {
-                try {
-                    const response = await axios({
-                        method: 'GET',
-                        url: 'https://api.baserow.io/api/database/rows/table/314649/?user_field_names=true',
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    const typingData = response.data.results.find(user => user.digitandotruefalse === 'true' && user.DigitandoUser !== currentUser);
-                    if (typingData) {
-                        setTypingUser(typingData.DigitandoUser);
-                        const userResponse = await axios({
-                            method: 'GET',
-                            url: `https://api.baserow.io/api/database/rows/table/221009/?user_field_names=true`,
-                            headers: { Authorization: `Token ${apiToken}` }
-                        });
-                        const userData = userResponse.data.results.find(user => user.NOME === typingData.DigitandoUser);
-                        setTypingUserData(userData || mockTypingUser);
-                    } else {
-                        setTypingUser(null);
-                        setTypingUserData(null);
-                    }
-                } catch (error) {
-                    setChatError('Falha ao verificar status de digitação.');
-                    setTypingUser(null);
-                    setTypingUserData(null);
-                }
+
+            const handleSad = (id, currentSads) => {
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        msg.id === id ? { ...msg, sads: (parseInt(currentSads, 10) + 1).toString() } : msg
+                    )
+                );
             };
-            const likeMessage = async (id, currentLikes) => {
-                try {
-                    const newCount = parseInt(currentLikes || '0', 10) + 1;
-                    await axios({
-                        method: 'PATCH',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
-                        data: { mensacao: newCount.toString() },
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    fetchMessages();
-                } catch (error) {
-                    setChatError('Não foi possível curtir a mensagem.');
-                }
+
+            const handleQuote = (message) => {
+                setQuotedMessage(message);
+                setInputText(`@${message.Usuario.replace(/\s/g, '')} `);
+                document.querySelector('.chat-input').focus();
             };
-            const laughMessage = async (id, currentLaughs) => {
-                try {
-                    const newCount = parseInt(currentLaughs || '0', 10) + 1;
-                    await axios({
-                        method: 'PATCH',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
-                        data: { laughs: newCount.toString() },
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    fetchMessages();
-                } catch (error) {
-                    setChatError('Não foi possível reagir com riso.');
-                }
+
+            const handleImageClick = (url) => {
+                setShowFullscreenImage(url);
             };
-            const sadMessage = async (id, currentSads) => {
-                try {
-                    const newCount = parseInt(currentSads || '0', 10) + 1;
-                    await axios({
-                        method: 'PATCH',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
-                        data: { sads: newCount.toString() },
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    fetchMessages();
-                } catch (error) {
-                    setChatError('Não foi possível reagir com tristeza.');
-                }
+
+            const closeFullscreenImage = () => {
+                setShowFullscreenImage(null);
             };
-            const votePoll = async (id, option) => {
-                try {
-                    const response = await axios({
-                        method: 'GET',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    const currentPoll = response.data.EnqueteArmazenamento ? JSON.parse(response.data.EnqueteArmazenamento) : { votes: {} };
-                    const newVotes = { ...currentPoll.votes };
-                    newVotes[option] = (newVotes[option] || 0) + 1;
-                    await axios({
-                        method: 'PATCH',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/?user_field_names=true`,
-                        data: { EnqueteArmazenamento: JSON.stringify({ ...currentPoll, votes: newVotes }) },
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    fetchMessages();
-                } catch (error) {
-                    setChatError('Não foi possível votar na enquete.');
-                }
-            };
-            const deleteMessage = async (id) => {
-                try {
-                    await axios({
-                        method: 'DELETE',
-                        url: `https://api.baserow.io/api/database/rows/table/459281/${id}/`,
-                        headers: { Authorization: `Token ${apiToken}` }
-                    });
-                    fetchMessages();
-                } catch (error) {
-                    setChatError('Falha ao apagar mensagem.');
-                }
-            };
-            const deleteAllMessages = async () => {
-                const password = prompt('Digite a senha para apagar todas as mensagens:');
+
+            const deleteAllMessages = () => {
+                const password = prompt('Tem certeza que deseja apagar TODAS as mensagens?');
                 if (password === 'admincordeiro') {
-                    try {
-                        for (const msg of messages) {
-                            await axios({
-                                method: 'DELETE',
-                                url: `https://api.baserow.io/api/database/rows/table/459281/${msg.id}/`,
-                                headers: { Authorization: `Token ${apiToken}` }
-                            });
-                        }
-                        fetchMessages();
-                    } catch (error) {
-                        setChatError('Falha ao apagar todas as mensagens.');
-                    }
+                    setMessages([]);
                 } else {
-                    setChatError('Senha incorreta para apagar mensagens.');
+                    console.error('Senha incorreta!');
                 }
             };
-            const addPollOption = () => {
-                setPollOptions([...pollOptions, '']);
+
+            const handleDeleteMessage = (id) => {
+                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== id));
             };
-            const removePollOption = (index) => {
-                const newOptions = [...pollOptions];
-                newOptions.splice(index, 1);
-                setPollOptions(newOptions);
+
+            const handleCopyText = (text) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Texto copiado para a área de transferência!');
+                }).catch(err => {
+                    console.error('Falha ao copiar texto: ', err);
+                });
             };
+
+            const toggleFab = () => {
+                setFabOpen(prev => !prev);
+                setShowThemeMenu(false);
+                setShowFontMenu(false);
+            };
+
+            const toggleThemeMenu = (e) => {
+                e.stopPropagation();
+                setShowThemeMenu(prev => !prev);
+                setShowFontMenu(false);
+            };
+
+            const toggleFontMenu = (e) => {
+                e.stopPropagation();
+                setShowFontMenu(prev => !prev);
+                setShowThemeMenu(false);
+            };
+
+            const changeTheme = (newTheme) => {
+                document.documentElement.setAttribute('data-theme', newTheme);
+                setTheme(newTheme);
+                setShowThemeMenu(false);
+            };
+
+            const changeFontSize = (size) => {
+                document.documentElement.className = `text-${size}`;
+                setShowFontMenu(false);
+            };
+
+            const handleUploadPhoto = () => {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onloadstart = () => setUploadProgress(0);
+                        reader.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const percent = Math.round((event.loaded / event.total) * 100);
+                                setUploadProgress(percent);
+                            }
+                        };
+                        reader.onload = (e) => {
+                            setUploadProgress(100);
+                            const newMessage = {
+                                id: generateRandomId(),
+                                Usuario: 'Anônimo',
+                                FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                                DIGIOTOU: null,
+                                DATAENVIO: new Date().toISOString(),
+                                ArquivosGravados: [{ url: e.target.result, is_image: true, mime_type: file.type }],
+                                mensacao: '0',
+                                laughs: '0',
+                                sads: '0',
+                                is_read: false
+                            };
+                            setMessages(prevMessages => [...prevMessages, newMessage]);
+                            setTimeout(() => {
+                                setUploadProgress(null);
+                                scrollToBottom();
+                            }, 500);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                fileInput.click();
+                setFabOpen(false);
+            };
+
+            const handleUploadAudio = () => {
+                alert('Funcionalidade de upload de áudio em desenvolvimento.');
+                setFabOpen(false);
+            };
+
+            const handleUploadVideo = () => {
+                alert('Funcionalidade de upload de vídeo em desenvolvimento.');
+                setFabOpen(false);
+            };
+
+            const handlePasteText = async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    setInputText(text);
+                    setShowPasteButton(false);
+                } catch (err) {
+                    console.error('Falha ao colar: ', err);
+                }
+            };
+
+            const handleRecordAudio = async () => {
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    setIsRecording(false);
+                    clearInterval(recordingInterval);
+                } else {
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        const newMediaRecorder = new MediaRecorder(stream);
+                        newMediaRecorder.start();
+                        setIsRecording(true);
+                        setRecordingDuration(0);
+                        const interval = setInterval(() => {
+                            setRecordingDuration(prev => prev + 1);
+                        }, 1000);
+                        setRecordingInterval(interval);
+                        setAudioChunks([]);
+                        newMediaRecorder.ondataavailable = (e) => {
+                            setAudioChunks(prev => [...prev, e.data]);
+                        };
+                        newMediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            const newMessage = {
+                                id: generateRandomId(),
+                                Usuario: 'Anônimo',
+                                FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                                DIGIOTOU: null,
+                                DATAENVIO: new Date().toISOString(),
+                                ArquivosGravados: [{ url: audioUrl, mime_type: 'audio/webm' }],
+                                mensacao: '0',
+                                laughs: '0',
+                                sads: '0',
+                                is_read: false
+                            };
+                            setMessages(prevMessages => [...prevMessages, newMessage]);
+                            stream.getTracks().forEach(track => track.stop());
+                            setTimeout(() => scrollToBottom(), 100);
+                        };
+                        setMediaRecorder(newMediaRecorder);
+                    } catch (error) {
+                        alert('Não foi possível iniciar a gravação: ' + error.message);
+                        setIsRecording(false);
+                    }
+                }
+            };
+
+            const openPollModal = () => {
+                setIsPollModalOpen(true);
+                setFabOpen(false);
+            };
+
+            const closePollModal = () => {
+                setIsPollModalOpen(false);
+                setPollQuestion('');
+                setPollOptions(['', '', '']);
+            };
+
             const handlePollOptionChange = (index, value) => {
                 const newOptions = [...pollOptions];
                 newOptions[index] = value;
                 setPollOptions(newOptions);
             };
-            const handleCreatePoll = async () => {
-                if (pollQuestion && pollOptions.every(opt => opt.trim())) {
-                    await handleSendMessage({ isPoll: true, question: pollQuestion, options: pollOptions });
-                    setPollQuestion('');
-                    setPollOptions(['', '']);
-                    setShowPollModal(false);
-                } else {
-                    alert('Por favor, preencha a pergunta e todas as opções.');
-                }
-            };
-            const uploadFile = async (file, fileName) => {
-                try {
-                    const formData = new FormData();
-                    formData.append('file', file, fileName);
-                    const response = await axios({
-                        method: 'POST',
-                        url: 'https://api.baserow.io/api/user-files/upload-file/',
-                        headers: { Authorization: `Token ${apiToken}`, 'Content-Type': 'multipart/form-data' },
-                        data: formData,
-                        onUploadProgress: (progressEvent) => {
-                            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                            setUploadProgress(percentCompleted);
-                        }
-                    });
-                    setUploadProgress(null);
-                    return response.data;
-                } catch (error) {
-                    setChatError('Erro ao fazer upload do arquivo. O arquivo pode ser muito grande ou o servidor está fora do ar.');
-                    setUploadProgress(null);
-                    return null;
-                }
-            };
-            const handleSendMessage = async (fileData = null) => {
-                if (inputText.trim() || fileData) {
-                    try {
-                        const data = {
-                            Usuario: currentUser,
-                            DIGIOTOU: inputText || (fileData && !fileData.isAudio && !fileData.isPoll ? fileData.url : ''),
-                            DATAENVIO: new Date().toISOString(),
-                            FOTOPERFIL: userData?.FOTOPERFIL || defaultProfilePic,
-                            mensacao: '0'
-                        };
-                        if (quotedMessage) { data.QuotedId = quotedMessage.id.toString(); }
-                        if (fileData && fileData.isAudio) { data.ArquivosGravados = [{ url: fileData.url, name: fileData.name, mime_type: "audio/webm" }]; }
-                        if (fileData && fileData.isImage) { data.ArquivosGravados = [{ url: fileData.url, name: fileData.name, is_image: true }]; }
-                        if (fileData && fileData.isVideo) { data.ArquivosGravados = [{ url: fileData.url, name: fileData.name, mime_type: "video/mp4" }]; }
-                        if (fileData && fileData.isPoll) { data.DIGIOTOU = fileData.question; data.EnqueteArmazenamento = JSON.stringify({ question: fileData.question, options: fileData.options, votes: {} }); }
-                        await axios({
-                            method: 'POST',
-                            url: 'https://api.baserow.io/api/database/rows/table/459281/?user_field_names=true',
-                            data,
-                            headers: { Authorization: `Token ${apiToken}` }
-                        });
-                        setInputText('');
-                        setQuotedMessage(null);
-                        await fetchMessages();
-                        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-                    } catch (error) {
-                        setChatError('Falha ao enviar a mensagem. Verifique sua conexão e tente novamente.');
-                        setInputText('');
-                        setQuotedMessage(null);
-                    }
-                }
-            };
-            const handleImageClick = (src) => { setFullscreenImage(src); };
-            const closeFullscreenImage = () => { setFullscreenImage(null); };
-            const handleRecordAudio = async () => {
-                if (isRecording) {
-                    if (mediaRecorder) { mediaRecorder.stop(); }
-                    setFabOpen(false);
+
+            const createPoll = () => {
+                const validOptions = pollOptions.filter(opt => opt.trim() !== '');
+                if (pollQuestion.trim() === '' || validOptions.length < 2) {
+                    alert('A enquete precisa de uma pergunta e no mínimo duas opções.');
                     return;
                 }
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const recorder = new MediaRecorder(stream);
-                    const audioChunks = [];
-                    const startTime = Date.now();
-                    const durationInterval = setInterval(() => { setRecordingDuration(Math.floor((Date.now() - startTime) / 1000)); }, 1000);
-                    recorder.ondataavailable = (event) => { audioChunks.push(event.data); };
-                    recorder.onstop = async () => {
-                        clearInterval(durationInterval);
-                        setRecordingDuration(0);
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const audioFile = await uploadFile(audioBlob, `audio_${Date.now()}.webm`);
-                        if (audioFile) { await handleSendMessage({ ...audioFile, isAudio: true }); }
-                        stream.getTracks().forEach(track => track.stop());
-                        setIsRecording(false);
-                        setMediaRecorder(null);
-                    };
-                    recorder.onerror = (error) => {
-                        clearInterval(durationInterval);
-                        setRecordingDuration(0);
-                        setChatError('Erro na gravação de áudio. Verifique as permissões do microfone.');
-                        stream.getTracks().forEach(track => track.stop());
-                        setIsRecording(false);
-                        setMediaRecorder(null);
-                    };
-                    recorder.start();
-                    setMediaRecorder(recorder);
-                    setIsRecording(true);
-                    setFabOpen(false);
-                } catch (error) {
-                    setChatError('Não foi possível acessar o microfone. Verifique as permissões.');
-                    setIsRecording(false);
-                }
-            };
-            const handleCopyText = (text) => {
-                setCopiedText(text);
-                setShowPasteButton(true);
-                setTimeout(() => {
-                    setShowPasteButton(false);
-                }, 5000);
-            };
-            const handlePasteText = () => {
-                setInputText(copiedText);
-                setShowPasteButton(false);
-                setCopiedText('');
-            };
-            
-            // Camera and QR Code functions
-            const [isCameraOpen, setIsCameraOpen] = React.useState(false);
-            const [cameraFacingMode, setCameraFacingMode] = React.useState('environment');
-            const videoRef = React.useRef(null);
-            
-            const openCamera = async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: cameraFacingMode },
-                        audio: false
-                    });
-                    videoRef.current.srcObject = stream;
-                    videoRef.current.play();
-                    setIsCameraOpen(true);
-                } catch (error) {
-                    setChatError('Falha ao acessar a câmera. Verifique as permissões.');
-                }
+                const newPoll = {
+                    question: pollQuestion,
+                    options: validOptions,
+                    votes: validOptions.map(() => 0),
+                };
+                const newMessage = {
+                    id: generateRandomId(),
+                    Usuario: 'Anônimo',
+                    FOTOPERFIL: 'https://i.postimg.cc/Ssk9kkHb/1757343420124.png',
+                    DIGIOTOU: null,
+                    DATAENVIO: new Date().toISOString(),
+                    EnqueteArmazenamento: JSON.stringify(newPoll),
+                    mensacao: '0',
+                    laughs: '0',
+                    sads: '0',
+                    is_read: false
+                };
+                setMessages(prevMessages => [...prevMessages, newMessage]);
+                closePollModal();
+                setTimeout(() => scrollToBottom(), 100);
             };
 
-            const closeCamera = () => {
-                const stream = videoRef.current.srcObject;
-                const tracks = stream.getTracks();
-                tracks.forEach(track => track.stop());
+            const handleVote = (messageId, optionIndex) => {
+                setMessages(prevMessages =>
+                    prevMessages.map(msg => {
+                        if (msg.id === messageId && msg.EnqueteArmazenamento) {
+                            const pollData = JSON.parse(msg.EnqueteArmazenamento);
+                            if (pollData) {
+                                const newVotes = [...pollData.votes];
+                                newVotes[optionIndex] += 1;
+                                const updatedPollData = { ...pollData, votes: newVotes };
+                                return { ...msg, EnqueteArmazenamento: JSON.stringify(updatedPollData) };
+                            }
+                        }
+                        return msg;
+                    })
+                );
+            };
+
+            const handleScan = (decodedText) => {
+                setQrCodeResult(decodedText);
+                alert('QR Code detectado: ' + decodedText);
                 setIsCameraOpen(false);
-                Quagga.stop();
+                if (qrScanner) {
+                    qrScanner.stop().then(() => {
+                        console.log("QR Code scanner stopped.");
+                    }).catch(err => {
+                        console.error("Failed to stop QR code scanner.", err);
+                    });
+                }
             };
 
-            const switchCamera = () => {
-                closeCamera();
-                const newFacingMode = cameraFacingMode === 'user' ? 'environment' : 'user';
-                setCameraFacingMode(newFacingMode);
-                openCamera();
+            const handleError = (err) => {
+                console.error("QR Code scanner error: ", err);
             };
 
-            const takePhoto = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = videoRef.current.videoWidth;
-                canvas.height = videoRef.current.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob(async (blob) => {
-                    const file = new File([blob], `photo_${Date.now()}.png`, { type: 'image/png' });
-                    const fileData = await uploadFile(file, file.name);
-                    if (fileData) { await handleSendMessage({ ...fileData, isImage: true }); }
-                    closeCamera();
-                }, 'image/png');
-            };
-
-            const startQrScanner = () => {
-                Quagga.init({
-                    inputStream: {
-                        name: "Live",
-                        type: "LiveStream",
-                        target: videoRef.current,
-                        constraints: {
-                            facingMode: cameraFacingMode
-                        }
-                    },
-                    decoder: {
-                        readers: ["qrcode_reader"]
-                    }
-                }, function (err) {
-                    if (err) {
-                        setChatError('Erro ao iniciar o leitor de QR Code.');
-                        return;
-                    }
-                    Quagga.start();
-                });
-                Quagga.onDetected(function(result) {
-                    if (result.codeResult) {
-                        const qrCodeValue = result.codeResult.code;
-                        setInputText(qrCodeValue);
-                        closeCamera();
-                    }
-                });
-            };
-            React.useEffect(() => {
+            useEffect(() => {
                 if (isCameraOpen) {
-                    openCamera();
+                    const html5QrCode = new Html5Qrcode("qr-scanner-video");
+                    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                    html5QrCode.start({ facingMode: "environment" }, config, handleScan, handleError)
+                        .then(() => {
+                            setQrScanner(html5QrCode);
+                            console.log("QR Code scanner started.");
+                        }).catch(err => {
+                            console.error("Failed to start QR code scanner: ", err);
+                            setIsCameraOpen(false);
+                        });
                 }
-            }, [isCameraOpen, cameraFacingMode]);
-            
-            React.useEffect(() => {
-                const qrContainer = document.getElementById('qr-scanner-container');
-                const closeButton = document.getElementById('close-qr-scanner');
-                const videoElement = document.getElementById('qr-scanner-video');
-                const photoButton = document.getElementById('photo-button');
-                const qrButton = document.getElementById('qr-button');
-                const switchButton = document.getElementById('switch-camera-button');
-
-                videoRef.current = videoElement;
-
-                if (isCameraOpen) {
-                    qrContainer.classList.add('open');
-                } else {
-                    qrContainer.classList.remove('open');
-                }
-
-                closeButton.onclick = closeCamera;
-                photoButton.onclick = takePhoto;
-                qrButton.onclick = startQrScanner;
-                switchButton.onclick = switchCamera;
-
                 return () => {
-                    closeButton.onclick = null;
-                    photoButton.onclick = null;
-                    qrButton.onclick = null;
-                    switchButton.onclick = null;
-                };
-            }, [isCameraOpen, cameraFacingMode, takePhoto, startQrScanner, switchCamera]);
-            
-            const handleUploadPhoto = () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            const fileData = await uploadFile(file, file.name);
-                            if (fileData) { await handleSendMessage({ ...fileData, isImage: true }); }
-                        } catch (error) {
-                            setChatError('Falha ao enviar a foto. Tente novamente.');
-                        }
+                    if (qrScanner) {
+                        qrScanner.stop().then(() => {
+                            console.log("QR Code scanner stopped on unmount.");
+                        }).catch(err => {
+                            console.error("Failed to stop QR code scanner on unmount.", err);
+                        });
                     }
                 };
-                input.click();
-                setFabOpen(false);
-            };
-            const handleUploadAudio = () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'audio/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            const fileData = await uploadFile(file, file.name);
-                            if (fileData) { await handleSendMessage({ ...fileData, isAudio: true }); }
-                        } catch (error) {
-                            setChatError('Falha ao enviar o áudio. Tente novamente.');
-                        }
-                    }
-                };
-                input.click();
-                setFabOpen(false);
-            };
-            const handleUploadVideo = () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'video/*';
-                input.onchange = async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            const fileData = await uploadFile(file, file.name);
-                            if (fileData) { await handleSendMessage({ ...fileData, isVideo: true }); }
-                        } catch (error) {
-                            setChatError('Falha ao enviar o vídeo. Tente novamente.');
-                        }
-                    }
-                };
-                input.click();
-                setFabOpen(false);
-            };
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                    setFabOpen(false);
-                }
-            };
-            const handleInputChange = (e) => {
-                setInputText(e.target.value);
-                updateTypingStatus(e.target.value.length > 0);
-            };
-            const toggleFab = () => { setFabOpen(!fabOpen); setShowThemeMenu(false); setShowFontMenu(false); };
-            const toggleThemeMenu = () => { setShowThemeMenu(!showThemeMenu); setShowFontMenu(false); };
-            const toggleFontMenu = () => { setShowFontMenu(!showFontMenu); setShowThemeMenu(false); };
-            const changeTheme = (newTheme) => { setTheme(newTheme); setShowThemeMenu(false); setFabOpen(false); };
-            const changeFontSize = (newSize) => { setFontSize(newSize); setShowFontMenu(false); setFabOpen(false); };
-            const openPollModal = () => { setFabOpen(false); setShowPollModal(true); };
-            const closePollModal = () => { setShowPollModal(false); setPollQuestion(''); setPollOptions(['', '']); };
-
-            React.useEffect(() => {
-                const initializeApp = async () => {
-                    try {
-                        await fetchUserData();
-                        await fetchMessages();
-                        await fetchTypingStatus();
-                    } catch (error) {
-                        setChatError('Falha na inicialização do chat. Recarregue a página.');
-                    } finally {
-                        setTimeout(() => {
-                            setIsLoading(false);
-                            const loadingScreen = document.getElementById('loading-screen');
-                            if (loadingScreen) { loadingScreen.classList.add('hidden'); }
-                        }, 1000);
-                    }
-                };
-                initializeApp();
-                const messageInterval = setInterval(fetchMessages, 5000);
-                const typingInterval = setInterval(fetchTypingStatus, 2000);
-                return () => {
-                    clearInterval(messageInterval);
-                    clearInterval(typingInterval);
-                    if (mediaRecorder) { mediaRecorder.stop(); }
-                };
-            }, [currentUserId]);
-
-            React.useEffect(() => {
-                const handleClickOutside = (event) => {
-                    if (!event.target.closest('.fab-container') && !event.target.closest('.fab-sub-menu') && !event.target.closest('.modal')) {
-                        setShowThemeMenu(false);
-                        setShowFontMenu(false);
-                        setFabOpen(false);
-                    }
-                };
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => { document.removeEventListener('mousedown', handleClickOutside); };
-            }, []);
+            }, [isCameraOpen]);
 
             return (
-                <div className="chat-container">
+                <div className="chat-container bg-gray-100 dark:bg-gray-900 transition-all duration-300">
+                    <LoadingScreen />
                     <ParticlesBackground />
-                    <ErrorMessage message={chatError} onClose={() => setChatError(null)} />
-                    <div className="chat-header"></div>
-                    <div className="chat-messages">
-                        {messages.map((msg) => (
-                            <ChatMessage
-                                key={msg.id}
-                                id={msg.id}
-                                Usuario={msg.Usuario}
-                                DIGIOTOU={msg.DIGIOTOU}
-                                DATAENVIO={msg.DATAENVIO}
-                                FOTOPERFIL={msg.FOTOPERFIL}
-                                isRight={msg.Usuario === currentUser}
-                                mensacao={msg.mensacao}
-                                laughs={msg.laughs}
-                                sads={msg.sads}
-                                ArquivosGravados={msg.ArquivosGravados}
-                                quotedMsg={msg.quotedMsg}
-                                EnqueteArmazenamento={msg.EnqueteArmazenamento}
-                                citacao={msg.citacao}
-                                onLike={likeMessage}
-                                onLaugh={laughMessage}
-                                onSad={sadMessage}
-                                onQuote={setQuotedMessage}
-                                onImageClick={handleImageClick}
-                                onDelete={deleteMessage}
-                                onVote={votePoll}
-                                onCopyText={handleCopyText}
-                            />
-                        ))}
-                        {typingUser && (<TypingIndicator user={typingUser} avatar={typingUserData?.PERFIL || defaultProfilePic} />)}
+                    <header className="chat-header">
+                        <div className="flex items-center">
+                            <img src="https://i.postimg.cc/Ssk9kkHb/1757343420124.png" alt="Profile" className="w-10 h-10 rounded-full object-cover mr-4" />
+                            <h1 className="text-lg font-bold">Chat Bot</h1>
+                        </div>
+                        <i className="fas fa-trash-alt global-delete-button" onClick={deleteAllMessages}></i>
+                    </header>
+                    <main className="chat-messages flex flex-col overflow-y-auto p-4">
+                        {messages.map((msg, index) => {
+                            const isRight = msg.Usuario === 'Anônimo';
+                            return (
+                                <ChatMessage
+                                    key={msg.id}
+                                    id={msg.id}
+                                    Usuario={msg.Usuario}
+                                    DIGIOTOU={msg.DIGIOTOU}
+                                    DATAENVIO={msg.DATAENVIO}
+                                    FOTOPERFIL={msg.FOTOPERFIL}
+                                    isRight={isRight}
+                                    mensacao={msg.mensacao}
+                                    laughs={msg.laughs}
+                                    sads={msg.sads}
+                                    ArquivosGravados={msg.ArquivosGravados}
+                                    quotedMsg={msg.quotedMsg}
+                                    EnqueteArmazenamento={msg.EnqueteArmazenamento}
+                                    onLike={handleLike}
+                                    onLaugh={handleLaugh}
+                                    onSad={handleSad}
+                                    onQuote={handleQuote}
+                                    onImageClick={handleImageClick}
+                                    onDelete={handleDeleteMessage}
+                                    onVote={handleVote}
+                                    onCopyText={handleCopyText}
+                                />
+                            );
+                        })}
                         <div ref={messagesEndRef} />
-                    </div>
+                    </main>
+                    {isTyping && (
+                        <div className="typing-indicator flex items-center justify-center">
+                            <img src="https://i.postimg.cc/Ssk9kkHb/1757343420124.png" alt="Avatar" className="typing-avatar" />
+                            <span className="typing-text">Digitando...</span>
+                            <div className="dot"></div>
+                            <div className="dot"></div>
+                            <div className="dot"></div>
+                        </div>
+                    )}
                     <div className="chat-footer">
                         {isRecording && <RecordingAnimation duration={recordingDuration} />}
                         {uploadProgress !== null && <ProgressBar progress={uploadProgress} />}
@@ -1887,32 +1845,53 @@
                             </div>
                         )}
                         <div className="input-container relative">
-                            <button className={`fab-action ${isRecording ? 'recording' : ''}`} onClick={handleRecordAudio} title={isRecording ? 'Parar gravação' : 'Gravar áudio'} disabled={isRecording && !mediaRecorder}>
-                                <i className="fas fa-microphone"></i>
-                            </button>
-                            <button className="fab-action" onClick={() => setIsCameraOpen(true)} title="Abrir Câmera">
-                                <i className="fas fa-camera"></i>
-                            </button>
-                            <div className="flex-grow relative">
-                                <input
-                                    type="text"
-                                    className="chat-input pr-12"
-                                    placeholder="Digite uma mensagem..."
-                                    value={inputText}
-                                    onChange={handleInputChange}
-                                    onKeyPress={handleKeyPress}
-                                />
+                            <input
+                                type="text"
+                                className="chat-input"
+                                placeholder="Digite uma mensagem..."
+                                value={inputText}
+                                onChange={handleInputChange}
+                                onKeyPress={handleKeyPress}
+                                ref={chatInputRef}
+                            />
+                            <div className="input-icons-wrapper">
                                 <button
-                                    className={`send-button absolute right-2 top-1/2 transform -translate-y-1/2 ${inputText.trim() ? 'visible' : ''}`}
-                                    onClick={() => handleSendMessage()}
+                                    className="fab-action"
+                                    onClick={() => setIsCameraOpen(true)}
+                                    title="Abrir Câmera"
+                                >
+                                    <i className="fas fa-camera"></i>
+                                </button>
+                                <button
+                                    className={`fab-action ${isRecording ? 'recording' : ''}`}
+                                    onClick={handleRecordAudio}
+                                    title={isRecording ? 'Parar gravação' : 'Gravar áudio'}
+                                >
+                                    <i className="fas fa-microphone"></i>
+                                </button>
+                                <button
+                                    className={`send-button ${inputText.trim() ? 'visible' : ''}`}
+                                    onClick={handleSendMessage}
                                     disabled={!inputText.trim()}
                                     title="Enviar mensagem"
                                 >
                                     <i className="fas fa-paper-plane"></i>
+                                    {sendParticles.map(p => (
+                                        <div
+                                            key={p.id}
+                                            className="particle-effect"
+                                            style={{
+                                                width: p.size,
+                                                height: p.size,
+                                                '--x': p.x,
+                                                '--y': p.y
+                                            }}
+                                        ></div>
+                                    ))}
                                 </button>
                             </div>
-                            <button 
-                                className={`paste-button ${showPasteButton ? 'visible' : ''}`} 
+                            <button
+                                className={`paste-button ${showPasteButton ? 'visible' : ''}`}
                                 onClick={handlePasteText}
                                 title="Colar texto copiado"
                             >
@@ -1965,44 +1944,54 @@
                             </div>
                         </div>
                     </div>
-                    {fullscreenImage && (<FullscreenImage src={fullscreenImage} onClose={closeFullscreenImage} />)}
-                    <div className={`modal-overlay ${showPollModal ? 'open' : ''}`}>
-                        <div className="modal">
-                            <h2 className="modal-header">Criar Enquete</h2>
+                    {showFullscreenImage && (
+                        <div className="fullscreen-image" onClick={closeFullscreenImage}>
+                            <img src={showFullscreenImage} alt="Fullscreen" />
+                            <button className="close-button">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                    )}
+                    <div className={`modal-overlay ${isPollModalOpen ? 'open' : ''}`} onClick={closePollModal}>
+                        <div className="modal" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">Criar Enquete</div>
                             <input
                                 type="text"
                                 className="modal-input"
-                                placeholder="Qual a sua pergunta?"
+                                placeholder="Pergunta da enquete"
                                 value={pollQuestion}
                                 onChange={(e) => setPollQuestion(e.target.value)}
                             />
                             {pollOptions.map((option, index) => (
-                                <div key={index} className="flex gap-2 items-center">
-                                    <input
-                                        type="text"
-                                        className="modal-input flex-grow"
-                                        placeholder={`Opção ${index + 1}`}
-                                        value={option}
-                                        onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                                    />
-                                    {pollOptions.length > 2 && (
-                                        <button className="modal-button" onClick={() => removePollOption(index)}>
-                                            <i className="fas fa-times text-red-500"></i>
-                                        </button>
-                                    )}
-                                </div>
+                                <input
+                                    key={index}
+                                    type="text"
+                                    className="modal-input"
+                                    placeholder={`Opção ${index + 1}`}
+                                    value={option}
+                                    onChange={(e) => handlePollOptionChange(index, e.target.value)}
+                                />
                             ))}
-                            <button className="modal-button" onClick={addPollOption}><i className="fas fa-plus mr-2"></i>Adicionar opção</button>
-                            <div className="modal-buttons mt-4">
+                            <div className="modal-buttons">
                                 <button className="modal-button cancel" onClick={closePollModal}>Cancelar</button>
-                                <button className="modal-button create" onClick={handleCreatePoll} disabled={!pollQuestion.trim() || pollOptions.some(opt => !opt.trim())}>Criar Enquete</button>
+                                <button className="modal-button create" onClick={createPoll}>Criar</button>
                             </div>
+                        </div>
+                    </div>
+                    <div id="qr-scanner-container" className={isCameraOpen ? 'open' : ''}>
+                        <div className="camera-preview-box">
+                            <video id="qr-scanner-video" playsInline autoPlay></video>
+                        </div>
+                        <div id="interactive-camera-content"></div>
+                        <div id="qr-camera-buttons">
+                            <button className="qr-camera-button" onClick={() => setIsCameraOpen(false)}>Fechar Câmera</button>
                         </div>
                     </div>
                 </div>
             );
         };
-        ReactDOM.render(<ChatApp />, document.getElementById('root'));
+
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
