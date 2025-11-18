@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-orientation" content="landscape">
-    <title>Sinuca Avançado - Mira Aprimorada</title>
+    <title>Sinuca Avançado - IA com Efeitos</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Estilos base e de reset */
@@ -14,46 +14,43 @@
             box-sizing: border-box;
             touch-action: manipulation;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
-            /* Alteração para alinhar o conteúdo no topo e centralizar */
             display: flex;
-            justify-content: center; /* Centraliza horizontalmente */
-            align-items: flex-start; /* Alinha no topo verticalmente */
+            justify-content: center;
+            align-items: flex-start;
             min-height: 100vh;
             color: #E0FBFC;
             padding: 5px;
-            overflow-x: hidden; 
+            overflow-x: hidden;
         }
-
         /* ------------------------------------------------------------------ */
         /* ESTRUTURA PRINCIPAL E CENTRALIZAÇÃO */
         /* ------------------------------------------------------------------ */
         #gameWrapper {
             display: flex;
             align-items: center;
-            justify-content: flex-start; 
+            justify-content: flex-start;
             width: 100%;
-            max-width: 1100px; 
-            /* Alteração: Altura automática para se ajustar ao topo */
-            height: auto; 
-            max-height: 98vh; 
-            flex-direction: column; 
-            padding-top: 5px; 
+            max-width: 1100px;
+            height: auto;
+            max-height: 98vh;
+            flex-direction: column;
+            padding-top: 5px;
             flex-shrink: 0;
+            position: relative; /* Necessário para o tooltip de nudge */
         }
-        
+       
         #topControls {
             display: flex;
-            gap: 15px;
-            margin-bottom: 5px; 
-            height: 40px;
+            flex-direction: row;
+            gap: 5px;
+            margin-bottom: 5px;
+            height: auto;
             flex-shrink: 0;
             align-items: center;
         }
-
         #message {
             font-size: 14px;
             font-weight: 600;
@@ -63,20 +60,19 @@
             flex-shrink: 0;
             width: 800px;
             text-align: center;
-            margin-bottom: 0px; 
+            margin-bottom: 0px;
             text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
         }
-        
+       
         #gameLayout {
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            /* Alteração: Altura automática */
-            height: auto; 
-            min-height: 400px; 
+            height: auto;
+            min-height: 400px;
         }
-        
+       
         #gameContainer {
             display: flex;
             flex-direction: column;
@@ -84,9 +80,8 @@
             justify-content: center;
             height: 100%;
             padding: 0 5px;
-            flex-shrink: 1; 
+            flex-shrink: 1;
         }
-
         /* Canvas (Mesa de Sinuca) */
         #canvas {
             border: 6px solid #4a3424;
@@ -100,8 +95,40 @@
             flex-shrink: 0;
             margin: 0;
         }
-        
-        /* Media Query para mobile horizontal */
+
+        /* ------------------------------------------------------------------ */
+        /* NOVO: Tooltip de "Nudge" (Aviso de Branca na Mão) */
+        /* ------------------------------------------------------------------ */
+        #nudgeTooltip {
+            display: none;
+            position: absolute;
+            background: #FFD700;
+            color: #1b263b;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            z-index: 2000;
+            transform: translate(-50%, -100%); /* Coloca acima do ponto (X centralizado, Y acima) */
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        /* Seta do balão */
+        #nudgeTooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%; /* Na base do balão */
+            left: 50%;
+            margin-left: -8px;
+            border-width: 8px;
+            border-style: solid;
+            border-color: #FFD700 transparent transparent transparent;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Media Query para mobile horizontal (ADAPTAÇÃO CHAT + JOGADORES) */
+        /* ------------------------------------------------------------------ */
         @media (max-width: 1024px) {
             #gameWrapper {
                 max-width: 100%;
@@ -109,8 +136,8 @@
                 padding-top: 2px;
             }
             #canvas {
-                width: 70vw; 
-                height: 35vw; 
+                width: 70vw;
+                height: 35vw;
                 max-height: 350px;
                 max-width: 700px;
             }
@@ -118,128 +145,138 @@
                 width: 100%;
                 font-size: 12px;
             }
+            /* Adaptação das Sidebars */
             #playerSidebar {
                  margin-right: 2px;
-                 width: 80px; 
-                 gap: 10px;
+                 width: 85px;
+                 gap: 5px;
                  max-height: 350px;
+                 justify-content: flex-start; /* Alinha no topo */
+            }
+            .player-card {
+                padding: 5px;
             }
             .player-card h4 {
-                 font-size: 10px; 
+                 font-size: 10px;
             }
             .player-details p {
                  font-size: 8px;
             }
+            .profile-pic {
+                width: 25px;
+                height: 25px;
+                font-size: 14px !important;
+            }
             #scoreContainer {
-                width: 120px; 
+                width: 40px; /* Mais estreito */
                 max-height: 350px;
+                padding: 5px 2px;
             }
             #scoreContainer h3 {
-                font-size: 12px;
+                font-size: 10px;
             }
             .sunk-ball {
-                width: 14px;
-                height: 14px;
+                width: 12px;
+                height: 12px;
+                font-size: 7px;
+            }
+            /* Chat otimizado para landscape mobile */
+            #chatContainer {
+                width: 85px; /* Largura do playerSidebar */
+                height: 100px;
                 font-size: 8px;
+                padding: 3px;
+                margin-top: 5px;
+            }
+            .chat-message {
+                margin-bottom: 1px;
             }
         }
-
         /* ------------------------------------------------------------------ */
         /* SIDEBAR ESQUERDA: CARDS DOS JOGADORES */
         /* ------------------------------------------------------------------ */
         #playerSidebar {
-            width: 120px; 
+            width: 120px;
             height: 100%;
             max-height: 400px;
-            margin-right: 5px; 
+            margin-right: 5px;
             display: flex;
             flex-direction: column;
-            justify-content: center; 
+            justify-content: center;
             align-items: center;
-            padding: 8px 0; 
-            gap: 15px; 
+            padding: 8px 0;
+            gap: 15px;
         }
-
         .player-card {
-            --progress: 100%; 
+            --progress: 100%;
             --neon-color: #00A896;
             --base-color: #1a273a;
-            --border-width: 4px; /* Nova variável para largura da borda */
-            
+            --border-width: 4px;
+           
             background: linear-gradient(145deg, #1f3044, #121c29);
-            border-radius: 12px; 
+            border-radius: 12px;
             padding: 8px;
             width: 100%;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             transition: all 0.3s ease, transform 0.3s, background 0.3s;
             position: relative;
-            border: var(--border-width) solid var(--base-color); /* Borda padrão */
+            border: var(--border-width) solid var(--base-color);
             overflow: hidden;
         }
-
-        /* ESTILOS DE PROGRESSO ATUALIZADOS COM BORDER-IMAGE */
-        
-        /* Ocultei a div .timer-display pois não é mais necessária para esta técnica */
+       
         .timer-display {
-             display: none; 
+             display: none;
         }
-        
+       
         .player-card.active {
             transform: scale(1.05);
             background: linear-gradient(145deg, #2a405a, #1a273a);
             box-shadow: 0 6px 25px var(--neon-color, rgba(0,168,150,0.5));
-            animation: none; 
-            
-            /* Efeito de Borda Animada para Progresso */
+            animation: none;
+           
             border-style: solid;
             border-width: var(--border-width);
             border-image-source: conic-gradient(
-                var(--neon-color) var(--progress), 
+                var(--neon-color) var(--progress),
                 transparent var(--progress)
             );
             border-image-slice: 1;
             border-image-width: var(--border-width);
-            transition: border-image-source 1s linear; /* Suaviza a atualização do progresso */
+            transition: border-image-source 1s linear;
         }
-        
-        /* Estilo para quando o tempo está baixo */
+       
         .player-card.active[data-time-low='true'] {
             animation: neon-pulse-low 0.7s ease-in-out infinite alternate;
-            /* Adiciona um pulso de cor na borda */
             border-image-source: conic-gradient(
-                #FF4500 var(--progress), 
+                #FF4500 var(--progress),
                 transparent var(--progress)
             );
         }
-
         @keyframes neon-pulse-low {
             0% { box-shadow: 0 0 10px var(--neon-color); }
             100% { box-shadow: 0 0 20px var(--neon-color), 0 0 30px var(--neon-color); }
         }
-        
-        /* Remove a borda da classe inativa para que a cor base apareça */
+       
         .player-card:not(.active) {
             border: var(--border-width) solid var(--base-color);
             border-image: none;
             transition: all 0.3s ease;
         }
-
         .player-header {
             display: flex;
             align-items: center;
-            margin-bottom: 5px; 
+            margin-bottom: 5px;
         }
-        
+       
         .player-info {
             position: relative;
             z-index: 2;
         }
-
         .profile-pic {
-            width: 35px; 
+            width: 35px;
             height: 35px;
             border-radius: 50%;
-            margin-right: 5px; 
+            margin-right: 5px;
             background: #36495E;
             border: 2px solid var(--neon-color, #00A896);
             overflow: hidden;
@@ -247,152 +284,166 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px; 
+            font-size: 18px;
             color: #E0FBFC;
             box-shadow: 0 0 8px rgba(0,168,150,0.4);
             transition: transform 0.3s, box-shadow 0.3s;
         }
-        
+       
         .player-card h4 {
-            display: none; 
+            display: none;
         }
-        
+       
         .player-details {
             padding-left: 4px;
             border-left: 2px solid rgba(255,255,255,0.2);
         }
-        
+       
         .player-details p {
             font-size: 10px;
             opacity: 0.95;
-            line-height: 1.3; 
-            margin: 1px 0; 
+            line-height: 1.3;
+            margin: 1px 0;
         }
-
         .player-details .ball-type {
             font-weight: bold;
-            color: #4A90E2; 
+            color: #4A90E2;
         }
         .player-details span#p1Balls, .player-details span#p2Balls {
              font-weight: bold;
              color: #FFD700;
         }
-        
+       
         .player-effect {
-            margin-top: 5px; 
-            padding: 3px; 
+            margin-top: 5px;
+            padding: 3px;
             background: rgba(0,0,0,0.25);
-            border-radius: 6px; 
+            border-radius: 6px;
             text-align: center;
-            font-size: 8px; 
+            font-size: 8px;
             color: #FFD700;
             box-shadow: inset 0 0 4px rgba(255,215,0,0.25);
         }
-        
+       
         .player-effect span {
             font-weight: bold;
-            color: var(--neon-color, #00A896); 
+            color: var(--neon-color, #00A896);
         }
-        
-        /* PLACAR (SCORE CONTAINER) e CONTROLES permanecem inalterados */
+       
+        /* PLACAR (SCORE CONTAINER) MODIFICADO PARA TUBO PEQUENO */
         #scoreContainer {
-            width: 150px; 
+            width: 60px;
             height: 100%;
             max-height: 400px;
-            margin-left: 5px; 
+            margin-left: 5px;
             background: linear-gradient(145deg, #0e1a2b, #070e17);
-            border-radius: 12px;
-            padding: 10px;
+            border-radius: 30px;
+            padding: 10px 5px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.3);
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        
+       
         #scoreContainer h3 {
-            font-size: 15px;
+            font-size: 12px;
             text-align: center;
             color: #E0FBFC;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #00A896;
-            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #00A896;
+            padding-bottom: 3px;
             text-shadow: 0 0 5px rgba(0,168,150,0.5);
         }
-        
-        #sunkBallsScroll {
+       
+        #sunkBallsTube {
             max-height: 350px;
             overflow-y: auto;
-            padding-right: 5px;
-        }
-        
-        .sunk-group {
-            margin-bottom: 10px;
-            padding: 5px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-        }
-        
-        .sunk-group h4 {
-            font-size: 11px;
-            color: #A9D6E5;
-            margin: 0 0 5px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .balls-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            min-height: 20px;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
         }
-        
+       
         .sunk-ball {
-            width: 18px; 
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 8px;
             font-weight: bold;
             color: black;
-            border: 2px solid rgba(255,255,255,0.6);
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.8), 0 2px 5px rgba(0,0,0,0.3); 
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.3);
             line-height: 1;
             transition: transform 0.1s;
         }
-
         .sunk-ball.eight {
             background-color: black !important;
             color: white !important;
-            border: 2px solid #FFD700;
+            border: 1px solid #FFD700;
         }
-
         /* Scrollbar styles (customized for dark theme) */
-        #sunkBallsScroll::-webkit-scrollbar {
-            width: 6px;
+        #sunkBallsTube::-webkit-scrollbar {
+            width: 4px;
         }
-
-        #sunkBallsScroll::-webkit-scrollbar-track {
+        #sunkBallsTube::-webkit-scrollbar-track {
             background: #0e1a2b;
             border-radius: 10px;
         }
-
-        #sunkBallsScroll::-webkit-scrollbar-thumb {
+        #sunkBallsTube::-webkit-scrollbar-thumb {
             background: #36495E;
             border-radius: 10px;
         }
-
-        #sunkBallsScroll::-webkit-scrollbar-thumb:hover {
+        #sunkBallsTube::-webkit-scrollbar-thumb:hover {
             background: #506a86;
         }
-
-
         /* ------------------------------------------------------------------ */
-        /* CONTROLES */
+        /* Mini Chat abaixo do player sidebar (ESTILIZADO) */
+        /* ------------------------------------------------------------------ */
+        #chatContainer {
+            width: 120px;
+            height: 100px;
+            background: linear-gradient(145deg, #1a273a, #0d1b2a); /* Fundo mais escuro */
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 15px; /* Mais espaço */
+            overflow-y: auto;
+            font-size: 10px;
+            color: #E0FBFC;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0,0,0,0.6);
+            border: 1px solid #4A90E2; /* Borda sutil */
+        }
+        #chatContainer::-webkit-scrollbar {
+            width: 4px;
+        }
+        #chatContainer::-webkit-scrollbar-thumb {
+            background: #00A896;
+            border-radius: 10px;
+        }
+        .chat-message {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            line-height: 1.3;
+        }
+        .bot-message {
+            color: #FFD700;
+            font-weight: 500;
+        }
+        .player-message {
+            color: #00A896;
+            font-weight: 500;
+            text-align: right;
+        }
+       
+        /* ------------------------------------------------------------------ */
+        /* CONTROLES E MODAL DE EFEITO (SEM ALTERAÇÃO GRANDE) */
         /* ------------------------------------------------------------------ */
         .control-btn {
-            font-size: 18px;
-            background: linear-gradient(45deg, #4A90E2 0%, #764ba2 100%); 
+            font-size: 14px;
+            background: linear-gradient(45deg, #4A90E2 0%, #764ba2 100%);
             color: white;
             border: none;
             cursor: pointer;
@@ -401,33 +452,31 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px; 
-            height: 40px; 
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             flex: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             z-index: 10;
         }
-        
+       
         .control-btn i {
-            font-size: 20px; 
+            font-size: 16px;
         }
-        
+       
         .control-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(0,0,0,0.8);
         }
-
         .control-btn:active {
             transform: scale(0.95);
         }
-        
+       
         #resetBtn {
             background: linear-gradient(45deg, #e74c3c, #c0392b);
         }
-
         /* ------------------------------------------------------------------ */
-        /* MODAL DE EFEITO (VISUAL MELHORADO) */
+        /* MODAL DE EFEITO */
         /* ------------------------------------------------------------------ */
         #effectModal {
             position: fixed;
@@ -435,77 +484,75 @@
             bottom: 20px;
             transform: translateX(-50%);
             width: 100%;
-            max-width: 260px; 
-            background: rgba(10, 25, 40, 0.95); /* Fundo escuro */
+            max-width: 260px;
+            background: rgba(10, 25, 40, 0.95);
             backdrop-filter: blur(5px);
-            border: 2px solid #4A90E2; /* Borda Neon Azul */
+            border: 2px solid #4A90E2;
             border-radius: 20px;
-            padding: 15px; 
+            padding: 15px;
             display: none;
             flex-direction: column;
             align-items: center;
             z-index: 1000;
-            box-shadow: 0 0 25px rgba(74, 144, 226, 0.8), inset 0 0 10px rgba(74, 144, 226, 0.5); /* Sombra Neon */
+            box-shadow: 0 0 25px rgba(74, 144, 226, 0.8), inset 0 0 10px rgba(74, 144, 226, 0.5);
             animation: slideUp 0.4s ease-out;
         }
-        
+       
         @keyframes slideUp {
             from { bottom: -100px; opacity: 0; }
             to { bottom: 20px; opacity: 1; }
         }
-
         #effectControl h3 {
              font-size: 16px;
              margin-bottom: 5px;
              color: #E0FBFC;
              text-shadow: 0 0 5px #4A90E2;
         }
-        
+       
         #effectBoardWrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
         }
-
         #effectBoard {
             width: 140px;
             height: 140px;
-            background-color: #1a3450; /* Fundo mais escuro */
+            background-color: #1a3450;
             border-radius: 50%;
-            border: 3px solid #00A896; /* Borda Neon Verde */
+            border: 3px solid #00A896;
             position: relative;
             cursor: pointer;
             box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 168, 150, 0.6);
         }
-
         #effectMarker {
             width: 18px;
             height: 18px;
-            background-color: #FF4500; /* Laranja Vívido */
+            background-color: #FF4500;
             border-radius: 50%;
             position: absolute;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px rgba(255, 69, 0, 1); /* Glow Forte */
+            box-shadow: 0 0 15px rgba(255, 69, 0, 1);
         }
-
         #effectLabels {
             position: absolute;
             width: 100%;
             height: 100%;
         }
 
+        /* --- Labels do Efeito --- */
         .effect-label {
             position: absolute;
-            font-size: 9px;
+            font-size: 11px;
             color: #ddd;
             font-weight: bold;
             text-shadow: 0 0 3px black;
         }
-        .effect-label.top { top: 8px; left: 50%; transform: translateX(-50%); }
-        .effect-label.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
-        .effect-label.left { left: 8px; top: 50%; transform: translateY(-50%); }
-        .effect-label.right { right: 8px; top: 50%; transform: translateY(-50%); }
+        .effect-label.label-top { top: 8px; left: 50%; transform: translateX(-50%); }
+        .effect-label.label-bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+        .effect-label.label-left { left: 8px; top: 50%; transform: translateY(-50%); }
+        .effect-label.label-right { right: 8px; top: 50%; transform: translateY(-50%); }
+        /* --- Fim --- */
 
         #effectDisplayWrapper {
             margin-top: 5px;
@@ -514,7 +561,7 @@
             font-weight: bold;
             text-shadow: 0 0 5px rgba(0, 168, 150, 0.4);
         }
-        
+       
         #powerBar {
             width: 100%;
             height: 15px;
@@ -524,14 +571,15 @@
             overflow: hidden;
             margin-top: 10px;
         }
-        
+       
         #powerFill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #00A896, #4A90E2, #FFD700);
-            transition: width 0.1s linear;
+            background: #00FFFF; /* Azul neon sem gradiente */
+            box-shadow: 0 0 15px #00FFFF, inset 0 0 5px #00FFFF;
+            transition: width 0.3s ease;
         }
-        
+       
         #closeEffectBtn {
             margin-top: 15px;
             width: 80%;
@@ -545,33 +593,83 @@
             box-shadow: 0 4px 10px rgba(0, 168, 150, 0.5);
             transition: all 0.2s;
         }
-
         #closeEffectBtn:hover {
             background: linear-gradient(45deg, #0077B6, #00A896);
             transform: scale(1.05);
+        }
+
+        /* ------------------------------------------------------------------ */
+        /* Overlay de Vitória Dourado */
+        /* ------------------------------------------------------------------ */
+        #winOverlay {
+            display: none; /* Começa escondido */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Fundo escuro */
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            backdrop-filter: blur(5px);
+        }
+
+        #winText {
+            font-size: 5vw; /* Tamanho grande e responsivo */
+            font-weight: 900;
+            color: #FFD700; /* Dourado */
+            text-align: center;
+            padding: 20px;
+            line-height: 1.2;
+            text-shadow: 
+                0 0 10px #FFD700, 
+                0 0 20px #FFD700, 
+                0 0 30px #FFA500, 
+                0 0 40px #FFA500;
+            animation: glow-win 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-win {
+            from {
+                transform: scale(1.0);
+                text-shadow: 
+                    0 0 10px #FFD700, 
+                    0 0 20px #FFD700, 
+                    0 0 30px #FFA500, 
+                    0 0 40px #FFA500;
+            }
+            to {
+                transform: scale(1.05);
+                text-shadow: 
+                    0 0 20px #FFD700, 
+                    0 0 30px #FFD700, 
+                    0 0 40px #FFA500, 
+                    0 0 50px #FFA500,
+                    0 0 60px #FFD700;
+            }
         }
     </style>
 </head>
 <body>
     <div id="gameWrapper">
-        
+       
         <div id="topControls">
             <button class="control-btn" id="effectBtn" title="Ajustar Efeito / Rotação"><i class="fas fa-bullseye"></i></button>
             <button class="control-btn" id="resetBtn" title="Reiniciar Jogo"><i class="fas fa-redo-alt"></i></button>
         </div>
-        
-        <div id="message"></div> 
-
+       
+        <div id="message"></div>
         <div id="gameLayout">
-            
+           
             <div id="playerSidebar">
                 <div class="player-card" id="player1Card">
                     <div class="timer-display" id="timeP1">
                         <div class="timer-progress"></div>
                     </div>
                     <div class="player-header">
-                         <div class="profile-pic">
-                            <span style="font-size: 20px;">👤</span> 
+                         <div class="profile-pic" style="--neon-color: #00A896;">
+                            <span style="font-size: 20px;">👤</span>
                          </div>
                         <div class="player-info">
                             <div class="player-details">
@@ -580,17 +678,16 @@
                             </div>
                         </div>
                     </div>
-                    
+                   
                     <div class="player-effect">Efeito: <span id="p1Effect">Centro</span></div>
                 </div>
-
-                <div class="player-card" id="player2Card">
+                <div class="player-card" id="player2Card" style="--neon-color: #FF4500;">
                     <div class="timer-display" id="timeP2">
                         <div class="timer-progress"></div>
                     </div>
                      <div class="player-header">
-                         <div class="profile-pic">
-                            <span style="font-size: 20px;">👥</span>
+                         <div class="profile-pic" style="--neon-color: #FF4500;">
+                            <span style="font-size: 20px;">🤖</span>
                          </div>
                         <div class="player-info">
                              <div class="player-details">
@@ -599,188 +696,213 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="player-effect">Efeito: <span id="p2Effect">Centro</span></div>
                 </div>
+                <div id="chatContainer">
+                    <div class="chat-message bot-message">🤖 Bem-vindo ao jogo! Eu sou o Bot, prepare-se para perder! 😈</div>
+                </div>
             </div>
-            
+           
             <div id="gameContainer">
                 <canvas id="canvas" width="800" height="400"></canvas>
             </div>
-
             <div id="scoreContainer">
-                <h3>🎱 PLACAR ENCAÇAPADAS</h3>
-                <div id="sunkBallsScroll">
-                    <div class="sunk-group">
-                        <h4>LISAS (1-7)</h4>
-                        <div class="balls-row" id="sunkLisas"></div>
-                    </div>
-                    <div class="sunk-group">
-                        <h4>LISTRADAS (9-15)</h4>
-                        <div class="balls-row" id="sunkListradas"></div>
-                    </div>
-                    <div class="sunk-group">
-                        <h4>BOLA 8</h4>
-                        <div class="balls-row" id="sunkOito"></div>
-                    </div>
-                </div>
+                <h3>🎱 TUBO</h3>
+                <div id="sunkBallsTube"></div>
             </div>
         </div>
-    </div>
 
+        <div id="nudgeTooltip"></div>
+    </div>
     <div id="effectModal">
         <div id="effectControl">
             <h3>🌀 AJUSTE DE EFEITO (ROTAÇÃO)</h3>
             <p style="font-size: 10px; margin-bottom: 5px; color: #9AADC9;">Arraste para definir o ponto de contato na bola branca.</p>
-            
+           
             <div id="effectBoardWrapper">
                 <div id="effectBoard">
                     <div id="effectMarker"></div>
                     <div id="effectLabels">
-                        <div class="effect-label top">TOP (MAIOR VEL. P/ FRENTE)</div>
-                        <div class="effect-label bottom">BOTTOM (MAIOR REVERSÃO)</div>
-                        <div class="effect-label left">ESPINAL ESQ.</div>
-                        <div class="effect-label right">ESPINAL DIR.</div>
+                        <div class="effect-label label-top">Acima</div>
+                        <div class="effect-label label-bottom">Baixo</div>
+                        <div class="effect-label label-left">Esq</div>
+                        <div class="effect-label label-right">Dir</div>
                     </div>
                 </div>
             </div>
-            
+           
             <div id="effectDisplayWrapper">Efeito: <span id="effectDisplay">Centro</span></div>
-            
+           
             <div id="powerBar">
                 <div id="powerFill"></div>
             </div>
-            
+           
             <button class="control-btn" id="closeEffectBtn">FECHAR</button>
         </div>
     </div>
+    
+    <div id="winOverlay">
+        <div id="winText"></div>
+    </div>
 
     <script>
+    // --- O script está no final do <body> ---
+
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-
         const CANVAS_WIDTH = 800;
         const CANVAS_HEIGHT = 400;
-        const MARGIN = 35; 
-        const HEAD_STRING_X = 200; 
-
+        const MARGIN = 35;
+        const HEAD_STRING_X = 200;
         canvas.width = CANVAS_WIDTH;
         canvas.height = CANVAS_HEIGHT;
-
         const config = {
             ballRadius: 10,
-            friction: 0.99, 
-            rollingFriction: 0.985, 
-            rollingThreshold: 0.5, 
+            friction: 0.99,
+            rollingFriction: 0.985,
+            rollingThreshold: 0.5,
             pocketRadius: 30,
             maxPower: 30,
-            cushionRestitution: 0.85, 
-            effectPower: {x: 0, y: 0}
+            cushionRestitution: 0.85,
+            effectPower: {x: 0, y: 0},
+            spinFriction: 0.98
         };
-
-        const MAX_TIME = 25; 
-
+        const MAX_TIME = 25;
+        let timerInterval = null;
+        let timeRemaining = MAX_TIME;
+        
+        // Timer para "Nudge"
+        let ballInHandNudgeTimer = null;
+        
+        // NOVO (Pedido 6): Timer para lembrete de mira
+        let aimReminderTimer = null;
+        let botAimReminderTimer = null;
+       
         const timer = {
-            interval: null,
-            timeRemaining: MAX_TIME,
-            
             start: function() {
-                if (this.interval) clearInterval(this.interval);
-                this.timeRemaining = MAX_TIME;
+                if (timerInterval) clearInterval(timerInterval);
+                timeRemaining = MAX_TIME;
                 this.updateUI();
-                
-                this.interval = setInterval(() => {
-                    this.timeRemaining--;
+               
+                timerInterval = setInterval(() => {
+                    if (gameState.shotInProgress || gameState.isWhiteBallInHand) return;
+                    timeRemaining--;
                     this.updateUI();
-
-                    if (this.timeRemaining <= 0) {
-                        clearInterval(this.interval);
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
                         handleTimeOut();
                     }
                 }, 1000);
+                
+                // NOVO (Pedido 6): Define o lembrete de 7 segundos
+                if (aimReminderTimer) clearTimeout(aimReminderTimer);
+                aimReminderTimer = setTimeout(showAimReminder, 7000);
             },
             stop: function() {
-                if (this.interval) clearInterval(this.interval);
-                this.interval = null;
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = null;
+                // NOVO (Pedido 6): Limpa o timer de lembrete
+                if (aimReminderTimer) clearTimeout(aimReminderTimer);
+                aimReminderTimer = null;
             },
-            
-            // FUNÇÃO updateUI MELHORADA PARA BORDER-IMAGE PROGRESS BAR
+           
             updateUI: function() {
+                // ... (código existente de updateUI) ...
                 const p = gameState.currentPlayer;
                 const activeCard = document.getElementById(`player${p}Card`);
                 const inactiveCard = document.getElementById(`player${p === 1 ? 2 : 1}Card`);
                 
-                const progress = this.timeRemaining / MAX_TIME;
-                let activeColor = '#00A896'; // Padrão
+                let progress = 1.0;
+                let activeColor = activeCard.style.getPropertyValue('--neon-color') || '#00A896';
                 let isTimeLow = false;
 
-                if (this.timeRemaining <= 5) {
-                    activeColor = '#E74C3C'; // Vermelho
-                    isTimeLow = true;
-                } else if (this.timeRemaining <= 10) {
-                    activeColor = '#F39C12'; // Amarelo
-                } 
-                
-                // Progressão de 100% (começo) até 0% (esgotado)
+                if (p === 1) { // Só aplica lógica de tempo ao jogador 1
+                    progress = timeRemaining / MAX_TIME;
+                    if (timeRemaining <= 5) {
+                        activeColor = '#E74C3C';
+                        isTimeLow = true;
+                    } else if (timeRemaining <= 10) {
+                        activeColor = '#F39C12';
+                    }
+                } else {
+                    activeColor = '#FF4500'; 
+                }
+               
                 const progressPercent = progress * 100;
-                
-                // Aplica a variável CSS para o border-image conic-gradient
+               
                 activeCard.style.setProperty('--progress', `${progressPercent}%`);
                 activeCard.style.setProperty('--neon-color', activeColor);
                 activeCard.classList.add('active');
-                activeCard.dataset.timeLow = isTimeLow; 
-                
+                activeCard.dataset.timeLow = isTimeLow;
+               
                 inactiveCard.classList.remove('active');
                 inactiveCard.dataset.timeLow = false;
                 inactiveCard.style.setProperty('--progress', '0%');
-                inactiveCard.style.setProperty('--neon-color', '#00A896');
+                inactiveCard.style.setProperty('--neon-color', inactiveCard.id === 'player1Card' ? '#00A896' : '#FF4500');
             }
         };
         
-        function handleTimeOut() {
-            showMessage(`TEMPO ESGOTADO! Jogador ${gameState.currentPlayer} perdeu a vez.`);
-            switchPlayer(true);
+        // NOVO (Pedido 6): Função para mostrar o lembrete
+        function showAimReminder() {
+            if (gameState.gameOver || gameState.shotInProgress || gameState.isWhiteBallInHand || gameState.isDragging || gameState.currentPlayer !== 1) return;
+            // Só mostra se a barra de mensagem estiver limpa
+            if (document.getElementById('message').textContent === '') {
+                // Mensagem exata pedida pelo usuário
+                showMessage('Clique e arraste a bola branca para trás para mirar', false);
+            }
         }
-        
+       
+        function handleTimeOut() {
+            showMessage(`TEMPO ESGOTADO! Jogador ${gameState.currentPlayer} perdeu a vez.`, true);
+            switchPlayer(true); // Falta por tempo esgotado
+        }
+       
         const pockets = [
-            {x: 30, y: 30, targetX: 10, targetY: 10},
-            {x: CANVAS_WIDTH / 2, y: 20, targetX: CANVAS_WIDTH / 2, targetY: 10},
-            {x: CANVAS_WIDTH - 30, y: 30, targetX: CANVAS_WIDTH - 10, targetY: 10},
-            {x: 30, y: CANVAS_HEIGHT - 30, targetX: 10, targetY: CANVAS_HEIGHT - 10},
-            {x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20, targetX: CANVAS_WIDTH / 2, targetY: CANVAS_HEIGHT - 10},
-            {x: CANVAS_WIDTH - 30, y: CANVAS_HEIGHT - 30, targetX: CANVAS_WIDTH - 10, targetY: CANVAS_HEIGHT - 10}
+            {id: 0, x: 30, y: 30, targetX: 10, targetY: 10},
+            {id: 1, x: CANVAS_WIDTH / 2, y: 20, targetX: CANVAS_WIDTH / 2, targetY: 10},
+            {id: 2, x: CANVAS_WIDTH - 30, y: 30, targetX: CANVAS_WIDTH - 10, targetY: 10},
+            {id: 3, x: 30, y: CANVAS_HEIGHT - 30, targetX: 10, targetY: CANVAS_HEIGHT - 10},
+            {id: 4, x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT - 20, targetX: CANVAS_WIDTH / 2, targetY: CANVAS_HEIGHT - 10},
+            {id: 5, x: CANVAS_WIDTH - 30, y: CANVAS_HEIGHT - 30, targetX: CANVAS_WIDTH - 10, targetY: CANVAS_HEIGHT - 10}
         ];
-
         let gameState = {
             currentPlayer: 1,
             player1Type: null,
             player2Type: null,
             whiteBall: null,
             balls: [],
-            cue: {x: 0, y: 0, power: 0, angle: 0, visible: false},
+            cue: {x: 0, y: 0, power: 0, angle: 0, visible: false, isAIAim: false}, // isAIAim para visualização
             isDragging: false,
-            isWhiteBallDragging: false, 
-            isWhiteBallInHand: false,   
+            isWhiteBallDragging: false,
+            isWhiteBallInHand: false,
             gameOver: false,
             shotInProgress: false,
-            firstBallHit: null, 
+            firstBallHit: null,
             ballsPocketedInShot: [],
-            sunkBalls: {
-                lisas: [],
-                listradas: [],
-                oito: [],
-                branca: [] 
-            } 
-        };
+            sunkBalls: [],
+            isVsAI: true,
+            
+            // --- ESTADOS DA IA (PARA ANIMAÇÃO) ---
+            aiState: 'idle', // 'idle', 'scanning', 'locking', 'shooting'
+            aiCandidates: [],
+            aiBestShot: null,
+            aiScanIndex: 0,
+            aiTarget: { angle: 0, power: 0, effect: {x: 0, y: 0} }, // IA agora tem um alvo de efeito
+            aiCurrent: { angle: 0, power: 0, effect: {x: 0, y: 0} },
+            aiScanTimeout: null,
+            aiFinalShotTimeout: null,
 
+            // Estado do "Nudge"
+            whiteBallNudge: { x: 0, y: 0, active: false }
+        };
         const ballColors = [
-            '#FFFF00', '#0000FF', '#FF0000', '#800080', '#FF8C00', 
+            '#FFFF00', '#0000FF', '#FF0000', '#800080', '#FF8C00',
             '#008000', '#8B0000', '#000000', '#FFFF00', '#0000FF',
             '#FF0000', '#800080', '#FF8C00', '#008000', '#8B0000'
         ];
-        
+       
         class Ball {
-            constructor(x, y, number) {
+             constructor(x, y, number) {
                 this.x = x;
                 this.y = y;
                 this.vx = 0;
@@ -793,98 +915,89 @@
                 this.isStriped = number > 8 && number < 16;
                 this.isSolid = number > 0 && number < 8;
                 this.color = this.isCue ? '#FFFFFF' : ballColors[number - 1];
-                this.rotationAngle = 0; 
+                this.rotationAngle = Math.random() * Math.PI * 2;
+                this.angularVelocity = 0;
                 this.isRolling = false;
-                this.isFalling = false; 
+                this.isFalling = false;
                 this.pocketTarget = null;
                 this.currentRadius = config.ballRadius;
                 this.pocketTimer = 0;
-                this.maxPocketTime = 30; 
+                this.maxPocketTime = 30;
             }
-
             update() {
+                // ... (código de update da bola) ...
                 if (this.pocketed) return;
-                
+               
                 if (this.isFalling) {
                     this.pocketTimer++;
-                    
                     const t = this.pocketTimer / this.maxPocketTime;
                     this.x = this.pocketTarget.x * t + this.x * (1 - t);
                     this.y = this.pocketTarget.y * t + this.y * (1 - t);
-                    
                     this.currentRadius = config.ballRadius * (1 - t);
-                    
                     this.vx *= 0.9;
                     this.vy *= 0.9;
-
+                    this.angularVelocity *= 0.9;
                     if (this.pocketTimer >= this.maxPocketTime) {
                         this.pocketed = true;
-                        handlePocket(this); 
+                        handlePocket(this);
                     }
                     return;
                 }
-
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                
+               
                 if (speed > 0.01) {
                     this.x += this.vx;
                     this.y += this.vy;
-                    
                     if (speed > config.rollingThreshold) {
-                        this.vx *= config.rollingFriction; 
+                        this.vx *= config.rollingFriction;
                         this.vy *= config.rollingFriction;
                         this.isRolling = true;
-                        
                         const rotationSpeed = speed / this.radius;
-                        this.rotationAngle += rotationSpeed * 0.15; 
+                        this.rotationAngle += this.angularVelocity + rotationSpeed * 0.15;
                     } else {
-                        this.vx *= config.friction; 
+                        this.vx *= config.friction;
                         this.vy *= config.friction;
                         this.isRolling = false;
                     }
-
+                    this.angularVelocity *= config.spinFriction;
                     if (this.rotationAngle > Math.PI * 2) this.rotationAngle -= Math.PI * 2;
                     if (this.rotationAngle < -Math.PI * 2) this.rotationAngle += Math.PI * 2;
-                    
                 } else {
                     this.vx = 0;
                     this.vy = 0;
+                    this.angularVelocity = 0;
                     this.isRolling = false;
                 }
-
-                // Colisão com as tabelas
                 
-                // Tabela esquerda e direita (buracos intermediários)
-                if ((this.y < MARGIN + 40 || this.y > CANVAS_HEIGHT - MARGIN - 40) ||
-                    (this.x > MARGIN + 40 && this.x < CANVAS_WIDTH - MARGIN - 40)) 
-                {
-                    // Tabelas superiores e inferiores (com gap no meio)
-                    if (this.y - this.radius < MARGIN && (this.x < CANVAS_WIDTH / 2 - config.pocketRadius * 0.7 || this.x > CANVAS_WIDTH / 2 + config.pocketRadius * 0.7)) {
-                        this.y = MARGIN + this.radius;
-                        this.vy *= -config.cushionRestitution;
-                    }
-                    if (this.y + this.radius > CANVAS_HEIGHT - MARGIN && (this.x < CANVAS_WIDTH / 2 - config.pocketRadius * 0.7 || this.x > CANVAS_WIDTH / 2 + config.pocketRadius * 0.7)) {
-                        this.y = CANVAS_HEIGHT - MARGIN - this.radius;
-                        this.vy *= -config.cushionRestitution;
-                    }
+                // Colisão com as tabelas
+                const isNearMiddlePocket = this.x > CANVAS_WIDTH / 2 - config.pocketRadius * 0.7 && this.x < CANVAS_WIDTH / 2 + config.pocketRadius * 0.7;
+                if (this.y - this.radius < MARGIN && !isNearMiddlePocket) {
+                    this.y = MARGIN + this.radius;
+                    this.vy *= -config.cushionRestitution;
+                    this.angularVelocity += this.vx * 0.05;
                 }
-
-                // Tabela esquerda e direita
+                if (this.y + this.radius > CANVAS_HEIGHT - MARGIN && !isNearMiddlePocket) {
+                    this.y = CANVAS_HEIGHT - MARGIN - this.radius;
+                    this.vy *= -config.cushionRestitution;
+                    this.angularVelocity += this.vx * 0.05;
+                }
                 if (this.x - this.radius < MARGIN) {
                     this.x = MARGIN + this.radius;
                     this.vx *= -config.cushionRestitution;
+                    this.angularVelocity += this.vy * 0.05;
                 }
                 if (this.x + this.radius > CANVAS_WIDTH - MARGIN) {
                     this.x = CANVAS_WIDTH - MARGIN - this.radius;
                     this.vx *= -config.cushionRestitution;
+                    this.angularVelocity += this.vy * 0.05;
                 }
-                
+               
                 // Colisão com os bolsos
                 for (let pocket of pockets) {
                     const dx = this.x - pocket.x;
                     const dy = this.y - pocket.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < config.pocketRadius * 0.9 && !this.isFalling) { 
+                    if (dist < config.pocketRadius * 0.9 && !this.isFalling) {
                         this.isFalling = true;
                         this.pocketTarget = pocket;
                         this.currentRadius = this.radius;
@@ -894,53 +1007,41 @@
                     }
                 }
             }
-            
+           
             draw() {
-                if (this.pocketed) return;
+                 // ... (código de draw da bola) ...
+                 if (this.pocketed) return;
+                 if (this.isCue && gameState.isWhiteBallInHand && !gameState.whiteBallNudge.active) return;
 
                 ctx.save();
-                
                 ctx.shadowColor = 'rgba(0,0,0,0.8)';
                 ctx.shadowBlur = 10;
                 ctx.shadowOffsetX = 3;
                 ctx.shadowOffsetY = 3;
-
                 ctx.translate(this.x, this.y);
-                
-                if (this.number !== 0) { 
+                if (this.number !== 0) {
                     ctx.rotate(this.rotationAngle);
                 }
-
                 const r = this.isFalling ? this.currentRadius : this.radius;
-
-                // Desenho da bola (Sólida, Listrada, 8, Branca)
+                
                 if (this.isStriped) {
                     ctx.fillStyle = this.color;
                     ctx.beginPath();
                     ctx.arc(0, 0, r, 0, Math.PI * 2);
                     ctx.fill();
-
                     ctx.shadowColor = 'transparent';
-                    
                     ctx.save();
-                    
                     ctx.beginPath();
                     ctx.arc(0, 0, r, 0, Math.PI * 2);
                     ctx.clip();
-                    
-                    // Faixa branca central
                     ctx.fillStyle = '#FFFFFF';
-                    const stripeWidth = r * 0.8; 
+                    const stripeWidth = r * 0.8;
                     ctx.fillRect(-stripeWidth / 2, -r, stripeWidth, r * 2);
-
-                    // Faixas brancas laterais
                     const sideStripeWidth = r * 0.1;
                     const offset = r * 0.8;
-                    
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(-offset - sideStripeWidth, -r, sideStripeWidth, r * 2);
                     ctx.fillRect(offset, -r, sideStripeWidth, r * 2);
-
                     ctx.restore();
                 } else {
                     ctx.fillStyle = this.color;
@@ -948,13 +1049,10 @@
                     ctx.arc(0, 0, r, 0, Math.PI * 2);
                     ctx.fill();
                 }
-
                 ctx.shadowColor = 'transparent';
-
-                // Reflexo de brilho
+                
                 const highlightX = -r * 0.4;
                 const highlightY = -r * 0.4;
-
                 const highlightGradient = ctx.createRadialGradient(
                     highlightX, highlightY, 0,
                     highlightX, highlightY, r * 0.8
@@ -962,130 +1060,122 @@
                 highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
                 highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
                 highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                
                 ctx.fillStyle = highlightGradient;
                 ctx.beginPath();
                 ctx.arc(highlightX, highlightY, r * 0.8, 0, Math.PI * 2);
                 ctx.fill();
-
-                // Detalhe do número da bola 
+                
                 if (this.number !== 0) {
-                        
                     ctx.fillStyle = '#FFFFFF';
                     ctx.beginPath();
-                    ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2); 
+                    ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
                     ctx.fill();
-
                     ctx.fillStyle = '#000000';
                     ctx.font = 'bold 11px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    
                     ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
                     ctx.shadowBlur = 3;
                     ctx.fillText(this.number, 0, 0);
-                        
                 }
-
-                ctx.restore(); 
+                ctx.restore();
             }
         }
+
+        // --- FUNÇÕES DE ANIMAÇÃO (LERP) ---
+        function lerp(start, end, amt) {
+            return (1 - amt) * start + amt * end;
+        }
+
+        function angleLerp(start, end, amt) {
+            let delta = end - start;
+            while (delta > Math.PI) delta -= 2 * Math.PI;
+            while (delta < -Math.PI) delta += 2 * Math.PI;
+            return start + delta * amt;
+        }
         
+        function lerpEffect(start, end, amt) {
+             return {
+                x: lerp(start.x, end.x, amt),
+                y: lerp(start.y, end.y, amt)
+             };
+        }
+
         function handleCollisions() {
-             for (let i = 0; i < gameState.balls.length; i++) {
-                for (let j = i + 1; j < gameState.balls.length; j++) {
-                    const b1 = gameState.balls[i];
-                    const b2 = gameState.balls[j];
-
-                    if (b1.pocketed || b2.pocketed || b1.isFalling || b2.isFalling) continue;
-
-                    const dx = b2.x - b1.x;
-                    const dy = b2.y - b1.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < b1.radius + b2.radius) {
-
-                        // Lógica de primeira bola tocada
-                        if (gameState.shotInProgress) {
-                            if (b1.number === 0 && b2.number !== 0 && gameState.firstBallHit === null) {
-                                gameState.firstBallHit = b2.isEight ? 'oito' : (b2.isStriped ? 'listrada' : 'lisa');
+            for (let iter = 0; iter < 10; iter++) { // Increased iterations
+                for (let i = 0; i < gameState.balls.length; i++) {
+                    for (let j = i + 1; j < gameState.balls.length; j++) {
+                        const b1 = gameState.balls[i];
+                        const b2 = gameState.balls[j];
+                        if (b1.pocketed || b2.pocketed || b1.isFalling || b2.isFalling) continue;
+                        let dx = b2.x - b1.x;
+                        let dy = b2.y - b1.y;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 0.01) {
+                            const randomAngle = Math.random() * Math.PI * 2;
+                            dx = Math.cos(randomAngle) * 0.01;
+                            dy = Math.sin(randomAngle) * 0.01;
+                            dist = 0.01;
+                        }
+                        if (dist < b1.radius + b2.radius) {
+                            if (gameState.shotInProgress) {
+                                if (b1.number === 0 && b2.number !== 0 && gameState.firstBallHit === null) {
+                                    gameState.firstBallHit = b2;
+                                }
+                                else if (b2.number === 0 && b1.number !== 0 && gameState.firstBallHit === null) {
+                                    gameState.firstBallHit = b1;
+                                }
                             }
-                            else if (b2.number === 0 && b1.number !== 0 && gameState.firstBallHit === null) {
-                                gameState.firstBallHit = b1.isEight ? 'oito' : (b1.isStriped ? 'listrada' : 'lisa');
+                            const angle = Math.atan2(dy, dx);
+                            const sin = Math.sin(angle);
+                            const cos = Math.cos(angle);
+                            const vx1 = b1.vx * cos + b1.vy * sin;
+                            const vy1 = b1.vy * cos - b1.vx * sin;
+                            const vx2 = b2.vx * cos + b2.vy * sin;
+                            const vy2 = b2.vy * cos - b2.vx * sin;
+                            const restitution = 0.95;
+                            const finalVx1 = ((vx1 * (1 - 1) + 2 * vx2) / 2) * restitution;
+                            const finalVx2 = ((vx2 * (1 - 1) + 2 * vx1) / 2) * restitution;
+                            b1.vx = finalVx1 * cos - vy1 * sin;
+                            b1.vy = vy1 * cos + finalVx1 * sin;
+                            b2.vx = finalVx2 * cos - vy2 * sin;
+                            b2.vy = vy2 * cos + finalVx2 * sin;
+                            const spinTransfer = 0.3;
+                            const deltaAngular = (vy1 - vy2) / (b1.radius + b2.radius);
+                            b1.angularVelocity += deltaAngular * spinTransfer;
+                            b2.angularVelocity -= deltaAngular * spinTransfer;
+                            const overlap = b1.radius + b2.radius - dist;
+                            b1.x -= overlap * cos / 2 * 1.05; // Increased overcorrection
+                            b1.y -= overlap * sin / 2 * 1.05;
+                            b2.x += overlap * cos / 2 * 1.05;
+                            b2.y += overlap * sin / 2 * 1.05;
+                            if (Math.random() < 0.2) {
+                                b1.rotationAngle += Math.PI;
+                                b2.rotationAngle += Math.PI;
                             }
                         }
-
-                        // Colisão: Conservação de momento
-                        const angle = Math.atan2(dy, dx);
-                        const sin = Math.sin(angle);
-                        const cos = Math.cos(angle);
-
-                        // Rotação do sistema de coordenadas
-                        const vx1 = b1.vx * cos + b1.vy * sin;
-                        const vy1 = b1.vy * cos - b1.vx * sin;
-                        const vx2 = b2.vx * cos + b2.vy * sin;
-                        const vy2 = b2.vy * cos - b2.vx * sin;
-
-                        // Troca de velocidades no eixo X
-                        const finalVx1 = vx2;
-                        const finalVx2 = vx1;
-                        
-                        // Rotação de volta ao sistema original
-                        b1.vx = finalVx1 * cos - vy1 * sin;
-                        b1.vy = vy1 * cos + finalVx1 * sin;
-                        b2.vx = finalVx2 * cos - vy2 * sin;
-                        b2.vy = vy2 * cos + finalVx2 * sin;
-
-                        // Separação para evitar grudar
-                        const overlap = b1.radius + b2.radius - dist;
-                        b1.x -= overlap * cos / 2;
-                        b1.y -= overlap * sin / 2;
-                        b2.x += overlap * cos / 2;
-                        b2.y += overlap * sin / 2;
                     }
                 }
             }
         }
-        
+       
         function handlePocket(ball) {
-            
-            if (!ball.pocketed) return; 
-
+           
+            if (!ball.pocketed) return;
             gameState.ballsPocketedInShot.push(ball);
-            
+            gameState.sunkBalls.push(ball.number);
             if (ball.isCue) {
-                gameState.sunkBalls.branca.push(0);
-                showMessage('FALTA! Branca encaçapada.');
+                showMessage('FALTA! Branca encaçapada.', true);
                 return;
             }
-
-            if (ball.isEight) {
-                if (!gameState.sunkBalls.oito.includes(8)) {
-                    gameState.sunkBalls.oito.push(8);
-                }
-            } else if (ball.isSolid) {
-                if (!gameState.sunkBalls.lisas.includes(ball.number)) {
-                    gameState.sunkBalls.lisas.push(ball.number);
-                }
-            } else if (ball.isStriped) {
-                if (!gameState.sunkBalls.listradas.includes(ball.number)) {
-                     gameState.sunkBalls.listradas.push(ball.number);
-                }
-            }
-
-            updateSunkBallsUI(); 
-
+            updateSunkBallsUI();
+            
             if (ball.isEight) {
                 const ownBallsRemaining = getOwnBallsRemaining(gameState.currentPlayer);
-                
                 if (ownBallsRemaining > 0 || gameState.player1Type === null) {
-                    gameState.gameOver = true;
-                    showMessage(`💀 JOGADOR ${gameState.currentPlayer === 1 ? 2 : 1} VENCEU! Bola 8 encaçapada cedo/com falta!`);
-                    timer.stop();
+                    showWinMessage(`💀 JOGADOR ${gameState.currentPlayer === 1 ? 2 : 1} VENCEU! 💀<br><small style='font-size: 0.5em'>Bola 8 encaçapada cedo!</small>`);
                 } else {
-                    gameState.gameOver = true;
-                    showMessage(`🎉 JOGADOR ${gameState.currentPlayer} VENCEU! 🎉`);
-                    timer.stop();
+                    showWinMessage(`🏆 JOGADOR ${gameState.currentPlayer} VENCEU! 🏆<br><small style='font-size: 0.5em'>Jogada perfeita!</small>`);
                 }
                 return;
             }
@@ -1099,217 +1189,263 @@
                     gameState.player2Type = gameState.currentPlayer === 1 ? 'listrada' : 'lisa';
                 }
             }
-
             updateUI();
         }
-
         function updateSunkBallsUI() {
-            const containerLisas = document.getElementById('sunkLisas');
-            const containerListradas = document.getElementById('sunkListradas');
-            const containerOito = document.getElementById('sunkOito');
-            
-            containerLisas.innerHTML = '';
-            containerListradas.innerHTML = '';
-            containerOito.innerHTML = '';
-
-            gameState.sunkBalls.lisas.sort((a, b) => a - b).forEach(number => {
-                addBallToContainer(containerLisas, number);
-            });
-
-            gameState.sunkBalls.listradas.sort((a, b) => a - b).forEach(number => {
-                addBallToContainer(containerListradas, number);
-            });
-
-            gameState.sunkBalls.oito.forEach(number => {
-                addBallToContainer(containerOito, number, true);
+            // ... (código de updateSunkBallsUI) ...
+            const container = document.getElementById('sunkBallsTube');
+            container.innerHTML = '';
+            gameState.sunkBalls.forEach(number => {
+                const ballDiv = document.createElement('div');
+                ballDiv.classList.add('sunk-ball');
+                if (number === 8) ballDiv.classList.add('eight');
+                const colorIndex = number - 1;
+                const ballColor = ballColors[colorIndex];
+                ballDiv.style.backgroundColor = ballColor;
+                ballDiv.style.color = number === 8 ? 'white' : 'black';
+                ballDiv.textContent = number;
+                container.appendChild(ballDiv);
             });
         }
-        
+       
         function addBallToContainer(container, number, isEight = false) {
+            // ... (código de addBallToContainer) ...
             const ballDiv = document.createElement('div');
             ballDiv.classList.add('sunk-ball');
             if (isEight) ballDiv.classList.add('eight');
-
-            const colorIndex = number - 1; 
+            const colorIndex = number - 1;
             const ballColor = ballColors[colorIndex];
-            
             ballDiv.style.backgroundColor = ballColor;
             ballDiv.style.color = number === 8 ? 'white' : 'black';
             ballDiv.textContent = number;
-            
             container.appendChild(ballDiv);
         }
-
         function allBallsStopped() {
-            return gameState.balls.every(ball => 
-                ball.pocketed || ball.isFalling || (Math.abs(ball.vx) < 0.01 && Math.abs(ball.vy) < 0.01)
+            return gameState.balls.every(ball =>
+                ball.pocketed || ball.isFalling || (Math.abs(ball.vx) < 0.01 && Math.abs(ball.vy) < 0.01 && Math.abs(ball.angularVelocity) < 0.01)
             );
         }
-
         function getOwnBallsRemaining(player) {
             const type = player === 1 ? gameState.player1Type : gameState.player2Type;
-            if (!type) return 7; 
-            
+            if (!type) return 7;
             const isStripedType = type === 'listrada';
-            
-            return gameState.balls.filter(b => 
+            return gameState.balls.filter(b =>
                 !b.pocketed && !b.isFalling && b.number > 0 && b.number !== 8 &&
                 ((!isStripedType && b.isSolid) || (isStripedType && b.isStriped))
             ).length;
         }
+        
+        function getPlayerWinProbability() {
+            const p1Remaining = getOwnBallsRemaining(1);
+            const p2Remaining = getOwnBallsRemaining(2);
+            return (p2Remaining / (p1Remaining + p2Remaining)) || 0.5;
+        }
+        
+        let checkShotInterval = null;
 
         function checkFoulsAndEndTurn() {
             gameState.shotInProgress = false;
-            timer.stop(); 
+            gameState.aiState = 'idle'; // A tacada terminou, IA está ociosa
+            timer.stop(); // Para o timer do jogador 1
             
+            clearInterval(checkShotInterval); // Limpa o intervalo de checagem
+           
             let isFoul = false;
-            let turnContinues = false; 
+            let turnContinues = false;
             let currentType = gameState.currentPlayer === 1 ? gameState.player1Type : gameState.player2Type;
             let ownBallsRemaining = getOwnBallsRemaining(gameState.currentPlayer);
-            
-            // 1. Falta Branca na Mão 
-            if (gameState.sunkBalls.branca.length > 0) {
-                showMessage('FALTA! Branca encaçapada (Branca na Mão).');
+           
+            // 1. Falta Branca na Mão
+            if (gameState.ballsPocketedInShot.some(b => b.isCue)) {
+                showMessage('FALTA! Branca encaçapada (Branca na Mão).', true);
                 isFoul = true;
-            } 
-            
+            }
             // 2. Não acertou nenhuma bola
             else if (gameState.firstBallHit === null) {
-                showMessage('FALTA! Não acertou nenhuma bola.');
+                showMessage('FALTA! Não acertou nenhuma bola.', true);
                 isFoul = true;
-            } 
-            
+            }
+           
             // 3. Checar bolas encaçapadas e acertadas
             let ownBallPocketed = false;
             let opponentBallPocketed = false;
             let eightBallPocketed = false;
-            
+            let ownBallPocketedByOpponent = false;
+           
             gameState.ballsPocketedInShot.forEach(ball => {
                 if (ball.isCue) return;
-                
                 if (ball.isEight) {
                     eightBallPocketed = true;
                 } else {
                     const ballType = ball.isStriped ? 'listrada' : 'lisa';
-                    
                     if (currentType === null || ballType === currentType) {
                         ownBallPocketed = true;
                     } else {
-                        opponentBallPocketed = false; // Não é uma falta por encaçapar a bola do oponente, apenas não continua o turno.
+                        opponentBallPocketed = true; // Adversária encaçapada
+                        // Verificar se foi por tabela e encaçapou própria
+                        if (gameState.firstBallHit && gameState.firstBallHit.number !== ball.number) {
+                            ownBallPocketedByOpponent = true;
+                        }
                     }
                 }
             });
-
+            
             // 4. Acertou a bola errada primeiro
-            if (currentType !== null) {
-                const targetType = ownBallsRemaining === 0 ? 'oito' : (currentType === 'lisa' ? 'lisa' : 'listrada');
-                const hitType = gameState.firstBallHit;
-                
+            if (currentType !== null && gameState.firstBallHit) {
+                const targetType = ownBallsRemaining === 0 ? 8 : (currentType === 'lisa' ? 'lisa' : 'listrada');
+                const hitBall = gameState.firstBallHit;
+                const hitType = hitBall.isEight ? 8 : (hitBall.isStriped ? 'listrada' : 'lisa');
                 if (hitType !== targetType) {
-                    showMessage(`FALTA! Acertou a bola ${hitType} primeiro, mas deveria ser ${targetType}!`);
+                    showMessage(`FALTA! Acertou a bola ${hitType} primeiro, mas deveria ser ${targetType}!`, true);
                     isFoul = true;
                 }
             }
             
-            // 5. Encaçapou a bola 8
+            // 5. Falta específica de tabela: mirou no outro e encaçapou própria
+            if (ownBallPocketedByOpponent && !isFoul) {
+                showMessage('FALTA! Bola própria encaçapada por tabela do adversário!', true);
+                isFoul = true;
+            }
+            
+            // 6. Encaçapou a bola 8 (CHECK FINAL)
             if (eightBallPocketed) {
                 if (isFoul || ownBallsRemaining > 0) {
-                    gameState.gameOver = true;
-                    showMessage(`💀 JOGADOR ${gameState.currentPlayer === 1 ? 2 : 1} VENCEU! Bola 8 encaçapada cedo/com falta!`);
+                    showWinMessage(`💀 JOGADOR ${gameState.currentPlayer === 1 ? 2 : 1} VENCEU! 💀<br><small style='font-size: 0.5em'>Bola 8 encaçapada com falta!</small>`);
                 } else {
-                    gameState.gameOver = true;
-                    showMessage(`🎉 JOGADOR ${gameState.currentPlayer} VENCEU! 🎉`);
+                    showWinMessage(`🏆 JOGADOR ${gameState.currentPlayer} VENCEU! 🏆<br><small style='font-size: 0.5em'>Jogada perfeita!</small>`);
                 }
-                timer.stop();
-                return; 
+                return;
             }
-            
-            // 6. Condição para continuar o turno
-            if (!isFoul && (ownBallPocketed || gameState.player1Type === null)) {
+           
+            // 7. Condição para continuar o turno
+            if (!isFoul && ownBallPocketed) {
                 turnContinues = true;
-            }
-            
-            // Ação final:
-            if (isFoul) {
-                gameState.sunkBalls.branca = [0]; 
-                switchPlayer(true); 
-            } else if (turnContinues) {
-                showMessage('Turno continua!');
-                timer.start(); 
+            } else if (isFoul) {
+                switchPlayer(true);
             } else {
-                showMessage('Fim de jogada. Troca de turno.');
-                switchPlayer(false); 
+                switchPlayer(false);
             }
-            
+           
+            // Ação final:
+            if (!gameState.gameOver) {
+                if (turnContinues) {
+                    showMessage('Turno continua!');
+                    if (gameState.currentPlayer === 1) {
+                        timer.start();
+                    } else if (gameState.isVsAI) {
+                        aiPlay();
+                    }
+                }
+            }
+
             gameState.firstBallHit = null;
             gameState.ballsPocketedInShot = [];
         }
 
+        function clearAITimers() {
+            if (gameState.aiScanTimeout) clearTimeout(gameState.aiScanTimeout);
+            if (gameState.aiFinalShotTimeout) clearTimeout(gameState.aiFinalShotTimeout);
+            gameState.aiScanTimeout = null;
+            gameState.aiFinalShotTimeout = null;
+        }
+
         function switchPlayer(foul = false) {
             if (gameState.gameOver) return;
-            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
             
+            // Limpa qualquer animação de mira da IA que possa estar ocorrendo
+            clearAITimers();
+            gameState.aiState = 'idle';
+
+            // Limpa o timer de "Nudge" ao trocar de jogador
+            if (ballInHandNudgeTimer) clearTimeout(ballInHandNudgeTimer);
+            document.getElementById('nudgeTooltip').style.display = 'none';
+            gameState.whiteBallNudge.active = false;
+            
+            // NOVO (Pedido 6): Limpa o lembrete de mira ao trocar de jogador
+            if (aimReminderTimer) clearTimeout(aimReminderTimer);
+            aimReminderTimer = null;
+
+
+            gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+           
             if (foul) {
-                 // Reposiciona a branca e ativa o modo "Branca na Mão"
                 gameState.whiteBall.pocketed = false;
                 gameState.whiteBall.isFalling = false;
                 gameState.whiteBall.currentRadius = config.ballRadius;
-                gameState.whiteBall.x = HEAD_STRING_X / 2; 
-                gameState.whiteBall.y = CANVAS_HEIGHT / 2;
+                if (!isCueBallPlacementValid(gameState.whiteBall.x, gameState.whiteBall.y)) {
+                    gameState.whiteBall.x = HEAD_STRING_X / 2;
+                    gameState.whiteBall.y = CANVAS_HEIGHT / 2;
+                }
                 gameState.whiteBall.vx = 0;
                 gameState.whiteBall.vy = 0;
-                gameState.isWhiteBallInHand = true; 
-                gameState.sunkBalls.branca = []; 
+                gameState.isWhiteBallInHand = true;
                 showMessage(`FALTA! Jogador ${gameState.currentPlayer} no turno (Branca na Mão). Arraste a branca.`);
+
+                // Inicia o timer de "Nudge" se for o Jogador 1
+                if (gameState.currentPlayer === 1) {
+                    ballInHandNudgeTimer = setTimeout(showBallInHandNudge, 5000);
+                }
+
             } else {
                 gameState.isWhiteBallInHand = false;
                 showMessage(`Jogador ${gameState.currentPlayer} no turno.`);
-                timer.start();
+            }
+            
+            // Inicia a jogada para o próximo
+            if (!gameState.gameOver) {
+                 if (gameState.currentPlayer === 1) {
+                    if (!gameState.isWhiteBallInHand) {
+                        timer.start();
+                    }
+                } else if (gameState.isVsAI) {
+                    timer.stop(); // Garante que o timer do P1 parou
+                    if (gameState.isWhiteBallInHand) {
+                        gameState.whiteBall.x = HEAD_STRING_X / 2;
+                        gameState.whiteBall.y = CANVAS_HEIGHT / 2;
+                        gameState.isWhiteBallInHand = false;
+                        showMessage('IA posicionou a branca.');
+                        aiPlay();
+                    } else {
+                        aiPlay();
+                    }
+                }
             }
 
             updateUI();
         }
-
+        
         function updateUI() {
             timer.updateUI(); 
-
             const type1 = gameState.player1Type;
             const type2 = gameState.player2Type;
             
-            const solidBallsSunk = gameState.sunkBalls.lisas.length;
-            const stripedBallsSunk = gameState.sunkBalls.listradas.length;
+            const solidBallsSunk = gameState.sunkBalls.filter(n => n > 0 && n < 8).length;
+            const stripedBallsSunk = gameState.sunkBalls.filter(n => n > 8 && n < 16).length;
             
             const solidBallsRemaining = 7 - solidBallsSunk;
             const stripedBallsRemaining = 7 - stripedBallsSunk;
-
-            // ATUALIZAÇÃO DO PAINEL DO JOGADOR
             
-            document.getElementById('p1Type').textContent = type1 ? 
-                (type1 === 'lisa' ? 'Lisas' : 'Listradas') : 'Sem Tipo';
-            document.getElementById('p2Type').textContent = type2 ? 
-                (type2 === 'lisa' ? 'Lisas' : 'Listradas') : 'Sem Tipo';
-                
-            document.getElementById('p1Balls').textContent = type1 === 'lisa' ? 
-                (solidBallsRemaining <= 0 ? '8 PENDENTE' : solidBallsRemaining) : 
-                (type1 === 'listrada' ? (stripedBallsRemaining <= 0 ? '8 PENDENTE' : stripedBallsRemaining) : 7);
-                
-            document.getElementById('p2Balls').textContent = type2 === 'lisa' ? 
-                (solidBallsRemaining <= 0 ? '8 PENDENTE' : solidBallsRemaining) : 
-                (type2 === 'listrada' ? (stripedBallsRemaining <= 0 ? '8 PENDENTE' : stripedBallsRemaining) : 7);
+            document.getElementById('p1Type').textContent = type1 ? (type1 === 'lisa' ? 'Lisas' : 'Listradas') : 'Sem Tipo';
+            document.getElementById('p2Type').textContent = type2 ? (type2 === 'lisa' ? 'Lisas' : 'Listradas') : 'Sem Tipo';
+            document.getElementById('p1Balls').textContent = type1 === 'lisa' ? (solidBallsRemaining <= 0 ? '8 PENDENTE' : solidBallsRemaining) : (type1 === 'listrada' ? (stripedBallsRemaining <= 0 ? '8 PENDENTE' : stripedBallsRemaining) : 7);
+            document.getElementById('p2Balls').textContent = type2 === 'lisa' ? (solidBallsRemaining <= 0 ? '8 PENDENTE' : solidBallsRemaining) : (type2 === 'listrada' ? (stripedBallsRemaining <= 0 ? '8 PENDENTE' : stripedBallsRemaining) : 7);
             
+            // NOVO (Pedido 2): A IA também define o config.effectPower
+            // Esta função agora lê o efeito para AMBOS os jogadores
             const effX = config.effectPower.x;
             const effY = config.effectPower.y;
             let display = 'Centro';
             
-            if (effY > 0.6) display = 'Superior';
-            else if (effY < -0.6) display = 'Inferior';
+            if (effY < -0.6) display = 'Superior'; // Y negativo é para cima
+            else if (effY > 0.6) display = 'Inferior'; // Y positivo é para baixo
             
             if (effX > 0.6) display = (display === 'Centro' ? '' : display + ' ') + 'Direita';
             else if (effX < -0.6) display = (display === 'Centro' ? '' : display + ' ') + 'Esquerda';
-
+            
+            // Atualiza o modal (se aberto)
             document.getElementById('effectDisplay').textContent = display.trim() || 'Centro';
             
-            // ATUALIZAÇÃO DE COR E TEXTO DO EFEITO NO CARD
+            // Atualiza o card do jogador ativo
             const activeCard = document.getElementById(`player${gameState.currentPlayer}Card`);
             const neonColor = activeCard.style.getPropertyValue('--neon-color');
             
@@ -1322,16 +1458,96 @@
             }
         }
 
-        function showMessage(msg) {
+        function showMessage(msg, isFoul = false) {
             document.getElementById('message').textContent = msg;
-            setTimeout(() => {
-                if (!gameState.gameOver && !gameState.shotInProgress && !gameState.isWhiteBallInHand) {
-                    document.getElementById('message').textContent = '';
-                }
-            }, 3000);
+            document.getElementById('message').style.color = isFoul ? '#E74C3C' : '#FFD700';
+            
+            // O lembrete de mira (Pedido 6) não deve desaparecer sozinho,
+            // mas outras mensagens sim.
+            const reminderMsg = 'Clique e arraste a bola branca para trás para mirar';
+            
+            if (msg !== reminderMsg) {
+                setTimeout(() => {
+                    // Só limpa se a mensagem AINDA FOR a mesma (evita apagar uma nova msg)
+                    if (document.getElementById('message').textContent === msg) {
+                        if (!gameState.gameOver && !gameState.shotInProgress && !gameState.isWhiteBallInHand) {
+                            document.getElementById('message').textContent = '';
+                            document.getElementById('message').style.color = '#FFD700';
+                        }
+                    }
+                }, 3000);
+            }
         }
-        
+
+        // Função de Tela de Vitória
+        function showWinMessage(msg) {
+            const winText = document.getElementById('winText');
+            const winOverlay = document.getElementById('winOverlay');
+            
+            winText.innerHTML = msg; // Usa innerHTML para permitir <br> e <small>
+            winOverlay.style.display = 'flex';
+            
+            gameState.gameOver = true;
+            timer.stop();
+        }
+
+        function addChatMessage(msg, isBot = false) {
+            // ... (código de addChatMessage) ...
+            const chat = document.getElementById('chatContainer');
+            const div = document.createElement('div');
+            div.classList.add('chat-message');
+            div.classList.add(isBot ? 'bot-message' : 'player-message');
+            div.textContent = msg;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+        function botTaunt() {
+            // ... (código de botTaunt) ...
+            const taunts = [
+                "Hmm, deixa eu ver...",
+                "Calculando a jogada perfeita...",
+                "Essa parece boa.",
+                "Você não vai gostar disso...",
+                "Minha vez de brilhar! 💥",
+                "Estou calculando sua derrota... 🔢",
+                "Observe o mestre! 👑",
+                "Isso vai doer! 😂",
+                "Prepare-se para a lição! 📚",
+                "Mais uma vitória fácil para mim! 🏆",
+                "Você acha que pode me vencer? 😏",
+                "Minha inteligência artificial é imbatível! 🤖",
+                "Vou te mostrar como se joga de verdade! 🎱",
+                "Sua vez de chorar! 😢",
+                "Estou só aquecendo... 🔥"
+            ];
+            const randomTaunt = taunts[Math.floor(Math.random() * taunts.length)];
+            addChatMessage(`🤖 ${randomTaunt}`, true);
+        }
+
+        function playerTaunt() {
+             // ... (código de playerTaunt) ...
+             const taunts = [
+                "Essa foi para o placar! 💪",
+                "Você não viu essa chegando, Bot! 😜",
+                "Tome essa! 🤖",
+                "É assim que se faz! 🧐",
+                "Bot, você é fraco! 😂",
+                "Mais uma para mim! 🏆",
+                "Você não tem chance! 😏",
+                "Eu sou o mestre da sinuca! 👑",
+                "Prepare-se para perder de novo! 📚",
+                "Minha jogada perfeita! 🎱",
+                "Bot, vai chorar? 😢",
+                "Estou aquecendo agora... 🔥",
+                "Você é só um robô bobo! 🤖"
+            ];
+            const randomTaunt = taunts[Math.floor(Math.random() * taunts.length)];
+            addChatMessage(`👤 ${randomTaunt}`, false);
+        }
+       
         function initGame() {
+            document.getElementById('winOverlay').style.display = 'none';
+
             gameState.balls = [];
             gameState.currentPlayer = 1;
             gameState.player1Type = null;
@@ -1340,52 +1556,67 @@
             gameState.shotInProgress = false;
             gameState.firstBallHit = null;
             gameState.ballsPocketedInShot = [];
-            gameState.sunkBalls = { lisas: [], listradas: [], oito: [], branca: [] };
+            gameState.sunkBalls = [];
             gameState.isWhiteBallInHand = false;
+            gameState.cue.visible = false;
             
+            clearAITimers();
+            gameState.aiState = 'idle';
+            gameState.aiCandidates = [];
+            gameState.aiBestShot = null;
+            gameState.aiScanIndex = 0;
+
+            if (ballInHandNudgeTimer) clearTimeout(ballInHandNudgeTimer);
+            ballInHandNudgeTimer = null;
+            document.getElementById('nudgeTooltip').style.display = 'none';
+            gameState.whiteBallNudge.active = false;
+            
+            // NOVO (Pedido 6): Limpa o timer de lembrete
+            if (aimReminderTimer) clearTimeout(aimReminderTimer);
+            aimReminderTimer = null;
+
             config.effectPower = {x: 0, y: 0};
-            
+           
             timer.stop();
-            timer.timeRemaining = MAX_TIME;
-
-            gameState.whiteBall = new Ball(HEAD_STRING_X / 2, CANVAS_HEIGHT / 2, 0); 
+            timeRemaining = MAX_TIME;
+            gameState.whiteBall = new Ball(HEAD_STRING_X / 2, CANVAS_HEIGHT / 2, 0);
             gameState.balls.push(gameState.whiteBall);
-
             const startX = CANVAS_WIDTH - 200;
             const startY = CANVAS_HEIGHT / 2;
             const spacing = config.ballRadius * 2 + 1;
-            
+           
             const pyramidBalls = [
-                1, 
-                15, 2, 
-                14, 8, 13, 
-                3, 12, 4, 11, 
+                1,
+                15, 2,
+                14, 8, 13,
+                3, 12, 4, 11,
                 5, 10, 6, 9, 7
             ];
             let ballIndex = 0;
-
-
             for (let row = 0; row < 5; row++) {
-                for (let col = 0; col < row + 1; col++) { // Corrigido o loop para 5 linhas
+                for (let col = 0; col < row + 1; col++) {
                     const x = startX + row * spacing * Math.sqrt(3) / 2;
                     const y = startY + (col - row / 2) * spacing;
-                    
                     const number = pyramidBalls[ballIndex++];
                     gameState.balls.push(new Ball(x, y, number));
                 }
             }
-            
+           
             document.getElementById('effectMarker').style.left = '50%';
             document.getElementById('effectMarker').style.top = '50%';
             config.effectPower = {x: 0, y: 0};
-            
-            updateSunkBallsUI(); 
+           
+            updateSunkBallsUI();
             updateUI();
-            timer.start(); 
-            showMessage('Arraste o mouse/toque ao redor da bola branca para mirar.');
-        }
+            
+            // NOVO (Pedido 5 e 6): Inicia o timer e mostra a primeira instrução
+            timer.start();
+            showMessage('Para atirar: Clique PERTO da branca e ARRASTE PARA TRÁS para dar força!');
 
+            document.getElementById('chatContainer').innerHTML = '<div class="chat-message bot-message">🤖 Novo jogo! Boa sorte... você vai precisar! 😈</div>';
+        }
         function drawDiamondShape(x, y, size) {
+            // ... (código de drawDiamondShape) ...
             ctx.beginPath();
             ctx.moveTo(x, y - size);
             ctx.lineTo(x + size / 2, y);
@@ -1394,21 +1625,19 @@
             ctx.closePath();
             ctx.fill();
         }
-
         function drawDiamonds(margin) {
-            ctx.fillStyle = '#FFD700'; 
+            // ... (código de drawDiamonds) ...
+            ctx.fillStyle = '#FFD700';
             const innerW = CANVAS_WIDTH - 2 * margin;
             const innerH = CANVAS_HEIGHT - 2 * margin;
             const diamondSize = 4;
-
             const railYTop = margin / 2;
-            for (let i = 1; i < 8; i += 2) { 
+            for (let i = 1; i < 8; i += 2) {
                 const x = margin + (innerW / 8) * i;
-                if (i !== 3 && i !== 5) { 
+                if (i !== 3 && i !== 5) {
                      drawDiamondShape(x, railYTop, diamondSize);
                 }
             }
-
             const railYBottom = CANVAS_HEIGHT - margin / 2;
             for (let i = 1; i < 8; i += 2) {
                 const x = margin + (innerW / 8) * i;
@@ -1416,134 +1645,103 @@
                     drawDiamondShape(x, railYBottom, diamondSize);
                 }
             }
-
             const railXLeft = margin / 2;
             for (let i = 1; i < 4; i += 2) {
                 const y = margin + (innerH / 4) * i;
                 drawDiamondShape(railXLeft, y, diamondSize);
             }
-
             const railXRight = CANVAS_WIDTH - margin / 2;
             for (let i = 1; i < 4; i += 2) {
                 const y = margin + (innerH / 4) * i;
                 drawDiamondShape(railXRight, y, diamondSize);
             }
         }
-
         function drawTable() {
-            
-            // Desenho dos Trilhos (Rail)
+           // ... (código de drawTable) ...
             const railGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-            railGradient.addColorStop(0, '#A0522D'); 
-            railGradient.addColorStop(0.3, '#8B4513'); 
-            railGradient.addColorStop(0.7, '#D2691E'); 
-            railGradient.addColorStop(1, '#8B4513'); 
+            railGradient.addColorStop(0, '#A0522D');
+            railGradient.addColorStop(0.3, '#8B4513');
+            railGradient.addColorStop(0.7, '#D2691E');
+            railGradient.addColorStop(1, '#8B4513');
             ctx.fillStyle = railGradient;
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
             drawDiamonds(MARGIN);
-
-            // Desenho do Feltro
             const feltGradient = ctx.createRadialGradient(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 500);
-            feltGradient.addColorStop(0, '#32CD32'); 
-            feltGradient.addColorStop(0.3, '#228B22'); 
-            feltGradient.addColorStop(0.7, '#006400'); 
-            feltGradient.addColorStop(1, '#004d00'); 
+            feltGradient.addColorStop(0, '#32CD32');
+            feltGradient.addColorStop(0.3, '#228B22');
+            feltGradient.addColorStop(0.7, '#006400');
+            feltGradient.addColorStop(1, '#004d00');
             ctx.fillStyle = feltGradient;
-            
             ctx.save();
             ctx.shadowColor = 'rgba(0,0,0,0.7)';
             ctx.shadowBlur = 25;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
-
             ctx.fillRect(MARGIN, MARGIN, CANVAS_WIDTH - 2 * MARGIN, CANVAS_HEIGHT - 2 * MARGIN);
             ctx.restore();
-
             ctx.strokeStyle = 'rgba(255,255,255,0.2)';
             ctx.lineWidth = 2;
             ctx.strokeRect(MARGIN, MARGIN, CANVAS_WIDTH - 2 * MARGIN, CANVAS_HEIGHT - 2 * MARGIN);
-
-            // Linha de Falta (Head String)
             ctx.strokeStyle = 'rgba(255,255,255,0.4)';
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(HEAD_STRING_X, MARGIN);
             ctx.lineTo(HEAD_STRING_X, CANVAS_HEIGHT - MARGIN);
             ctx.stroke();
-
-            // Pockets
             pockets.forEach(pocket => {
                 const pocketGrad = ctx.createRadialGradient(pocket.x, pocket.y, 0, pocket.x, pocket.y, config.pocketRadius);
                 pocketGrad.addColorStop(0, '#222222');
                 pocketGrad.addColorStop(0.7, '#000000');
                 pocketGrad.addColorStop(1, '#111111');
                 ctx.fillStyle = pocketGrad;
-                
                 ctx.save();
                 ctx.shadowColor = 'rgba(0,0,0,1)';
                 ctx.shadowBlur = 15;
                 ctx.shadowOffsetX = 0;
                 ctx.shadowOffsetY = 5;
-
                 ctx.beginPath();
                 ctx.arc(pocket.x, pocket.y, config.pocketRadius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.restore(); 
-
-                ctx.strokeStyle = '#A0522D'; 
+                ctx.restore();
+                ctx.strokeStyle = '#A0522D';
                 ctx.lineWidth = 4;
                 ctx.stroke();
             });
         }
-        
-        // --- Lógica de Mira Aprimorada ---
-
+       
         function isTargetBall(ball) {
-            if (ball.isCue || ball.isEight || gameState.player1Type === null) return true;
-
+            if (ball.isCue || ball.isFalling || ball.pocketed) return false;
+            if (ball.isEight) {
+                 return getOwnBallsRemaining(gameState.currentPlayer) === 0;
+            }
+            if (gameState.player1Type === null) return true;
+           
             const currentPlayerType = gameState.currentPlayer === 1 ? gameState.player1Type : gameState.player2Type;
             const ballType = ball.isStriped ? 'listrada' : 'lisa';
-            
-            if (getOwnBallsRemaining(gameState.currentPlayer) === 0) {
-                return ball.isEight;
-            }
-            
+           
             return ballType === currentPlayerType;
         }
-
-        /**
-         * Desenha o caminho de mira com estilo tracejado/pontilhado e sombra.
-         * @param {number} startX - Posição X inicial.
-         * @param {number} startY - Posição Y inicial.
-         * @param {number} angle - Ângulo de direção.
-         * @param {number} maxDist - Distância máxima a ser desenhada.
-         * @param {string} color - Cor da linha.
-         * @param {Array} dash - Padrão de tracejado ([on, off]).
-         */
+       
         function drawAimPath(startX, startY, angle, maxDist, color, dash) {
+            // ... (código de drawAimPath) ...
             ctx.save();
-            ctx.strokeStyle = color; 
-            ctx.lineWidth = 3; 
-            ctx.setLineDash(dash); 
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash(dash);
             ctx.lineCap = 'round';
-            
             ctx.shadowColor = color;
             ctx.shadowBlur = 5;
-
             ctx.beginPath();
             ctx.moveTo(startX, startY);
-            
             const endX = startX + Math.cos(angle) * maxDist;
             const endY = startY + Math.sin(angle) * maxDist;
-
             ctx.lineTo(endX, endY);
             ctx.stroke();
             ctx.restore();
         }
-
-        // Cálculo preciso do ponto de contato
+       
         function getCueBallCollisionInfo(white, angle) {
+            // ... (código de getCueBallCollisionInfo) ...
             let minDistance = 1600;
             let firstHitBall = null;
             let hitPointX = null;
@@ -1551,29 +1749,21 @@
             let projDistance = 0;
             let angleDiff = 0;
             let distToCenter = 0;
-            
+           
             for (const ball of gameState.balls) {
                 if (ball.pocketed || ball.isCue || ball.isFalling) continue;
-
                 const dx = ball.x - white.x;
                 const dy = ball.y - white.y;
                 distToCenter = Math.sqrt(dx * dx + dy * dy);
-
                 const angleToCenter = Math.atan2(dy, dx);
                 angleDiff = angleToCenter - angle;
-                
                 while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
                 while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
                 const perpDist = distToCenter * Math.abs(Math.sin(angleDiff));
-                
-                const totalRadius = ball.radius + white.radius; 
-
+                const totalRadius = ball.radius + white.radius;
                 if (perpDist < totalRadius && Math.cos(angleDiff) > 0) {
-                    
                     projDistance = distToCenter * Math.cos(angleDiff);
                     const hitDistance = projDistance - Math.sqrt(totalRadius ** 2 - perpDist ** 2);
-                    
                     if (hitDistance > 0 && hitDistance < minDistance) {
                         minDistance = hitDistance;
                         firstHitBall = ball;
@@ -1584,97 +1774,72 @@
             }
             return { firstHitBall, minDistance, hitPointX, hitPointY, projDistance, angleDiff, distToCenter };
         }
-
         function isCueBallPlacementValid(x, y) {
+            // ... (código de isCueBallPlacementValid) ...
             const r = config.ballRadius;
             const minX = MARGIN + r;
             const maxX = HEAD_STRING_X - r;
             const minY = MARGIN + r;
             const maxY = CANVAS_HEIGHT - MARGIN - r;
-
             if (x < minX || x > maxX || y < minY || y > maxY) {
                 return false;
             }
-
             for (const ball of gameState.balls) {
                 if (ball.pocketed || ball.isCue || ball.isFalling) continue;
-
                 const dx = ball.x - x;
                 const dy = ball.y - y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < r + ball.radius - 0.5) { 
+                if (dist < r + ball.radius - 0.5) {
                     return false;
                 }
             }
             return true;
         }
-
-
-        // FUNÇÃO drawCue MELHORADA COM MIRA SECUNDÁRIA (MAIS REALISTA)
-        function drawCue() {
-            if (gameState.shotInProgress || gameState.gameOver || gameState.isWhiteBallInHand) return;
-
+        function drawCue(angle, power) {
             const white = gameState.whiteBall;
-            const angle = gameState.cue.angle;
-            const power = gameState.cue.power;
             const powerPercent = power / config.maxPower;
-            
-            const { firstHitBall, minDistance, projDistance, angleDiff, distToCenter } = getCueBallCollisionInfo(white, angle);
-            
-            let aimColor = 'rgba(255, 255, 255, 0.8)'; // Branco (padrão)
-            let aimMaxDist = 1600; 
-            
+            const isAIAim = gameState.cue.isAIAim;
+           
+            const { firstHitBall, minDistance } = getCueBallCollisionInfo(white, angle);
+           
+            let aimColor = 'rgba(255, 255, 255, 0.8)';
+            if (isAIAim) {
+                aimColor = 'rgba(255, 255, 255, 0.8)'; // Mira branca para bot
+            }
+            let aimMaxDist = 1600;
+           
             // 1. Mira Principal (da Branca)
             if (firstHitBall) {
-                
-                if (isTargetBall(firstHitBall)) {
-                    aimColor = 'rgba(0, 255, 0, 0.8)'; // Verde (Alvo Correto)
-                } else {
-                    aimColor = 'rgba(255, 0, 0, 0.8)'; // Vermelho (Alvo Errado)
+                if (!isAIAim) {
+                    if (isTargetBall(firstHitBall)) {
+                        aimColor = 'rgba(0, 255, 0, 0.8)';
+                    } else {
+                        aimColor = 'rgba(255, 0, 0, 0.8)';
+                    }
                 }
-                
-                aimMaxDist = minDistance; 
-                
-                // Desenha a mira principal (até o ponto de colisão)
+                aimMaxDist = minDistance;
+               
                 drawAimPath(white.x, white.y, angle, minDistance, aimColor, [8, 8]);
-
-                // CÁLCULO DA TRAJETÓRIA REFLETIDA DA BRANCA
-                const targetAngle = Math.atan2(firstHitBall.y - white.y, firstHitBall.x - white.x); 
-                
-                // Vetor de direção incidente (unitário)
+                // ... (código de trajetória refletida e fantasma) ...
+                const targetAngle = Math.atan2(firstHitBall.y - white.y, firstHitBall.x - white.x);
                 const vx = Math.cos(angle);
                 const vy = Math.sin(angle);
-                
-                // Normal unitária (ao longo dos centros)
                 const nx = Math.cos(targetAngle);
                 const ny = Math.sin(targetAngle);
-                
-                // Tangente unitária (rotacionada 90 graus CCW)
-                const tx = -ny;
-                const ty = nx;
-                
-                // Componente tangencial: dot(v, t)
-                const dot_t = vx * tx + vy * ty;
-                
-                // Velocidade refletida: v_t = dot_t * t
-                const v_tx = dot_t * tx;
-                const v_ty = dot_t * ty;
-                
-                // Ângulo refletido
-                const reflectedAngle = Math.atan2(v_ty, v_tx);
-                
-                // Posição do centro da branca no impacto
+                const dot_n = vx * nx + vy * ny;
+                const v_nx = dot_n * nx;
+                const v_ny = dot_n * ny;
+                const v_tx = vx - v_nx;
+                const v_ty = vy - v_ny;
+                const reflectedVx = v_tx - v_nx;
+                const reflectedVy = v_ty - v_ny;
+                const reflectedAngle = Math.atan2(reflectedVy, reflectedVx);
                 const whiteImpactX = white.x + vx * minDistance;
                 const whiteImpactY = white.y + vy * minDistance;
-                
-                // Desenha a mira refletida (trajetória da branca após colisão)
-                const reflectedPathLength = 150;
-                drawAimPath(whiteImpactX, whiteImpactY, reflectedAngle, reflectedPathLength, aimColor, [8, 8]);
-
-                // Desenha a "imagem fantasma" no ponto de colisão (para mira de "meia bola")
+                const reflectedPathLength = 200;
+                drawAimPath(whiteImpactX, whiteImpactY, reflectedAngle, reflectedPathLength, aimColor, [6, 6]);
                 ctx.save();
-                ctx.globalAlpha = 0.5;
+                ctx.globalAlpha = 0.6;
                 ctx.fillStyle = aimColor;
                 ctx.beginPath();
                 ctx.arc(
@@ -1684,161 +1849,146 @@
                 );
                 ctx.fill();
                 ctx.restore();
-
+                // Removida a trajetória amarela da bola alvo
             } else {
                 drawAimPath(white.x, white.y, angle, aimMaxDist, aimColor, [8, 8]);
             }
-            
-            
-            // BARRA DE PODER CIRCULAR AO REDOR DA BOLA BRANCA
-            
-            if (gameState.isDragging && power > 0) {
+           
+            // BARRA DE PODER CIRCULAR
+            if (power > 0) {
+                // ... (código da barra de poder circular) ...
                 ctx.save();
                 ctx.translate(white.x, white.y);
-                
-                // Círculo de fundo
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 5;
                 ctx.beginPath();
-                ctx.arc(0, 0, white.radius + 5, 0, Math.PI * 2);
+                ctx.arc(0, 0, white.radius + 6, 0, Math.PI * 2);
                 ctx.stroke();
-
-                // Arco de progresso
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + (Math.PI * 2 * powerPercent);
-                
-                const powerGradient = ctx.createLinearGradient(0, -(white.radius + 5), 0, white.radius + 5);
-                powerGradient.addColorStop(0, '#53A8B6');
-                powerGradient.addColorStop(1, '#00A896');
-                
-                ctx.strokeStyle = powerGradient;
-                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#00FFFF'; // Azul neon
+                ctx.lineWidth = 5;
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = 15;
                 ctx.beginPath();
-                ctx.arc(0, 0, white.radius + 5, startAngle, endAngle);
+                ctx.arc(0, 0, white.radius + 6, startAngle, endAngle);
                 ctx.stroke();
-                
                 ctx.restore();
             }
-            
+           
             // Desenha o taco
-            const cueDistance = 30 + power * 2; 
-            const cueLength = 200;
-            
+            const cueDistance = 30 + power * 2.5;
+            const cueLength = 220;
             const cueX = white.x - Math.cos(angle) * cueDistance;
             const cueY = white.y - Math.sin(angle) * cueDistance;
-            
             const tipX = cueX - Math.cos(angle) * cueLength;
             const tipY = cueY - Math.sin(angle) * cueLength;
-
+            // ... (código de desenhar o taco) ...
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 4;
             ctx.strokeStyle = '#A0522D';
-            ctx.lineWidth = 8;
+            ctx.lineWidth = 9;
             ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(cueX, cueY);
             ctx.lineTo(tipX, tipY);
             ctx.stroke();
-
             ctx.strokeStyle = '#4169E1';
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 6;
             ctx.beginPath();
             ctx.moveTo(cueX, cueY);
             ctx.lineTo(
-                cueX - Math.cos(angle) * 8,
-                cueY - Math.sin(angle) * 8
+                cueX - Math.cos(angle) * 10,
+                cueY - Math.sin(angle) * 10
             );
             ctx.stroke();
-
             ctx.restore();
 
-            // Desenha o marcador de Efeito na Bola Branca (VISUAL MELHORADO)
+            // --- NOVO (Pedido 2): O efeito agora vem de config.effectPower ---
+            // Isso funciona tanto para o Jogador quanto para a IA
             const effectX = config.effectPower.x;
             const effectY = config.effectPower.y;
             
+            // Desenha o marcador de Efeito na Bola Branca
             ctx.save();
             ctx.translate(white.x, white.y);
-            
             const offsetX = effectX * (white.radius * 0.7);
             const offsetY = effectY * (white.radius * 0.7);
-            const effectSize = 5;
-            
-            // Gradiente radial para o marcador
+            const effectSize = 6;
             const gradient = ctx.createRadialGradient(offsetX, offsetY, 0, offsetX, offsetY, effectSize);
             gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
             gradient.addColorStop(0.5, 'rgba(255, 50, 50, 1)');
             gradient.addColorStop(1, 'rgba(255, 50, 50, 0)');
-            
             ctx.fillStyle = gradient;
             ctx.shadowColor = 'rgba(255, 50, 50, 1)';
-            ctx.shadowBlur = 20;
-            
+            ctx.shadowBlur = 25;
             ctx.beginPath();
             ctx.arc(offsetX, offsetY, effectSize, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Adiciona um anel externo para mais destaque
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(offsetX, offsetY, effectSize + 2, 0, Math.PI * 2);
+            ctx.arc(offsetX, offsetY, effectSize + 3, 0, Math.PI * 2);
             ctx.stroke();
-            
             ctx.restore();
         }
-        
+       
         function getPointerPos(e) {
+            // ... (código de getPointerPos) ...
             const rect = canvas.getBoundingClientRect();
             const scaleX = CANVAS_WIDTH / rect.width;
             const scaleY = CANVAS_HEIGHT / rect.height;
-            
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
             return {
                 x: (clientX - rect.left) * scaleX,
                 y: (clientY - rect.top) * scaleY
             };
         }
-
         function handleStart(e) {
             e.preventDefault();
-            if (gameState.gameOver) return;
-
+            
+            // NOVO (Pedido 6): Limpa o lembrete de mira assim que o jogador age
+            if (aimReminderTimer) clearTimeout(aimReminderTimer);
+            aimReminderTimer = null;
+            // Limpa a mensagem de lembrete se ela estiver visível
+            const reminderMsg = 'Clique e arraste a bola branca para trás para mirar';
+            if (document.getElementById('message').textContent === reminderMsg) {
+                document.getElementById('message').textContent = '';
+            }
+            
+            if (gameState.gameOver || gameState.currentPlayer !== 1) return;
             const pos = getPointerPos(e);
             const white = gameState.whiteBall;
-
             const dx = pos.x - white.x;
             const dy = pos.y - white.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-
             // 1. Prioridade: Arrastar a bola branca (Branca na Mão)
             if (gameState.isWhiteBallInHand && dist < white.radius * 2) {
                 gameState.isWhiteBallDragging = true;
                 gameState.cue.visible = false;
                 timer.stop();
-                return; 
+                return;
             }
-            
+           
             // 2. Segunda Prioridade: Iniciar a mira/tacada
-            if (!gameState.isWhiteBallInHand && !gameState.shotInProgress && allBallsStopped()) { 
+            if (!gameState.isWhiteBallInHand && !gameState.shotInProgress && allBallsStopped()) {
                 gameState.cue.x = pos.x;
                 gameState.cue.y = pos.y;
                 gameState.isDragging = true;
                 gameState.cue.visible = true;
                 gameState.cue.power = 0;
+                gameState.cue.isAIAim = false;
+                document.getElementById('powerFill').style.transition = 'width 0.1s linear';
             }
         }
-
         function handleMove(e) {
             e.preventDefault();
             const pos = getPointerPos(e);
             const white = gameState.whiteBall;
-
             // Arrastando a bola branca (Branca na Mão)
             if (gameState.isWhiteBallDragging) {
                 const r = white.radius;
@@ -1846,28 +1996,20 @@
                 const maxX = HEAD_STRING_X - r;
                 const minY = MARGIN + r;
                 const maxY = CANVAS_HEIGHT - MARGIN - r;
-
                 white.x = Math.max(minX, Math.min(pos.x, maxX));
                 white.y = Math.max(minY, Math.min(pos.y, maxY));
-                
                 showMessage('Branca na Mão. Solte para confirmar a posição.');
-                
                 return;
             }
-
             // Mira/Arrasto do Taco
             if (gameState.isDragging) {
-                const dx = white.x - pos.x; 
+                const dx = white.x - pos.x;
                 const dy = white.y - pos.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                gameState.cue.angle = Math.atan2(dy, dx); 
+                gameState.cue.angle = Math.atan2(dy, dx);
                 gameState.cue.power = Math.min(distance / 5, config.maxPower);
-                
-                // Atualiza a barra de força no modal de efeito (se estiver aberto)
                 document.getElementById('powerFill').style.width = `${(gameState.cue.power / config.maxPower) * 100}%`;
-
-            } else if (allBallsStopped() && !gameState.gameOver && !gameState.isWhiteBallInHand) {
+            } else if (allBallsStopped() && !gameState.gameOver && !gameState.isWhiteBallInHand && gameState.currentPlayer === 1) {
                 // Apenas mira (sem arrastar)
                 const dx = white.x - pos.x;
                 const dy = white.y - pos.y;
@@ -1876,175 +2018,491 @@
                 gameState.cue.power = 0;
             }
         }
-
         function handleEnd(e) {
             e.preventDefault();
-            
+           
             // 1. Fim do Arrastar Branca na Mão
             if (gameState.isWhiteBallDragging) {
                 gameState.isWhiteBallDragging = false;
-                
                 if (isCueBallPlacementValid(gameState.whiteBall.x, gameState.whiteBall.y)) {
                     gameState.isWhiteBallInHand = false;
                     showMessage('Posição da Branca confirmada. Hora de mirar!');
-                    timer.start();
+                    timer.start(); // Inicia o timer (e o lembrete de 5s)
+
+                    if (ballInHandNudgeTimer) clearTimeout(ballInHandNudgeTimer);
+                    ballInHandNudgeTimer = null;
+                    document.getElementById('nudgeTooltip').style.display = 'none';
+                    gameState.whiteBallNudge.active = false;
                 } else {
-                    showMessage('POSIÇÃO INVÁLIDA! A branca não pode tocar em outra bola ou sair do limite. Arraste novamente.');
-                    gameState.isWhiteBallInHand = true; 
+                    showMessage('POSIÇÃO INVÁLIDA! A branca não pode tocar em outra bola ou sair do limite. Arraste novamente.', true);
+                    gameState.isWhiteBallInHand = true;
                     if (!isCueBallPlacementValid(gameState.whiteBall.x, gameState.whiteBall.y)) {
-                         gameState.whiteBall.x = HEAD_STRING_X / 2; 
+                         gameState.whiteBall.x = HEAD_STRING_X / 2;
                          gameState.whiteBall.y = CANVAS_HEIGHT / 2;
                     }
                 }
                 return;
             }
-
             // 2. Fim do Arrasto do Taco (Tacada)
-            if (gameState.isDragging && allBallsStopped() && gameState.cue.power > 0.5) {
-                const white = gameState.whiteBall;
-                
-                const baseVx = Math.cos(gameState.cue.angle) * gameState.cue.power;
-                const baseVy = Math.sin(gameState.cue.angle) * gameState.cue.power;
-
-                // Efeito de Translação (Sidespin e Topspin/Backspin)
-                const effectFactor = 0.5; 
-                const sideSpinVx = Math.sin(gameState.cue.angle) * config.effectPower.x * effectFactor * gameState.cue.power / config.maxPower;
-                const sideSpinVy = -Math.cos(gameState.cue.angle) * config.effectPower.x * effectFactor * gameState.cue.power / config.maxPower;
-                
-                const topBackFactor = 0.1;
-                const topBackVx = Math.cos(gameState.cue.angle) * config.effectPower.y * topBackFactor * gameState.cue.power / config.maxPower;
-                const topBackVy = Math.sin(gameState.cue.angle) * config.effectPower.y * topBackFactor * gameState.cue.power / config.maxPower;
-                
-                white.vx = baseVx + sideSpinVx + topBackVx;
-                white.vy = baseVy + sideSpinVy + topBackVy;
-
-                // Efeito de Rotação (para visual de giro)
-                const rotationFactor = 0.5; // Ajuste a magnitude do giro
-                white.rotationAngle += config.effectPower.x * rotationFactor;
-                
-                gameState.shotInProgress = true;
-                gameState.cue.visible = false;
-                timer.stop(); 
-                
-                const checkInterval = setInterval(() => {
-                    if (allBallsStopped()) {
-                        clearInterval(checkInterval);
-                        checkFoulsAndEndTurn();
-                    }
-                }, 100);
-
+            if (gameState.isDragging && allBallsStopped() && gameState.cue.power > 0.5 && gameState.currentPlayer === 1) {
+                if(Math.random() > 0.6) playerTaunt();
+                executeShot(gameState.cue.angle, gameState.cue.power, config.effectPower);
             }
             gameState.isDragging = false;
             document.getElementById('powerFill').style.width = '0%';
         }
+        
+        function executeShot(angle, power, effect) {
+             const white = gameState.whiteBall;
+             const baseVx = Math.cos(angle) * power;
+             const baseVy = Math.sin(angle) * power;
+             
+             const effectFactor = 0.2; // Further reduced
+             const topBackFactor = 0.05; // Further reduced
+             const rotationFactor = 0.8;
+             
+             const sideSpinVx = Math.sin(angle) * effect.x * effectFactor * power / config.maxPower;
+             const sideSpinVy = -Math.cos(angle) * effect.x * effectFactor * power / config.maxPower;
+             
+             const topBackVx = Math.cos(angle) * -effect.y * topBackFactor * power / config.maxPower;
+             const topBackVy = Math.sin(angle) * -effect.y * topBackFactor * power / config.maxPower;
+             
+             white.vx = baseVx + sideSpinVx + topBackVx;
+             white.vy = baseVy + sideSpinVy + topBackVy;
+             
+             // Clamp to prevent reversal
+             if (Math.sign(white.vx) !== Math.sign(baseVx) && baseVx !== 0) {
+                 white.vx = baseVx * 0.5;
+             }
+             if (Math.sign(white.vy) !== Math.sign(baseVy) && baseVy !== 0) {
+                 white.vy = baseVy * 0.5;
+             }
+             
+             white.angularVelocity += effect.x * rotationFactor + (Math.random() - 0.5) * 0.2;
+             
+             gameState.shotInProgress = true;
+             gameState.cue.visible = false;
+             timer.stop();
+            
+             checkShotInterval = setInterval(() => {
+                if (allBallsStopped()) {
+                    checkFoulsAndEndTurn();
+                }
+            }, 100);
+        }
 
+        // --- Event Listeners ---
         canvas.addEventListener('mousedown', handleStart);
         canvas.addEventListener('mousemove', handleMove);
         canvas.addEventListener('mouseup', handleEnd);
-
         canvas.addEventListener('touchstart', handleStart);
         canvas.addEventListener('touchmove', handleMove);
         canvas.addEventListener('touchend', handleEnd);
-
         document.getElementById('resetBtn').addEventListener('click', initGame);
-
+        
+        // --- Modal de Efeito ---
         const effectModal = document.getElementById('effectModal');
         const effectBoard = document.getElementById('effectBoard');
         const effectMarker = document.getElementById('effectMarker');
-
         document.getElementById('effectBtn').addEventListener('click', () => {
+            if (gameState.currentPlayer !== 1) return;
             effectModal.style.display = 'flex';
-            // Garante que a barra de força reflita o power atual (se não houver tacada)
             document.getElementById('powerFill').style.width = `${(gameState.cue.power / config.maxPower) * 100}%`;
         });
-
         document.getElementById('closeEffectBtn').addEventListener('click', () => {
             effectModal.style.display = 'none';
         });
-
         function updateEffectFromPointer(e) {
             e.preventDefault();
             const rect = effectBoard.getBoundingClientRect();
-            
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
             let x = clientX - rect.left - rect.width / 2;
             let y = clientY - rect.top - rect.height / 2;
-
             const dist = Math.sqrt(x * x + y * y);
             const radius = rect.width / 2;
-
             if (dist > radius) {
                 const angle = Math.atan2(y, x);
                 x = Math.cos(angle) * radius;
                 y = Math.sin(angle) * radius;
             }
-
             effectMarker.style.left = `${(rect.width / 2) + x}px`;
             effectMarker.style.top = `${(rect.height / 2) + y}px`;
-
-            // Normaliza o efeito para um valor entre -1 e 1
             config.effectPower.x = x / radius;
-            config.effectPower.y = y / radius; 
-
+            config.effectPower.y = y / radius; // Y positivo é para baixo
             updateUI();
         }
-        
         let isEffectDragging = false;
+        effectBoard.addEventListener('mousedown', (e) => { isEffectDragging = true; updateEffectFromPointer(e); });
+        effectBoard.addEventListener('mousemove', (e) => { if (isEffectDragging) updateEffectFromPointer(e); });
+        window.addEventListener('mouseup', () => { isEffectDragging = false; });
+        effectBoard.addEventListener('touchstart', (e) => { isEffectDragging = true; updateEffectFromPointer(e); });
+        effectBoard.addEventListener('touchmove', (e) => { if (isEffectDragging) updateEffectFromPointer(e); });
+        window.addEventListener('touchend', () => { isEffectDragging = false; });
         
-        effectBoard.addEventListener('mousedown', (e) => {
-            isEffectDragging = true;
-            updateEffectFromPointer(e);
-        });
-        effectBoard.addEventListener('mousemove', (e) => {
-            if (isEffectDragging) updateEffectFromPointer(e);
-        });
-        window.addEventListener('mouseup', () => { 
-            isEffectDragging = false;
-        });
+        // --- Lógica da IA Aprimorada (COM EFEITOS E TABELAS) ---
+        
+        /**
+         * Executa a tacada final da IA
+         */
+        function aiExecuteFinalShot(shot) {
+            addChatMessage(`🤖 Meu plano: ${shot.reasoning}`, true);
+            
+            // Trava a mira na jogada final
+            gameState.aiState = 'shooting';
+            
+            // NOVO (Pedido 1 e 2): Define o efeito global e atualiza a UI
+            config.effectPower = shot.effect;
+            updateUI(); 
+            
+            executeShot(shot.angle, shot.power, shot.effect);
+            clearAITimers();
+        }
 
-        effectBoard.addEventListener('touchstart', (e) => {
-            isEffectDragging = true;
-            updateEffectFromPointer(e);
-        });
-        effectBoard.addEventListener('touchmove', (e) => {
-            if (isEffectDragging) updateEffectFromPointer(e);
-        });
-        window.addEventListener('touchend', () => {
-            isEffectDragging = false;
-        });
+        /**
+         * Define o próximo alvo para a animação de "scanning" da IA.
+         */
+        function aiScanNextTarget() {
+            if (gameState.aiScanIndex >= gameState.aiCandidates.length) {
+                // Terminou de escanear. Trava na melhor jogada.
+                gameState.aiState = 'locking';
+                gameState.aiTarget.angle = gameState.aiBestShot.angle;
+                gameState.aiTarget.power = gameState.aiBestShot.power;
+                gameState.aiTarget.effect = gameState.aiBestShot.effect; // Trava o efeito
+                
+                // Define um timeout para atirar após travar a mira
+                gameState.aiFinalShotTimeout = setTimeout(() => {
+                    aiExecuteFinalShot(gameState.aiBestShot);
+                }, 1500); // Trava a mira por 1.5s antes de atirar
+                return;
+            }
+
+            const nextTarget = gameState.aiCandidates[gameState.aiScanIndex];
+            gameState.aiTarget.angle = nextTarget.angle;
+            gameState.aiTarget.power = nextTarget.power;
+            gameState.aiTarget.effect = nextTarget.effect; // Define o efeito do scan
+            gameState.aiScanIndex++;
+
+            // Define um timeout para "olhar" para esta bola e então mover para a próxima
+            gameState.aiScanTimeout = setTimeout(aiScanNextTarget, 700); // Pausa 700ms em cada alvo
+        }
+
+        /**
+         * Inicia o turno da IA (COM LÓGICA DE TABELA E EFEITO)
+         */
+        function aiPlay() {
+            timer.stop(); 
+            botTaunt();
+            
+            clearAITimers();
+            gameState.aiCandidates = [];
+            gameState.aiBestShot = null;
+            gameState.aiScanIndex = 0;
+            gameState.aiState = 'scanning';
+            gameState.aiCurrent.angle = gameState.cue.angle;
+            gameState.aiCurrent.power = 0;
+            gameState.aiCurrent.effect = {x: 0, y: 0};
+            
+            document.getElementById('powerFill').style.transition = 'none';
+
+            const white = gameState.whiteBall;
+            const targets = gameState.balls.filter(b => !b.pocketed && !b.isFalling && !b.isCue && isTargetBall(b));
+            let bestScore = -Infinity;
+            
+            const useEffectChance = Math.random() < 0.2; // 20% de chance de usar efeito
+            const playerWinProb = getPlayerWinProbability(1);
+            const isSmartMode = playerWinProb > 0.7; // Modo esperto se jogador tem >70% chance
+            
+            // 1. Calcular todos os tiros diretos possíveis
+            targets.forEach(target => {
+                pockets.forEach(pocket => {
+                    const angleToPocket = Math.atan2(pocket.y - target.y, pocket.x - target.x);
+                    const aimX = target.x - Math.cos(angleToPocket) * (target.radius + white.radius);
+                    const aimY = target.y - Math.sin(angleToPocket) * (target.radius + white.radius);
+                    const angleToAim = Math.atan2(aimY - white.y, aimX - white.x);
+                    const distToAim = Math.hypot(aimX - white.x, aimY - white.y);
+                    
+                    if (isPathClear(white, angleToAim, distToAim)) {
+                        let power = Math.min(config.maxPower, distToAim * 0.15 + 10 + Math.random() * 5);
+                        let score = 1000 - distToAim * 2 + Math.random() * 10;
+                        
+                        if (isSmartMode) {
+                            power = distToAim * 0.1 + 8; // Cálculo mais preciso
+                            score += 200; // Prioriza tiros precisos
+                        }
+                        
+                        // NOVO (Pedido 1): IA escolhe um efeito
+                        const shot = {
+                            angle: angleToAim,
+                            power: power,
+                            effect: useEffectChance ? { 
+                                x: (Math.random() - 0.5) * 1, 
+                                y: distToAim < 150 ? -0.8 : (distToAim > 400 ? 0.8 : 0.0) // Efeito preciso baseado em distância
+                            } : {x: 0, y: 0},
+                            reasoning: `Tiro Direto (B${target.number} -> C${pocket.id})`,
+                            score: score
+                        };
+                        
+                        gameState.aiCandidates.push(shot);
+                        if (shot.score > bestScore) {
+                            bestScore = shot.score;
+                            gameState.aiBestShot = shot;
+                        }
+                    }
+                });
+            });
+
+            // NOVO (Pedido 4): Calcular jogadas de Tabela (Bank Shots)
+            const CUSHION_X_LEFT = MARGIN;
+            const CUSHION_X_RIGHT = CANVAS_WIDTH - MARGIN;
+
+            targets.forEach(target => {
+                // Tabela na Direita (para bocas da Esquerda: [0] e [3])
+                const rightCushionPockets = [pockets[0], pockets[3]]; 
+                rightCushionPockets.forEach(pocket => {
+                    const virtualPocketX = CUSHION_X_RIGHT + (CUSHION_X_RIGHT - pocket.x);
+                    const virtualPocketY = pocket.y;
+                    const angleToVirtual = Math.atan2(virtualPocketY - target.y, virtualPocketX - target.x);
+                    
+                    const aimX = target.x - Math.cos(angleToVirtual) * (target.radius + white.radius);
+                    const aimY = target.y - Math.sin(angleToVirtual) * (target.radius + white.radius);
+                    
+                    const angleToAim = Math.atan2(aimY - white.y, aimX - white.x);
+                    const distToAim = Math.hypot(aimX - white.x, aimY - white.y);
+
+                    if (isPathClear(white, angleToAim, distToAim)) {
+                        const power = Math.min(config.maxPower, distToAim * 0.2 + 15 + Math.random() * 5); // Mais força
+                        const score = 400 - distToAim * 2 + Math.random() * 10; // Score menor (mais arriscado)
+
+                        if (score > bestScore) { // Só vira a melhor jogada se não houver direta boa
+                            const bankShot = {
+                                angle: angleToAim,
+                                power: power,
+                                effect: { x: 0.2, y: 0.1 }, // Efeito a favor (running english) + stun
+                                reasoning: `Tabela! (B${target.number} -> C${pocket.id})`,
+                                score: score
+                            };
+                            gameState.aiCandidates.push(bankShot);
+                            bestScore = score;
+                            gameState.aiBestShot = bankShot;
+                        }
+                    }
+                });
+                
+                // Tabela na Esquerda (para bocas da Direita: [2] e [5])
+                const leftCushionPockets = [pockets[2], pockets[5]]; 
+                leftCushionPockets.forEach(pocket => {
+                    const virtualPocketX = CUSHION_X_LEFT - (pocket.x - CUSHION_X_LEFT);
+                    const virtualPocketY = pocket.y;
+                    const angleToVirtual = Math.atan2(virtualPocketY - target.y, virtualPocketX - target.x);
+                    
+                    const aimX = target.x - Math.cos(angleToVirtual) * (target.radius + white.radius);
+                    const aimY = target.y - Math.sin(angleToVirtual) * (target.radius + white.radius);
+                    
+                    const angleToAim = Math.atan2(aimY - white.y, aimX - white.x);
+                    const distToAim = Math.hypot(aimX - white.x, aimY - white.y);
+
+                    if (isPathClear(white, angleToAim, distToAim)) {
+                        const power = Math.min(config.maxPower, distToAim * 0.2 + 15 + Math.random() * 5);
+                        const score = 400 - distToAim * 2 + Math.random() * 10; 
+
+                        if (score > bestScore) {
+                            const bankShot = {
+                                angle: angleToAim,
+                                power: power,
+                                effect: { x: -0.2, y: 0.1 }, // Efeito a favor (running english) + stun
+                                reasoning: `Tabela! (B${target.number} -> C${pocket.id})`,
+                                score: score
+                            };
+                            gameState.aiCandidates.push(bankShot);
+                            bestScore = score;
+                            gameState.aiBestShot = bankShot;
+                        }
+                    }
+                });
+            });
+
+            // 2. Se não houver candidatos, criar uma jogada defensiva
+            if (gameState.aiCandidates.length === 0) {
+                 const safeShotAngle = Math.random() * Math.PI * 2;
+                 const safePower = Math.random() * 8 + 5;
+                 const safeShot = {
+                    angle: safeShotAngle,
+                    power: safePower,
+                    effect: {x: 0, y: 0}, // Sem efeito
+                    reasoning: "Nenhuma rota clara. Jogada defensiva.",
+                    score: 1
+                 };
+                 gameState.aiCandidates.push(safeShot);
+                 gameState.aiBestShot = safeShot;
+            }
+            
+            if (gameState.aiBestShot.effect.x !== 0 || gameState.aiBestShot.effect.y !== 0) {
+                // Abre o modal para mostrar o efeito
+                effectModal.style.display = 'flex';
+                // Posiciona o marcador no efeito escolhido
+                const radius = effectBoard.getBoundingClientRect().width / 2;
+                effectMarker.style.left = `${50 + (gameState.aiBestShot.effect.x * 50)}%`;
+                effectMarker.style.top = `${50 + (gameState.aiBestShot.effect.y * 50)}%`;
+                updateUI();
+                // Fecha após 2s
+                setTimeout(() => {
+                    effectModal.style.display = 'none';
+                    // Continua o scanning
+                    aiScanNextTarget();
+                }, 2000);
+            } else {
+                aiScanNextTarget();
+            }
+        }
+       
+        function isPathClear(startBall, angle, maxDist) {
+            // ... (código de isPathClear) ...
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            for (const ball of gameState.balls) {
+                if (ball.pocketed || ball.isCue || ball.isFalling) continue;
+                const dx = ball.x - startBall.x;
+                const dy = ball.y - startBall.y;
+                const distSq = dx * dx + dy * dy;
+                const totalRadiusSq = (startBall.radius + ball.radius) ** 2;
+                if (distSq < totalRadiusSq) continue;
+                const distanceToCenter = Math.sqrt(distSq);
+                const angleToCenter = Math.atan2(dy, dx);
+                let angleDiff = angleToCenter - angle;
+                while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+                const perpDist = distanceToCenter * Math.abs(Math.sin(angleDiff));
+                if (perpDist < startBall.radius + ball.radius && Math.cos(angleDiff) > 0) {
+                    const projDistance = distanceToCenter * Math.cos(angleDiff);
+                    const hitDistance = projDistance - Math.sqrt(totalRadiusSq - perpDist ** 2);
+                    if (hitDistance > 0 && hitDistance < maxDist) {
+                        return false; // Colisão no caminho
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Função para "Nudge" (Aviso de Branca na Mão)
+        function showBallInHandNudge() {
+            // ... (código de showBallInHandNudge) ...
+            if (!gameState.isWhiteBallInHand || gameState.currentPlayer !== 1) return;
+            const tooltip = document.getElementById('nudgeTooltip');
+            tooltip.textContent = 'Clique e arraste a bola branca para trás para mirar';
+            tooltip.style.display = 'block';
+            gameState.whiteBallNudge.active = true;
+            setTimeout(() => { if(gameState.whiteBallNudge.active) gameState.whiteBallNudge.x = 8; }, 0);
+            setTimeout(() => { if(gameState.whiteBallNudge.active) gameState.whiteBallNudge.x = -8; }, 100);
+            setTimeout(() => { if(gameState.whiteBallNudge.active) gameState.whiteBallNudge.x = 8; }, 200);
+            setTimeout(() => { if(gameState.whiteBallNudge.active) gameState.whiteBallNudge.x = 0; }, 300);
+            setTimeout(() => {
+                tooltip.style.display = 'none';
+                gameState.whiteBallNudge.active = false;
+                ballInHandNudgeTimer = null;
+            }, 2500); 
+        }
+
 
         function gameLoop() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             drawTable();
-
-            if (!gameState.shotInProgress && allBallsStopped()) {
-                if (gameState.isWhiteBallInHand) {
-                    // Desenha o círculo de validação para Branca na Mão
-                    ctx.save();
-                    const isValid = isCueBallPlacementValid(gameState.whiteBall.x, gameState.whiteBall.y);
-                    ctx.strokeStyle = isValid ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 0, 0, 0.8)';
-                    ctx.lineWidth = 4;
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.arc(gameState.whiteBall.x, gameState.whiteBall.y, gameState.whiteBall.radius * 2, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.restore();
-                } else {
-                    drawCue(); 
+            
+            // --- LÓGICA DE ANIMAÇÃO DA IA (COM EFEITO) ---
+            if (gameState.currentPlayer === 2 && gameState.isVsAI && (gameState.aiState === 'scanning' || gameState.aiState === 'locking')) {
+                const lerpSpeed = 0.08;
+                gameState.aiCurrent.power = lerp(gameState.aiCurrent.power, gameState.aiTarget.power, lerpSpeed);
+                gameState.aiCurrent.angle = angleLerp(gameState.aiCurrent.angle, gameState.aiTarget.angle, lerpSpeed);
+                // NOVO (Pedido 2): Interpola o efeito também
+                gameState.aiCurrent.effect = lerpEffect(gameState.aiCurrent.effect, gameState.aiTarget.effect, lerpSpeed);
+                
+                // Define o efeito global para ser desenhado
+                config.effectPower = gameState.aiCurrent.effect;
+                
+                gameState.cue.angle = gameState.aiCurrent.angle;
+                gameState.cue.power = gameState.aiCurrent.power;
+                gameState.cue.visible = true;
+                gameState.cue.isAIAim = true;
+                
+                document.getElementById('powerFill').style.width = `${(gameState.cue.power / config.maxPower) * 100}%`;
+                
+                // Atualiza o card da IA em tempo real durante a mira
+                if (gameState.aiState === 'locking') {
+                    updateUI();
                 }
             }
 
+            // --- LÓGICA DE DESENHO DA MIRA E "BOLA NA MÃO" ---
+            if (!gameState.shotInProgress && allBallsStopped()) {
+                 if (gameState.isWhiteBallInHand) {
+                    // ... (código de desenho da branca na mão) ...
+                    const nudge = gameState.whiteBallNudge;
+                    const drawX = gameState.whiteBall.x + (nudge.active ? nudge.x : 0);
+                    const drawY = gameState.whiteBall.y + (nudge.active ? nudge.y : 0);
+                    const isValid = isCueBallPlacementValid(gameState.whiteBall.x, gameState.whiteBall.y);
+                    const pulse = Math.abs(Math.sin(Date.now() / 200)); 
+                    ctx.save();
+                    ctx.fillStyle = isValid ? `rgba(0, 255, 0, ${0.1 + pulse * 0.1})` : `rgba(255, 0, 0, ${0.1 + pulse * 0.1})`;
+                    ctx.strokeStyle = isValid ? `rgba(0, 255, 0, ${0.2 + pulse * 0.3})` : `rgba(255, 0, 0, ${0.2 + pulse * 0.3})`;
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(MARGIN, MARGIN, HEAD_STRING_X - MARGIN, CANVAS_HEIGHT - 2 * MARGIN);
+                    ctx.strokeRect(MARGIN, MARGIN, HEAD_STRING_X - MARGIN, CANVAS_HEIGHT - 2 * MARGIN);
+                    ctx.restore();
+                    const originalX = gameState.whiteBall.x;
+                    const originalY = gameState.whiteBall.y;
+                    gameState.whiteBall.x = drawX;
+                    gameState.whiteBall.y = drawY;
+                    gameState.whiteBall.draw(); 
+                    gameState.whiteBall.x = originalX;
+                    gameState.whiteBall.y = originalY;
+                    ctx.save();
+                    const pulseRadius = gameState.whiteBall.radius + 5 + pulse * 3;
+                    ctx.strokeStyle = isValid ? `rgba(255, 255, 255, ${1 - pulse * 0.5})` : `rgba(255, 100, 100, ${1 - pulse * 0.5})`;
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = isValid ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 0, 0, 0.8)';
+                    ctx.shadowBlur = 10 + pulse * 5;
+                    ctx.beginPath();
+                    ctx.arc(drawX, drawY, pulseRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    if (nudge.active) {
+                        const tooltip = document.getElementById('nudgeTooltip');
+                        const rect = canvas.getBoundingClientRect();
+                        const scaleX = rect.width / CANVAS_WIDTH;
+                        const scaleY = rect.height / CANVAS_HEIGHT;
+                        const pageX = rect.left + window.scrollX + (drawX * scaleX);
+                        const pageY = rect.top + window.scrollY + (drawY * scaleY);
+                        tooltip.style.left = `${pageX}px`;
+                        tooltip.style.top = `${pageY - (gameState.whiteBall.radius * scaleY) - 15}px`; 
+                    }
+                    
+                } else if (gameState.cue.visible) {
+                    // Desenha a mira (do jogador OU da IA)
+                    // A mira da IA agora inclui o efeito (config.effectPower)
+                    drawCue(gameState.cue.angle, gameState.cue.power);
+                }
+            }
+            
             gameState.balls.forEach(ball => ball.update());
             handleCollisions();
-            gameState.balls.forEach(ball => ball.draw());
-
+            
+            gameState.balls.forEach(ball => {
+                if (ball.isCue && gameState.isWhiteBallInHand) return;
+                ball.draw();
+            });
+            
+            if (!gameState.shotInProgress && allBallsStopped() && gameState.currentPlayer === 2 && gameState.isVsAI && gameState.aiState === 'idle') {
+                gameState.cue.visible = false;
+            }
+            
             requestAnimationFrame(gameLoop);
         }
-
+        
+        // --- INICIA O JOGO ---
         initGame();
         gameLoop();
+
     </script>
 </body>
 </html>
