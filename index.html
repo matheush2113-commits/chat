@@ -786,23 +786,46 @@
             border-top: 1px solid #333;
         }
 
-        #chat-input select {
-            flex-grow: 1;
-            padding: 8px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid var(--primary-color);
-            color: #fff;
-            border-radius: 8px 0 0 8px;
-        }
+/* Modificações para o seu CSS existente */
 
-        #chat-send {
-            padding: 8px 12px;
-            background: var(--primary-color);
-            color: #000;
-            border: none;
-            border-radius: 0 8px 8px 0;
-            cursor: pointer;
-        }
+#chat-input select {
+    /* Mantém as suas propriedades existentes */
+    flex-grow: 1; /* Isto pode não ser necessário se a próxima linha for aplicada */
+    padding: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--primary-color);
+    color: #fff;
+    /* --- Adicione estas duas linhas --- */
+    width: 100%; /* Faz com que o seletor ocupe toda a largura disponível */
+    display: block; /* Garante que ele se comporte como um bloco */
+    /* --------------------------------- */
+    border-radius: 8px; /* Arredonde todas as bordas, já que não está mais ao lado do botão */
+}
+
+#chat-send {
+    padding: 8px 12px;
+    background: var(--primary-color);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    /* --- Adicione estas duas linhas --- */
+    width: 100%; /* Faz o botão ocupar toda a largura */
+    display: block; /* Garante que ele se comporte como um bloco e comece em uma nova linha */
+    margin-top: 8px; /* Adiciona um pequeno espaço entre o seletor e o botão */
+    /* --------------------------------- */
+    border-radius: 8px; /* Arredonde todas as bordas */
+}
+
+/* Remover a borda-radius específica que fazia a transição entre os dois elementos */
+#chat-input select {
+    /* ... outras regras ... */
+    border-radius: 8px; /* Era 8px 0 0 8px; */
+}
+
+#chat-send {
+    /* ... outras regras ... */
+    border-radius: 8px; /* Era 0 8px 8px 0; */
+}
 
         #chat-send:hover {
             background: #00ffff;
