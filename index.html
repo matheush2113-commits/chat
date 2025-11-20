@@ -76,7 +76,7 @@
             opacity: 0.4;
             transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             filter: grayscale(100%);
-            position: relative; /* Para o chat button e bubble */
+            position: relative; 
         }
         .player-section.active-turn { 
             opacity: 1; 
@@ -100,15 +100,16 @@
         .timer-svg {
             position: absolute; top: 0; left: 0;
             width: 64px; height: 64px;
-            transform: rotate(-90deg);
+            transform: rotate(-90deg); 
         }
-        .timer-circle-bg { fill: none; stroke: #222; stroke-width: 5; }
+        .timer-circle-bg { fill: none; stroke: #222; stroke-width: 5; cx: 50%; cy: 50%; r: calc(50% - 2.5px); }
         .timer-circle-fg { 
             fill: none; stroke: var(--primary-color); stroke-width: 5; 
-            stroke-dasharray: 175; 
+            stroke-dasharray: 179.07; /* 2*PI*R para R=28.5 */
             stroke-dashoffset: 0;
             transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
             stroke-linecap: round;
+            cx: 50%; cy: 50%; r: calc(50% - 2.5px);
         }
 
         .avatar-img {
@@ -134,14 +135,17 @@
             z-index: 5;
             transition: 0.2s;
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            pointer-events: auto; 
         }
+        
         .chat-btn:hover { background: var(--primary-color); transform: scale(1.1); }
-        .chat-btn svg { width: 12px; height: 12px; fill: #000; }
+        .chat-btn:active { transform: scale(0.95); }
+        .chat-btn svg { width: 12px; height: 12px; fill: #000; pointer-events: none; } 
         /* Posicionamento para o bot */
         #p2-section .chat-btn {
             left: 0px; 
             right: auto;
-            background: var(--bot-anger-color); /* Cor para o chat do bot */
+            background: var(--bot-anger-color); 
             box-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
         }
         #p2-section .chat-btn:hover { background: var(--bot-anger-color); transform: scale(1.1); }
@@ -225,11 +229,11 @@
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
             cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: var(--primary-color); transition: all 0.2s; position: relative; overflow: hidden;
+            pointer-events: auto; 
         }
         .btn-neon:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--primary-color); box-shadow: 0 0 15px var(--primary-color); transform: translateY(-2px); }
         .btn-neon:active { transform: scale(0.95); }
-        .btn-neon svg { width: 22px; height: 22px; fill: currentColor; margin-bottom: 4px; }
-        .btn-neon span { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-neon svg { width: 22px; height: 22px; fill: currentColor; margin-bottom: 4px; pointer-events: none; } 
 
         /* SPIN POPOVER */
         #spin-popover {
@@ -242,7 +246,13 @@
             transform: scale(0.8);
         }
         #spin-popover.visible { opacity: 1; visibility: visible; transform: scale(1); right: 80px;}
-        .spin-ball { width: 80px; height: 80px; background: radial-gradient(circle at 35% 35%, #fff, #ddd, #888); border-radius: 50%; margin-top: 8px; cursor: pointer; position: relative; box-shadow: inset 0 -5px 10px rgba(0,0,0,0.5); }
+        .spin-ball { 
+            width: 80px; height: 80px; 
+            background: radial-gradient(circle at 35% 35%, #fff, #ddd, #888); 
+            border-radius: 50%; margin-top: 8px; cursor: pointer; position: relative; 
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.5); 
+            pointer-events: auto; 
+        }
         #spin-dot { width: 10px; height: 10px; background: #ff3333; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #ff3333; pointer-events: none;}
         #bot-spin-dot { width: 10px; height: 10px; background: #33ff33; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #33ff33; pointer-events: none; opacity: 0;}
 
@@ -268,13 +278,104 @@
             text-align: center;
             transition: 0.2s;
             font-weight: 700;
+            pointer-events: auto; 
         }
         .taunt-btn:hover { background: rgba(0, 243, 255, 0.2); transform: scale(1.05); }
+        .taunt-btn:active { transform: scale(0.95); }
         .taunt-btn-emoji { font-size: 18px; line-height: 1; border: none; padding: 2px 5px; background: none; }
         .taunt-section-title { width: 100%; font-size: 8px; color: #888; text-transform: uppercase; margin-top: 5px; margin-bottom: 2px;}
-        /* FIM TAUNT POPOVER */
 
+        /* BOT TAUNT POPOVER */
+        #bot-taunt-popover {
+            position: absolute; top: 80px; right: 90px;
+            width: 160px; background: rgba(10, 12, 16, 0.98);
+            border: 1px solid var(--bot-anger-color); border-radius: 12px;
+            padding: 10px;
+            display: flex; flex-wrap: wrap; gap: 5px;
+            opacity: 0; visibility: hidden; transition: 0.3s; z-index: 200;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            transform: scale(0.8);
+        }
+        #bot-taunt-popover.visible { opacity: 1; visibility: visible; transform: scale(1); right: 80px;}
 
+        /* SUNK POPOVER (MODIFICADO) */
+        #sunk-popover {
+            position: absolute; top: 80px; right: 90px;
+            width: 120px; 
+            min-height: 50px; 
+            background: rgba(10, 12, 16, 0.98);
+            border: 1px solid var(--primary-color); border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 10px;
+            opacity: 0; visibility: hidden; transition: 0.3s; z-index: 200;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            transform: scale(0.8);
+            pointer-events: none; 
+        }
+        #sunk-popover.visible { 
+            opacity: 1; 
+            visibility: visible; 
+            transform: scale(1); 
+            right: 80px;
+            /* Altura ajustada dinamicamente pelo conteúdo, removendo min-height alto */
+        }
+        
+        #sunk-container {
+            position: relative;
+            width: 100%; /* Ajustado para 100% para centralizar */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0; /* Removendo gap */
+            margin-top: 5px;
+            overflow-y: auto; 
+            overflow-x: hidden;
+            padding-top: 5px;
+            max-height: 200px; /* Limite de altura para scroll */
+        }
+
+        .sunk-stack-ball-container {
+            position: relative;
+            margin-top: -15px; /* Overlap negativo */
+            z-index: 1; /* Valor base */
+        }
+        
+        .sunk-stack-ball-container:first-child {
+            margin-top: 0; /* O primeiro não tem overlap */
+        }
+
+        .sunk-stack-ball {
+            width: 30px; /* Um pouco maior para caber o número */
+            height: 30px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid var(--bg-color);
+            box-shadow: 0 0 5px rgba(255,255,255,0.3);
+            flex-shrink: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sunk-ball-number {
+             position: absolute;
+             bottom: -2px; 
+             right: -2px;
+             font-size: 8px;
+             font-weight: 900;
+             color: #000;
+             background: #fff;
+             border-radius: 50%;
+             width: 12px;
+             height: 12px;
+             text-align: center;
+             line-height: 12px;
+             border: 1px solid #000;
+             z-index: 101; /* Acima da bola */
+        }
+        
         /* TOAST & BUBBLES */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 150; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; flex-direction: column; padding-top: 150px;}
         .toast {
@@ -301,9 +402,14 @@
             max-width: 150px; 
             text-align: center;
         }
-        .chat-bubble.show { opacity: 1; transform: translateY(0); }
+        
+        /* AJUSTE PARA BOLHAS DE CHAT: CORREÇÃO DO CANTO */
         #p1-bubble { left: 10px; border-top-left-radius: 0; }
-        #p2-bubble { right: 10px; left: auto; border-top-right-radius: 0; }
+        /* MODIFICAÇÃO: Inverte o posicionamento da bolha do Bot */
+        #p2-bubble { right: 10px; left: auto; border-top-right-radius: 0; text-align: right; }
+        .chat-bubble.show { opacity: 1; transform: translateY(0); }
+        /* FIM MODIFICAÇÃO */
+
 
         /* MOBILE / AJUSTES PARA TELA PEQUENA */
         @media (max-width: 768px) {
@@ -347,11 +453,6 @@
                 max-height: 22px;
             }
 
-            .btn-neon span {
-                font-size: 2.5vw;
-                max-font-size: 8px;
-            }
-
             #spin-popover {
                 width: 30vw;
                 height: 35vw;
@@ -372,6 +473,26 @@
             #taunt-popover.visible {
                 left: 50%;
                 transform: translateX(-50%) scale(1);
+            }
+
+            #bot-taunt-popover {
+                width: 50vw; 
+                top: auto;
+                bottom: 100px;
+            }
+            #bot-taunt-popover.visible {
+                left: 50%;
+                transform: translateX(-50%) scale(1);
+            }
+
+            #sunk-popover {
+                width: 30vw; 
+                top: auto;
+                bottom: 100px;
+            }
+            #sunk-popover.visible {
+                right: 50%;
+                transform: translateX(50%) scale(1);
             }
 
             .spin-ball {
@@ -406,9 +527,17 @@
             .taunt-btn {
                 font-size: 8px;
             }
+            
+            /* Ajuste para bolhas de chat no mobile (portrait) */
+            #p1-bubble { top: 60px; left: 50%; transform: translateX(-150%) translateY(10px); border-top-left-radius: 0; }
+            #p1-bubble.show { transform: translateX(-150%) translateY(0); }
+            /* MODIFICAÇÃO: Ajuste mobile para p2-bubble */
+            #p2-bubble { right: 50%; transform: translateX(150%) translateY(10px); border-top-right-radius: 0; text-align: right;}
+            #p2-bubble.show { transform: translateX(150%) translateY(0); }
+
         }
 
-        /* AJUSTES PARA MOBILE LANDSCAPE */
+        /* AJUSTES PARA MOBILE LANDSCAPE (OTIMIZADO) */
         @media (orientation: landscape) and (max-height: 768px) {
             .game-wrapper {
                 flex-direction: row;
@@ -420,12 +549,62 @@
 
             .hud-panel {
                 width: auto;
-                max-width: 30vw;
+                max-width: 25vw; 
                 flex-direction: column;
                 justify-content: space-around;
                 height: 98vh;
-                padding: 20px 10px;
+                padding: 10px 8px; 
             }
+
+            .player-section {
+                flex-direction: column; 
+                gap: 5px;
+                align-items: center;
+                width: 100%; 
+            }
+            
+            .p-info { align-items: center; } 
+            .p-name { text-align: center; }
+
+            .player-section.active-turn {
+                transform: scale(1.1); 
+            }
+            
+            .avatar-container {
+                width: 54px; height: 54px; 
+            }
+            .avatar-img {
+                width: 40px; height: 40px; 
+            }
+            .timer-svg {
+                width: 54px; height: 54px; 
+            }
+            .timer-circle-bg, .timer-circle-fg {
+                stroke-width: 4; 
+                stroke-dasharray: 157.08; /* 2*PI*R para R=25 */
+            }
+            
+            .chat-btn {
+                width: 16px; height: 16px; 
+            }
+            .chat-btn svg {
+                width: 10px; height: 10px;
+            }
+
+            .p-info { 
+                flex-grow: 0; 
+            }
+            .p-name { font-size: 10px; letter-spacing: 0.5px; } 
+            .p-type, .win-counter { font-size: 8px; margin-top: 1px; } 
+            .score-dots { gap: 3px; margin-top: 3px; }
+            .dot { width: 6px; height: 6px; } 
+
+            /* Ajuste para o VS */
+            .hud-panel > div:nth-child(2) {
+                font-size: 16px; 
+                margin: 5px 0;
+            }
+
 
             .main-area {
                 flex-direction: row;
@@ -464,29 +643,48 @@
                 max-height: 20px;
             }
 
-            .btn-neon span {
-                font-size: 1.5vw;
-                max-font-size: 8px;
-            }
-
+            /* Popovers: posicionamento centralizado e mais distante do painel */
             #spin-popover {
                 top: 50%;
-                right: 100px;
+                right: 150px; 
                 transform: translateY(-50%);
             }
 
             #spin-popover.visible {
-                right: 90px;
+                right: 140px;
             }
 
             #taunt-popover {
                 top: 50%;
-                left: -170px;
+                left: 140px; 
                 transform: translateY(-50%);
+                width: 130px; 
             }
 
             #taunt-popover.visible {
-                left: -160px;
+                left: 130px;
+            }
+
+            #bot-taunt-popover {
+                top: 50%;
+                right: 150px;
+                transform: translateY(-50%);
+                width: 130px;
+            }
+
+            #bot-taunt-popover.visible {
+                right: 140px;
+            }
+
+            #sunk-popover {
+                top: 50%;
+                right: 150px;
+                transform: translateY(-50%);
+                width: 100px;
+            }
+
+            #sunk-popover.visible {
+                right: 140px;
             }
 
             .toast {
@@ -499,6 +697,16 @@
                 padding: 1vw 2vw;
                 max-width: 100px;
             }
+            
+            /* Reposiciona a bolha de chat para o novo layout do HUD */
+            #p1-bubble { top: 5px; left: 60px; border-top-left-radius: 12px; border-bottom-left-radius: 0; }
+            /* MODIFICAÇÃO: Inverte o posicionamento da bolha do Bot no landscape */
+            #p2-bubble { top: 5px; right: 60px; left: auto; border-top-right-radius: 12px; border-bottom-right-radius: 0; text-align: right;}
+            
+            /* Ajuste para o layout do bot (lado direito) */
+            #p2-section { flex-direction: column; align-items: center; } 
+            #p2-section .p-info { align-items: center; } 
+            #p2-section .chat-btn { right: 0; left: auto; }
         }
     </style>
 </head>
@@ -534,12 +742,12 @@
                 </div>
 
                 <div class="avatar-container">
-                    <svg class="timer-svg">
-                        <circle class="timer-circle-bg" cx="32" cy="32" r="28"></circle>
-                        <circle id="p1-timer" class="timer-circle-fg" cx="32" cy="32" r="28"></circle>
+                    <svg class="timer-svg" viewBox="0 0 64 64">
+                        <circle class="timer-circle-bg" cx="32" cy="32" r="28.5"></circle> 
+                        <circle id="p1-timer" class="timer-circle-fg" cx="32" cy="32" r="28.5"></circle>
                     </svg>
                     <div class="avatar-img" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=King');"></div>
-                    <div class="chat-btn" onclick="toggleTauntMenu(event)">
+                    <div class="chat-btn" onclick="togglePlayerTauntMenu()">
                         <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
                     </div>
                 </div>
@@ -562,14 +770,31 @@
                     <div class="score-dots" id="p2-score"></div>
                 </div>
                 <div class="avatar-container">
-                    <svg class="timer-svg">
-                        <circle class="timer-circle-bg" cx="32" cy="32" r="28"></circle>
-                        <circle id="p2-timer" class="timer-circle-fg" cx="32" cy="32" r="28"></circle>
+                    <svg class="timer-svg" viewBox="0 0 64 64">
+                        <circle class="timer-circle-bg" cx="32" cy="32" r="28.5"></circle>
+                        <circle id="p2-timer" class="timer-circle-fg" cx="32" cy="32" r="28.5"></circle>
                     </svg>
                     <div class="avatar-img" style="background-image: url('https://api.dicebear.com/7.x/bottts/svg?seed=Terminator');"></div>
-                    <div class="chat-btn">
+                    <div class="chat-btn" onclick="toggleBotTauntMenu()">
                         <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
                     </div>
+                </div>
+                <div id="bot-taunt-popover">
+                    <span class="taunt-section-title">Frases do Bot:</span>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Análise: 0/10. Erro de mira.')">Análise: 0/10</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Meu algoritmo ri. 🤣')">Meu algoritmo ri</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Vou te punir por isso.')">Vou te punir</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Processando a vitória em 3, 2...')">Processando vitória</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Não me irrite. 😠')">Não me irrite</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Erro 404: Habilidade não encontrada.')">Erro 404</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Você é lento como um 486.')">486 Lento</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(2, 'Calculei seu erro antes de você atirar.')">Calculei seu erro</button>
+                    
+                    <span class="taunt-section-title">Emojis do Bot:</span>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(2, '🤖')">🤖</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(2, '👎')">👎</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(2, '💀')">💀</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(2, '🤖🔥')">🤖🔥</button>
                 </div>
             </div>
         </div>
@@ -602,23 +827,33 @@
 
                 <button class="btn-neon" onclick="toggleSpinMenu()">
                     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <span>Efeito</span>
                 </button>
 
                 <button class="btn-neon" onclick="cycleTheme()">
                     <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-                    <span>Tema</span>
+                </button>
+
+                <button class="btn-neon" onclick="toggleSunkMenu()">
+                    <svg viewBox="0 0 24 24"><path d="M12 21l-12-18h24z"/></svg>
                 </button>
 
                 <div style="flex-grow:1;"></div>
 
                 <button class="btn-neon" onclick="manualReset()" style="color:#ff4757; border-color:rgba(255,71,87,0.3)">
                     <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6 0 1.1-.27 2.12-.74 3.02l1.53 1.53C19.65 16.17 20 14.14 20 12c0-4.42-3.58-8-8-8zm-5.47 2.47l1.53 1.53C7.27 9.88 7 10.9 7 12c0 3.31 2.69 6 6 6v-4l5 5-5 5v-4c-4.42 0-8-3.58-8-8 0-2.14.35-4.17.96-5.99z"/></svg>
-                    <span>Reiniciar</span>
                 </button>
             </div>
         </div>
+
+        <div id="sunk-popover">
+            <div id="sunk-container"></div>
+        </div>
     </div>
+    
+    <div id="turn-indicator" style="position: absolute; pointer-events: none; z-index: 200; opacity: 0; transition: opacity 0.5s;">
+        <div style="font-weight: 900; font-size: 16px; color: white; text-shadow: 0 0 10px var(--primary-color);">SUA VEZ</div>
+    </div>
+
 
 <script>
     // CONFIGURAÇÃO GERAL
@@ -632,10 +867,16 @@
     let p1Wins = 0;
     let p2Wins = 0;
 
-    // FORÇA MÁXIMA (REDUZIDA)
-    const MAX_DRAG_DISTANCE = 100; // Reduzida de 120
-    const POWER_MULTIPLIER = 0.35; // Reduzida de 0.4
+    // MODIFICAÇÃO: Diminuir a força máxima da tacada
+    const MAX_DRAG_DISTANCE = 120; // Aumentei a distância que o usuário pode arrastar
+    const POWER_MULTIPLIER = 0.25; // Diminui o fator de conversão de distância para força (Original era 0.35)
     const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
+
+    // MODIFICAÇÃO: Variáveis de Inatividade para Troca de Turno
+    let lastActivityTime = Date.now();
+    const INACTIVITY_WARNING_TIME = 5 * 1000; // 5 segundos para aviso (círculo)
+    const INACTIVITY_TIMEOUT = 15 * 1000; // 15 segundos para trocar o turno
+    let inactivityWarningVisible = false;
 
     // TEMAS
     const THEMES = [
@@ -672,6 +913,7 @@
     scene.add(themeLight);
 
     // Texturas das Bolas
+    let ballImages = {};
     function createBallTexture(n, colorHex) {
         const canvas = document.createElement('canvas');
         canvas.width = 128; canvas.height = 64;
@@ -684,9 +926,9 @@
             ctx.fillStyle = '#cc0000'; ctx.beginPath(); ctx.arc(w/2, h/2, 4, 0, Math.PI*2); ctx.fill();
         } else if (n === 8) {
             ctx.fillStyle = '#151515'; ctx.fillRect(0,0,w,h);
-        } else if (n < 9) {
+        } else if (n > 0 && n < 9) { // Solid 1-7
             ctx.fillStyle = color; ctx.fillRect(0,0,w,h);
-        } else {
+        } else if (n > 8) { // Stripe 9-15
             ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,w,h);
             ctx.fillStyle = color; ctx.fillRect(0, h/4, w, h/2);
         }
@@ -697,7 +939,15 @@
             ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'black';
             ctx.fillText(n, w/4, h/2+2); ctx.fillText(n, w*0.75, h/2+2);
         }
+        
+        // Salva a URL da imagem para o popover (melhor que re-renderizar o canvas)
+        ballImages[n] = canvas.toDataURL();
         return new THREE.CanvasTexture(canvas);
+    }
+    
+    // Gera as texturas das bolas e as URLs salvas para o popover.
+    for(let n=0; n<=15; n++) {
+        createBallTexture(n, BALL_COLORS[n] || 0x111111); 
     }
 
     // CLASSE BOLA
@@ -716,13 +966,14 @@
             
             const geo = new THREE.SphereGeometry(this.radius, 32, 32);
             const mat = new THREE.MeshPhongMaterial({ 
-                map: createBallTexture(number, BALL_COLORS[number]), 
+                map: new THREE.TextureLoader().load(ballImages[number]), // Usa a URL salva
                 shininess: 150,
                 specular: 0x444444
             });
             this.mesh = new THREE.Mesh(geo, mat);
             scene.add(this.mesh);
             this.updateMeshPosition();
+            this.sunkTime = null; // Para manter a ordem no popover
         }
 
         update() {
@@ -768,6 +1019,7 @@
                     this.falling = true; 
                     this.active = false; 
                     this.pocketTarget = {x:p.x, y:p.y};
+                    this.sunkTime = Date.now(); // Marca o tempo de queda
                     gameState.pocketedThisTurn.push(this);
                 }
             });
@@ -777,26 +1029,33 @@
         }
 
         fallAnimation() {
-            this.x += (this.pocketTarget.x - this.x) * 0.25;
-            this.y += (this.pocketTarget.y - this.y) * 0.25;
-            const scale = this.mesh.scale.x * 0.85;
+            // Animação de queda simplificada
+            this.x += (this.pocketTarget.x - this.x) * 0.1;
+            this.y += (this.pocketTarget.y - this.y) * 0.1;
+            
+            this.mesh.position.z -= 1.2; 
+            this.mesh.rotation.y += 0.3; 
+
+            const scale = Math.max(0, 1 + this.mesh.position.z / 40); 
             this.mesh.scale.set(scale, scale, scale);
-            this.mesh.rotation.x += 0.3; 
-            this.mesh.rotation.y += 0.3;
+
             this.updateMeshPosition();
             
-            if (scale < 0.1) {
+            if (this.mesh.position.z < -40) {
                 this.falling = false; 
                 this.mesh.visible = false; 
                 this.mesh.scale.set(1,1,1);
+                this.mesh.position.z = 0; 
                 spawnExplosion(this.pocketTarget.x, this.pocketTarget.y, getTheme().primary);
+                
+                // Adiciona ao pop-over Sunk (após a queda)
+                sunkBall(this.number);
             }
         }
 
         updateMeshPosition() {
             this.mesh.position.x = this.x - WIDTH / 2;
             this.mesh.position.y = -(this.y - HEIGHT / 2);
-            this.mesh.position.z = 0;
         }
 
         updateRotation() {
@@ -824,6 +1083,7 @@
     const ctx2D = document.getElementById('table-canvas').getContext('2d');
     const ctxFX = document.getElementById('fx-canvas').getContext('2d');
     const inputLayer = document.getElementById('input-layer');
+    const turnIndicator = document.getElementById('turn-indicator');
     
     // VARIÁVEIS DE JOGO
     let balls = [], cueBall, particles = [];
@@ -841,7 +1101,8 @@
         gameOver: false, 
         ballInHand: false, 
         playerSpin: {x:0, y:0}, 
-        botSpin: {x:0, y:0}     
+        botSpin: {x:0, y:0},
+        firstHit: null     
     };
 
     // IA STATE
@@ -850,55 +1111,144 @@
         targetBall: null,
         aimAngle: 0,
         aimPower: 0,
-        scanLines: [], // Para a varredura visual
+        scanLines: [], 
         aimTargetAngle: 0, 
         aimTargetPower: 0, 
         timer: 0,
-        angerLevel: 0, // 0 a 100. Aumenta a precisão
+        angerLevel: 0, 
         currentScanTarget: 0,
         scanTargets: [],
-        aimMode: 'direct' // 'direct' ou 'bank'
+        aimMode: 'direct' 
     };
 
     // TIMER DO JOGO
     let turnTimer = null;
     let timeLeft = 30;
     const MAX_TIME = 30;
+    const TIMER_CIRCUMFERENCE = 179.07; // 2 * PI * R (R=28.5)
 
     function startTimer() {
         clearInterval(turnTimer);
         timeLeft = MAX_TIME;
         updateTimerVisuals();
+        
+        lastActivityTime = Date.now(); // Reseta a atividade no início do turno
+        inactivityWarningVisible = false;
+        turnIndicator.style.opacity = 0; // Esconde o indicador de turno
+        
         if(gameState.gameOver) return;
+        
         turnTimer = setInterval(() => {
             if (gameState.turn === 2 && botState.phase !== 'idle' && botState.phase !== 'scanning') return; 
+            
             timeLeft -= 0.1;
             updateTimerVisuals();
-            if (timeLeft <= 0) { clearInterval(turnTimer); handleTimeOut(); }
+            
+            // MODIFICAÇÃO: Checagem de inatividade para o jogador 1
+            if (gameState.turn === 1 && !gameState.isMoving && !gameState.isDragging) {
+                const elapsed = Date.now() - lastActivityTime;
+                
+                if (elapsed >= INACTIVITY_TIMEOUT) {
+                    clearInterval(turnTimer); 
+                    handleTimeOut(true); // Troca forçada por inatividade
+                    return;
+                }
+                
+                if (elapsed >= INACTIVITY_WARNING_TIME && !inactivityWarningVisible) {
+                    showInactivityWarning(true);
+                    inactivityWarningVisible = true;
+                } else if (elapsed < INACTIVITY_WARNING_TIME && inactivityWarningVisible) {
+                    showInactivityWarning(false);
+                    inactivityWarningVisible = false;
+                }
+            }
+            
+            if (timeLeft <= 0) { clearInterval(turnTimer); handleTimeOut(false); }
         }, 100);
     }
+    
+    // MODIFICAÇÃO: Função para mostrar aviso de inatividade
+    function showInactivityWarning(show) {
+        if(show) {
+            turnIndicator.style.left = `${(cueBall.x - WIDTH/2) + WIDTH/2}px`;
+            turnIndicator.style.top = `${(cueBall.y - HEIGHT/2) + HEIGHT/2}px`;
+            turnIndicator.style.opacity = 1;
+        } else {
+            turnIndicator.style.opacity = 0;
+        }
+    }
+
+
     function stopTimer() { clearInterval(turnTimer); }
     function updateTimerVisuals() {
         const p1 = document.getElementById('p1-timer'), p2 = document.getElementById('p2-timer');
-        const offset = 175 - (175 * (timeLeft / MAX_TIME));
+        const offset = TIMER_CIRCUMFERENCE - (TIMER_CIRCUMFERENCE * (timeLeft / MAX_TIME));
         if(gameState.turn === 1) {
-            p1.style.strokeDashoffset = offset; p2.style.strokeDashoffset = 175;
+            p1.style.strokeDashoffset = offset; p2.style.strokeDashoffset = TIMER_CIRCUMFERENCE;
             p1.style.stroke = timeLeft < 5 ? '#ff3333' : getTheme().primary;
+            if(!gameState.isMoving && !gameState.isDragging) showTurnIndicator(true, cueBall.x, cueBall.y); else showTurnIndicator(false); // MODIFICAÇÃO
         } else {
-            p2.style.strokeDashoffset = offset; p1.style.strokeDashoffset = 175;
-            p2.style.stroke = timeLeft < 5 ? '#ff3333' : '#ff4757'; // Bot Timer Vermelho
+            p2.style.strokeDashoffset = offset; p1.style.strokeDashoffset = TIMER_CIRCUMFERENCE;
+            p2.style.stroke = timeLeft < 5 ? '#ff4757' : '#ff4757'; // Bot Timer Vermelho
+            showTurnIndicator(false);
         }
     }
-    function handleTimeOut() {
-        showToast("TEMPO ESGOTADO!", true);
-        tauntBotAutomatic(1, '💤'); // Você provoca o bot por demorar
+    
+    // MODIFICAÇÃO: Atualiza a função handleTimeOut para aceitar inatividade
+    function handleTimeOut(isInactive) {
+        showToast(isInactive ? "INATIVIDADE: TROCA DE TURNO!" : "TEMPO ESGOTADO!", true);
+        tauntBotAutomatic(1, '💤'); 
         gameState.ballInHand = true;
         gameState.turn = gameState.turn === 1 ? 2 : 1;
         updateHUD();
         if(gameState.turn === 2) setTimeout(initBotTurn, 1000); else startTimer();
+        showInactivityWarning(false);
     }
 
     // --- VISUALIZAÇÃO E RENDERIZAÇÃO ---
+    
+    // MODIFICAÇÃO: Função para desenhar o indicador de turno na bola branca
+    function showTurnIndicator(show, x, y) {
+        if (show && gameState.turn === 1 && cueBall.active && !gameState.isDragging) {
+            const time = Date.now() * 0.005;
+            const pulse = 1 + Math.sin(time) * 0.1;
+            
+            ctxFX.save();
+            ctxFX.translate(x, y);
+            ctxFX.scale(pulse, pulse);
+            
+            // Círculo Pulsante
+            ctxFX.beginPath();
+            ctxFX.arc(0, 0, BALL_RADIUS * 2, 0, Math.PI*2);
+            ctxFX.strokeStyle = 'white';
+            ctxFX.lineWidth = 3;
+            ctxFX.setLineDash([5, 5]);
+            ctxFX.shadowColor = 'white';
+            ctxFX.shadowBlur = 15;
+            ctxFX.stroke();
+            ctxFX.shadowBlur = 0;
+            ctxFX.setLineDash([]);
+            
+            // Texto "SUA VEZ"
+            if (!inactivityWarningVisible) { // Só mostra o texto se não estiver inativo
+                ctxFX.fillStyle = "white";
+                ctxFX.font = "bold 14px Orbitron";
+                ctxFX.textAlign = "center";
+                ctxFX.fillText("SUA VEZ", 0, -25);
+            } else {
+                 // Texto de inatividade (mais urgente)
+                ctxFX.fillStyle = "#ff3333";
+                ctxFX.font = "bold 14px Orbitron";
+                ctxFX.textAlign = "center";
+                ctxFX.fillText("ATIRAR!", 0, -25);
+            }
+            
+            ctxFX.restore();
+        }
+        // O indicador de turno forçado (`turn-indicator` DIV) é tratado separadamente no `startTimer`/`handleInput*`
+    }
+    // FIM MODIFICAÇÃO VISUAL
+
 
     function drawTable2D() {
         ctx2D.clearRect(0, 0, WIDTH, HEIGHT); 
@@ -926,13 +1276,18 @@
 
         // --- VISUALIZAÇÃO PLAYER ---
         if (gameState.turn === 1 && !gameState.isMoving && !gameState.ballInHand) {
+            
             if (gameState.isDragging || gameState.power > 0) { 
+                
+                // MODIFICAÇÃO: Aviso visual de inatividade deve ser escondido ao arrastar
+                showInactivityWarning(false); 
+                inactivityWarningVisible = false;
                 
                 const aimData = calculateAimTrajectory(cueBall, gameState.angle);
                 let color = getTheme().primary;
                 if (gameState.p1Type && aimData.target) {
                     const isOwnType = (gameState.p1Type === 'solids' && aimData.target.isSolid) || (gameState.p1Type === 'stripes' && aimData.target.isStripe);
-                    if (!isOwnType && !aimData.target.isEight) color = '#ff3333'; // Vermelho se mirar em bola errada
+                    if (!isOwnType && !aimData.target.isEight) color = '#ff3333'; 
                 }
                 drawAimLines(cueBall, aimData, color, false);
 
@@ -956,20 +1311,25 @@
                 ctxFX.shadowBlur = 0;
 
                 drawCueStick(cueBall.x, cueBall.y, gameState.angle, -20 - (gameState.power * 0.5));
+                
+            } else {
+                 // Desenha o indicador de turno quando não está em movimento/arrastando
+                 showTurnIndicator(true, cueBall.x, cueBall.y); 
             }
+        } else {
+             showTurnIndicator(false);
         }
 
         // --- VISUALIZAÇÃO BOT (Thinking) ---
         if (gameState.turn === 2 && !gameState.isMoving) {
             
-            // Simula o movimento suave da mira do bot
             if(botState.phase === 'aiming' || botState.phase === 'shooting') {
-                botState.aimAngle = lerpAngle(botState.aimAngle, botState.aimTargetAngle, 0.08); // Um pouco mais rápido no aim
+                botState.aimAngle = lerpAngle(botState.aimAngle, botState.aimTargetAngle, 0.08); 
                 botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.15); 
             } else if (botState.phase === 'scanning' && botState.scanTargets.length > 0) {
                  const target = botState.scanTargets[botState.currentScanTarget];
                  botState.aimAngle = lerpAngle(botState.aimAngle, target.angle, 0.2);
-                 botState.aimPower = 0; // Não mostra poder durante a varredura
+                 botState.aimPower = 0; 
             }
             
             // Varredura Visual
@@ -985,7 +1345,6 @@
                     ctxFX.setLineDash([]);
                 });
                 
-                // Desenha a mira atual da varredura
                 if (botState.aimAngle) {
                      const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
                      drawAimLines(cueBall, aimData, '#ff3333', true);
@@ -1092,7 +1451,7 @@
         ctxFX.rotate(angle);
         ctxFX.translate(offset, 0);
 
-        const stickGradient = ctxFX.createLinearGradient(-150, 0, 0, 0);
+        const stickGradient = ctxFX.createLinearGradient(-200, 0, 0, 0);
         stickGradient.addColorStop(0, '#333');
         stickGradient.addColorStop(0.9, '#cfaa70'); 
         stickGradient.addColorStop(1, '#fff');
@@ -1162,7 +1521,6 @@
         });
         
         if (!targetBall) {
-           // Checa por colisão com as paredes (para atirar no vazio)
            const WALL_DIST_X1 = (TABLE_MARGIN + BALL_RADIUS - source.x) / dx;
            const WALL_DIST_X2 = (WIDTH - TABLE_MARGIN - BALL_RADIUS - source.x) / dx;
            const WALL_DIST_Y1 = (TABLE_MARGIN + BALL_RADIUS - source.y) / dy;
@@ -1186,7 +1544,7 @@
         };
     }
 
-    // --- INPUT DO JOGADOR (CORRIGIDO PARA MOBILE) ---
+    // --- INPUT DO JOGADOR ---
     function getMousePos(e) {
         const clientX = e.clientX || (e.touches ? e.touches[0].clientX : e.clientX);
         const clientY = e.clientY || (e.touches ? e.touches[0].clientY : e.clientY);
@@ -1199,6 +1557,7 @@
         return { x, y };
     }
     
+    let isSettingSpin = false;
     function handleInputStart(e) {
         const event = e.touches ? e.touches[0] : e;
         e.preventDefault(); 
@@ -1212,14 +1571,16 @@
         if (gameState.ballInHand) {
              gameState.isDragging = true; 
              handleBallInHandMove(pos);
+             lastActivityTime = Date.now(); // Reseta timer de inatividade ao arrastar
              return; 
         }
 
-        if (dxToCue*dxToCue + dyToCue*dyToCue < BALL_RADIUS*BALL_RADIUS * 25) { 
+        if (dxToCue*dxToCue + dyToCue*dyToCue < BALL_RADIUS*BALL_RADIUS * 30) { 
             gameState.isDragging = true; 
             gameState.dragStart = {x: cueBall.x, y: cueBall.y}; 
             gameState.dragCurrent = pos;
             gameState.power = 0; 
+            lastActivityTime = Date.now(); // Reseta timer de inatividade ao começar a mirar
         }
     }
 
@@ -1228,8 +1589,15 @@
         e.preventDefault(); 
         const pos = getMousePos(event);
         
+        if (isSettingSpin) {
+            setSpin(event);
+            lastActivityTime = Date.now();
+            return;
+        }
+
         if (gameState.ballInHand && gameState.isDragging && gameState.turn === 1) {
             handleBallInHandMove(pos);
+            lastActivityTime = Date.now(); // Reseta timer de inatividade
             return;
         }
 
@@ -1240,18 +1608,33 @@
             
             gameState.angle = Math.atan2(dy, dx); 
             gameState.power = Math.min(Math.hypot(dx, dy), MAX_DRAG_DISTANCE) * POWER_MULTIPLIER; 
+            lastActivityTime = Date.now(); // Reseta timer de inatividade
         }
     }
     
     function handleBallInHandMove(pos) {
-        cueBall.x = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(WIDTH-TABLE_MARGIN-BALL_RADIUS, pos.x));
-        cueBall.y = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(HEIGHT-TABLE_MARGIN-BALL_RADIUS, pos.y));
+        let validPos = true;
+        
+        const targetX = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(WIDTH-TABLE_MARGIN-BALL_RADIUS, pos.x));
+        const targetY = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(HEIGHT-TABLE_MARGIN-BALL_RADIUS, pos.y));
+
+        balls.forEach(b => {
+             if(b!==cueBall && b.active && Math.hypot(b.x-targetX, b.y-targetY) < BALL_RADIUS*2.1) validPos = false;
+        });
+
+        if(validPos) {
+            cueBall.x = targetX; 
+            cueBall.y = targetY;
+        } else {
+            navigator.vibrate(50);
+        }
         
         cueBall.vx = 0; cueBall.vy = 0;
         cueBall.updateMeshPosition(); 
     }
 
     function handleInputEnd(e) {
+        isSettingSpin = false;
         if (!gameState.isDragging) return;
         
         if (e.touches && e.touches.length > 0) return;
@@ -1264,7 +1647,6 @@
                 if(b!==cueBall && b.active && Math.hypot(b.x-cueBall.x, b.y-cueBall.y) < BALL_RADIUS*2.1) collision = true;
             });
             
-            // Checkar se a bola está na região de quebra se for o primeiro tiro
             if(gameState.p1Type === null && cueBall.x > WIDTH/4) collision = true;
 
             if(collision) {
@@ -1272,6 +1654,7 @@
             } else {
                 gameState.ballInHand = false; 
                 showToast("POSICIONADO!"); 
+                lastActivityTime = Date.now(); // Reseta timer de inatividade
             }
             return; 
         }
@@ -1281,11 +1664,20 @@
              shoot(gameState.angle, gameState.power);
         } else {
              gameState.power = 0;
+             lastActivityTime = Date.now(); // Reseta timer de inatividade se não atirou (para dar mais tempo para pensar/ajustar)
         }
         
-        // Esconde o menu de provocação após a jogada
-        if(tauntMenuOpen) toggleTauntMenu();
+        if(playerTauntMenuOpen) togglePlayerTauntMenu();
+        if(spinMenuOpen) toggleSpinMenu(); 
     }
+    
+    // MODIFICAÇÃO: Resetar o indicador de inatividade quando houver atividade de toque/mouse
+    function resetInactivityTimer() {
+        lastActivityTime = Date.now();
+        showInactivityWarning(false);
+        inactivityWarningVisible = false;
+    }
+
 
     // Event Listeners Corrigidos (com passive:false para toque)
     inputLayer.addEventListener('mousedown', handleInputStart);
@@ -1294,12 +1686,19 @@
     window.addEventListener('touchmove', handleInputMove, {passive:false});
     window.addEventListener('mouseup', handleInputEnd);
     window.addEventListener('touchend', handleInputEnd); 
+    
+    // MODIFICAÇÃO: Adicionar listeners globais de atividade para o timer
+    window.addEventListener('mousemove', resetInactivityTimer);
+    window.addEventListener('mousedown', resetInactivityTimer);
+    window.addEventListener('touchstart', resetInactivityTimer, {passive:false});
+    window.addEventListener('keydown', resetInactivityTimer); 
 
 
     // --- LÓGICA FÍSICA E REGRAS ---
     function shoot(a, p) {
         stopTimer();
         gameState.pocketedThisTurn = []; 
+        gameState.firstHit = null;
         cueBall.vx = Math.cos(a) * p; 
         cueBall.vy = Math.sin(a) * p;
         gameState.isMoving = true; 
@@ -1318,6 +1717,9 @@
                 
                 let dx = b2.x - b1.x, dy = b2.y - b1.y, dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < BALL_RADIUS*2) {
+                    if ((b1.isCue && !gameState.firstHit) || (b2.isCue && !gameState.firstHit)) {
+                        gameState.firstHit = b1.isCue ? b2 : b1;
+                    }
                     let angle = Math.atan2(dy, dx);
                     let overlap = (BALL_RADIUS*2 - dist) / 2;
                     
@@ -1363,6 +1765,7 @@
     function triggerGameOver(winnerId) {
         gameState.gameOver = true;
         stopTimer();
+        showInactivityWarning(false);
         
         if(winnerId === 1) {
             showToast("VITÓRIA!", false);
@@ -1411,6 +1814,23 @@
             }
         }
 
+        // Verificações adicionais de foul
+        if (gameState.pocketedThisTurn.length === 0 && !gameState.firstHit) {
+            foul = true;
+            msg = "SEM CONTATO!";
+        }
+
+        if (gameState.p1Type) { // Tabela fechada
+            let myType = gameState.turn === 1 ? gameState.p1Type : gameState.p2Type;
+            if (gameState.firstHit) {
+                let hitType = gameState.firstHit.isSolid ? 'solids' : (gameState.firstHit.isStripe ? 'stripes' : null);
+                if (hitType !== myType) {
+                    foul = true;
+                    msg = "PRIMEIRO CONTATO ERRADO!";
+                }
+            }
+        }
+
         if (!foul && gameState.pocketedThisTurn.length > 0) {
             let sunkOwn = false, sunkOpp = false, sunkFirst = null;
             
@@ -1419,7 +1839,6 @@
                     let type = b.isSolid ? 'solids' : 'stripes';
                     
                     if (!gameState.p1Type) {
-                        // Se for a primeira bola a cair no jogo (separação de grupos)
                         if (!sunkFirst) sunkFirst = type; 
                     }
                     
@@ -1436,21 +1855,11 @@
 
             if (sunkOwn) {
                  turnContinues = true;
-                 if(gameState.turn === 1) tauntPlayerAutomatic(1, '🎯'); // P1 provoca por acertar
+                 if(gameState.turn === 1) tauntPlayerAutomatic(1, '🎯'); 
                  else tauntBotAutomatic(2, 'Obrigado. 👍');
             }
             if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; tauntBotAutomatic(2, 'Amador.'); }
             if (sunkOwn && sunkOpp) { msg = "Bolas misturadas"; foul = true; } 
-            
-            // Verifica se a primeira bola tocada foi a correta
-            // Isso requer um sistema de rastreamento de primeira colisão que não está implementado,
-            // então vamos focar apenas nas bolas embolsadas para simplificar.
-        }
-
-        if (!foul && gameState.pocketedThisTurn.length === 0) {
-            // Se errou a tacada
-            if(gameState.turn === 1) tauntBotAutomatic(2, 'FALHA DE SISTEMA');
-            else tauntPlayerAutomatic(1, 'Foi mal, TheuZ?');
         }
 
         gameState.pocketedThisTurn = [];
@@ -1494,10 +1903,10 @@
     }
 
 
-    // Ajusta a precisão com base na raiva (0 = erro de 0.1 rad; 100 = erro de 0.005 rad)
+    // Ajusta a precisão com base na raiva (0 = erro de 0.05 rad; 100 = erro de 0.001 rad)
     function getBotErrorFactor() {
-        const MAX_ERROR = 0.08; 
-        const MIN_ERROR = 0.005; 
+        const MAX_ERROR = 0.05; 
+        const MIN_ERROR = 0.001; 
         
         let error = (100 - botState.angerLevel) * (MAX_ERROR - MIN_ERROR) / 100 + MIN_ERROR;
         
@@ -1577,7 +1986,6 @@
     function initBotTurn() {
         if (gameState.gameOver) return;
         
-        // Reduz levemente a raiva a cada turno, mas com piso em 10
         botState.angerLevel = Math.max(10, botState.angerLevel - 10);
         document.getElementById('p2-section').classList.toggle('bot-angry', botState.angerLevel > 40);
         
@@ -1590,7 +1998,7 @@
             while(!validPos && attempts++ < 10) {
                  validPos = true;
                  balls.forEach(b => {
-                    if(b!==cueBall && b.active && Math.hypot(b.x-cueBall.x, b.y-cueBall.y) < BALL_RADIUS*2.1) validPos = false;
+                    if(b!==cueBall && b.active && Math.hypot(b.x-pos.x, b.y-pos.y) < BALL_RADIUS*2.1) validPos = false;
                  });
                  if(!validPos) pos = {x: WIDTH/4 + (Math.random()-0.5)*100, y: HEIGHT/2 + (Math.random()-0.5)*100};
             }
@@ -1639,7 +2047,8 @@
                     bestDirectShot = { 
                         ball: t,
                         angle: aimAngle + error, 
-                        power: Math.min(d*0.35 + 20 + powerBoost, MAX_POWER - 5),
+                        // MODIFICAÇÃO: Ajustar power com base no novo MAX_POWER
+                        power: Math.min(d*0.35 + 10 + powerBoost, MAX_POWER - 5), // Reduzido o fator e o offset
                         spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
                         spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
                         mode: 'direct'
@@ -1650,7 +2059,7 @@
         
         // 2. Busca Tiro de Tabela (se não houver tiro direto fácil)
         let bestBankShot = null;
-        if (!bestDirectShot || Math.random() < 0.2) { // 20% de chance de tentar uma tabela
+        if (!bestDirectShot || Math.random() < 0.2) { 
             for(const target of targets) {
                 for(const pocket of getPockets()) {
                     const bankShot = calculateBankShot(target, pocket);
@@ -1696,17 +2105,15 @@
         const anglesToScan = [];
         targets.forEach(t => anglesToScan.push(Math.atan2(t.y - cueBall.y, t.x - cueBall.x)));
         
-        // Adiciona 3 alvos aleatórios de varredura
         for(let i=0; i<3; i++) {
             let rBall = targets[Math.floor(Math.random() * targets.length)];
             botState.scanLines.push({tx: rBall.x, ty: rBall.y});
             botState.scanTargets.push({angle: Math.atan2(rBall.y - cueBall.y, rBall.x - cueBall.x)});
         }
         
-        // Adiciona o alvo final
         botState.scanTargets.push({angle: finalChoice.angle});
         botState.currentScanTarget = 0;
-        botState.aimAngle = botState.scanTargets[0].angle; // Começa na primeira mira
+        botState.aimAngle = botState.scanTargets[0].angle; 
         // ----------------------------------------
 
 
@@ -1721,9 +2128,8 @@
         // Inicia a transição de varredura
         let scanInterval = setInterval(() => {
             if(botState.currentScanTarget < botState.scanTargets.length - 1) {
-                // Se a mira atual estiver perto do alvo
                 if (Math.abs(lerpAngle(botState.aimAngle, botState.scanTargets[botState.currentScanTarget].angle, 0.2) - botState.scanTargets[botState.currentScanTarget].angle) < 0.05) {
-                    botState.currentScanTarget++; // Move para o próximo alvo
+                    botState.currentScanTarget++; 
                 }
             } else {
                 clearInterval(scanInterval);
@@ -1751,14 +2157,16 @@
                             }
                         }, 20);
                     }
-                }, 1500); // Dá um tempo para o jogador ver a mira final
+                }, 1500); 
             }
         }, 200);
     }
 
 
     // --- SISTEMA DE PROVOCAÇÃO (TAUNT SYSTEM) ---
-    let tauntMenuOpen = false;
+    let playerTauntMenuOpen = false;
+    let botTauntMenuOpen = false;
+    
     const BOT_TAUNTS = [
         'Análise: 0/10. Erro de mira.', 
         'Meu algoritmo ri. 🤣', 
@@ -1768,8 +2176,6 @@
         'Erro 404: Habilidade não encontrada.',
         'Isso não é um jogo de criança.',
         'Eu vejo todos os ângulos.',
-        '🤖',
-        '👎',
         'Humano fraco. Atualize seu cérebro!',
         'Só isso? Patético.',
         'TheuZ, você é muito ruim!',
@@ -1779,9 +2185,16 @@
         'Prepare-se para o reset total!',
         'Você não tem chance contra minha IA superior.',
         'Erro humano típico.',
+        'Você é lento como um 486.',
+        'Calculei seu erro antes de você atirar.',
+        'Minha precisão é de 99.999%.',
+        'EZ. Próximo.',
+        '🤖',
+        '👎',
         '💀',
         '🤖🔥'
     ];
+    
     const PLAYER_TAUNTS = [
         'Vou resetar o sistema.', 
         'Isso é tudo?', 
@@ -1805,41 +2218,49 @@
         '🚀>🤖'
     ];
 
-    function toggleTauntMenu(e) { 
+    function togglePlayerTauntMenu() { 
         if(gameState.turn !== 1 || gameState.isMoving) return;
-        tauntMenuOpen = !tauntMenuOpen; 
-        document.getElementById('taunt-popover').classList.toggle('visible', tauntMenuOpen); 
+        playerTauntMenuOpen = !playerTauntMenuOpen; 
+        document.getElementById('taunt-popover').classList.toggle('visible', playerTauntMenuOpen); 
+        botTauntMenuOpen = false;
+        document.getElementById('bot-taunt-popover').classList.remove('visible');
+        resetInactivityTimer(); // Nova atividade
+    }
+
+    function toggleBotTauntMenu() { 
+        if(gameState.turn !== 2 || gameState.isMoving) return;
+        botTauntMenuOpen = !botTauntMenuOpen; 
+        document.getElementById('bot-taunt-popover').classList.toggle('visible', botTauntMenuOpen); 
+        playerTauntMenuOpen = false;
+        document.getElementById('taunt-popover').classList.remove('visible');
     }
 
     function tauntPlayer(player, msg) {
         if(player === 1) {
-            // P1 provoca o bot (Aumenta a raiva do bot)
-            tauntMenuOpen = false; 
-            document.getElementById('taunt-popover').classList.remove('visible');
             showBubble(1, msg);
             
             botState.angerLevel = Math.min(100, botState.angerLevel + 25);
             document.getElementById('p2-section').classList.add('bot-angry');
             
-            // Bot responde
             setTimeout(() => {
                 const botMsg = BOT_TAUNTS[Math.floor(Math.random() * BOT_TAUNTS.length)];
                 showBubble(2, botMsg);
             }, 1000);
 
+            if(playerTauntMenuOpen) togglePlayerTauntMenu();
+            resetInactivityTimer(); // Nova atividade
+
         } else if (player === 2) {
-            // Bot provoca P1
              showBubble(2, msg);
+             if(botTauntMenuOpen) toggleBotTauntMenu();
         }
     }
     
-    // Função para provocar automaticamente o bot em eventos
     function tauntPlayerAutomatic(player, msg) {
         if(player === 1) showBubble(1, msg);
-        else tauntPlayer(1, msg); // Dispara o ciclo de taunt e aumenta a raiva
+        else tauntPlayer(1, msg); 
     }
     
-    // Função para o bot provocar automaticamente o player em eventos
     function tauntBotAutomatic(player, msg) {
         if(player === 2) showBubble(2, msg);
         else tauntPlayer(2, msg);
@@ -1848,10 +2269,9 @@
 
     function showBubble(player, msg) {
         const el = document.getElementById(`p${player}-bubble`);
-        el.innerText = msg;
+        el.innerText = msg; 
         el.classList.add('show');
         
-        // Limpa a bolha após 2.5 segundos
         setTimeout(() => el.classList.remove('show'), 2500);
     }
 
@@ -1883,6 +2303,9 @@
         };
         updateDots('p1-score', gameState.p1Type);
         updateDots('p2-score', gameState.p2Type);
+        
+        // Atualiza a exibição de bolas encaçapadas se o menu estiver aberto
+        if(sunkMenuOpen) updateSunkAnimationStack();
     }
 
     function updateWinsDisplay() {
@@ -1927,13 +2350,14 @@
         if(gameState.turn !== 1 || gameState.isMoving) return;
         spinMenuOpen = !spinMenuOpen; 
         document.getElementById('spin-popover').classList.toggle('visible', spinMenuOpen); 
+        resetInactivityTimer(); // Nova atividade
     }
     
-    document.getElementById('spin-control').addEventListener('mousedown', setSpin);
-    document.getElementById('spin-control').addEventListener('touchstart', (e)=>{e.preventDefault(); setSpin(e.touches[0])}, {passive:false});
+    document.getElementById('spin-control').addEventListener('mousedown', (e) => { isSettingSpin = true; setSpin(e); });
+    document.getElementById('spin-control').addEventListener('touchstart', (e) => { e.preventDefault(); isSettingSpin = true; setSpin(e.touches[0]); }, {passive:false});
     
     function setSpin(e) {
-        const rect = e.currentTarget.getBoundingClientRect(); // Mudança para currentTarget
+        const rect = document.getElementById('spin-control').getBoundingClientRect(); 
         let clientX = e.clientX || (e.touches ? e.touches[0].clientX : e.clientX);
         let clientY = e.clientY || (e.touches ? e.touches[0].clientY : e.clientY);
 
@@ -1949,6 +2373,7 @@
         const d = document.getElementById('spin-dot'); 
         d.style.left = (sx/2+0.5)*100+'%'; 
         d.style.top = (sy/2+0.5)*100+'%';
+        resetInactivityTimer(); // Nova atividade
     }
 
     function cycleTheme() {
@@ -1957,7 +2382,78 @@
         document.documentElement.style.setProperty('--primary-color', theme.primary);
         themeLight.color.setHex(theme.lightColor);
         updateHUD(); drawTable2D(); 
+        resetInactivityTimer(); // Nova atividade
     }
+
+    let sunkMenuOpen = false;
+    
+    function toggleSunkMenu() {
+        sunkMenuOpen = !sunkMenuOpen;
+        const pop = document.getElementById('sunk-popover');
+        pop.classList.toggle('visible', sunkMenuOpen);
+        updateSunkAnimationStack();
+        resetInactivityTimer(); // Nova atividade
+    }
+
+    // Lógica de empilhamento de bolas encaçapadas
+    function sunkBall(number) {
+        if(sunkMenuOpen) updateSunkAnimationStack();
+    }
+
+    function updateSunkAnimationStack() {
+        const container = document.getElementById('sunk-container');
+        container.innerHTML = '';
+        
+        // Filtra as bolas que foram encaçapadas (não ativas, número > 0)
+        // Adiciona um atributo "sunkTime" para manter a ordem de queda
+        const pocketed = balls
+            .filter(b => !b.active && b.number > 0)
+            .map(b => ({...b, sunkTime: b.sunkTime || Date.now()}))
+            .sort((a, b) => a.sunkTime - b.sunkTime); 
+            
+        // Atualiza o tempo de queda nas bolas (para persistir a ordem)
+        pocketed.forEach(b => balls.find(original => original.number === b.number).sunkTime = b.sunkTime);
+        
+        // Separa a 8 e inverte a ordem das demais para que a mais recente fique no topo
+        const eight = pocketed.find(b => b.number === 8);
+        let others = pocketed.filter(b => b.number !== 8);
+        others.reverse(); // Última a cair no topo
+        
+        const stack = eight ? [eight, ...others] : others;
+
+
+        if (stack.length === 0) {
+            const msg = document.createElement('span');
+            msg.innerText = "NENHUMA";
+            msg.style.fontSize = '10px';
+            msg.style.color = '#777';
+            container.appendChild(msg);
+            return;
+        }
+
+        // Cria o elemento de imagem para cada bola encaçapada
+        stack.forEach((b, index) => {
+            let containerDiv = document.createElement('div');
+            containerDiv.className = 'sunk-stack-ball-container';
+            containerDiv.style.zIndex = 100 - index;
+            
+            let el = document.createElement('div');
+            el.className = 'sunk-stack-ball';
+            // Usa a URL salva no objeto ballImages
+            el.style.backgroundImage = `url('${ballImages[b.number]}')`; 
+            
+            // Adiciona a numeração
+            let numSpan = document.createElement('span');
+            numSpan.className = 'sunk-ball-number';
+            numSpan.innerText = b.number;
+            
+            containerDiv.appendChild(el);
+            if (b.number !== 0) containerDiv.appendChild(numSpan); // Não mostra número na branca
+            
+            container.appendChild(containerDiv);
+        });
+    }
+
 
     function initGame() {
         balls.forEach(b => scene.remove(b.mesh));
@@ -1991,7 +2487,7 @@
         gameState.playerSpin={x:0,y:0};
         gameState.botSpin={x:0,y:0};
         gameState.pocketedThisTurn = [];
-        botState.angerLevel = 0; // Resetar a raiva
+        botState.angerLevel = 0; 
         
         const d = document.getElementById('spin-dot'); 
         d.style.left = '50%'; d.style.top = '50%';
@@ -2006,6 +2502,7 @@
         updateWinsDisplay(); 
         showToast("QUEBRE!", false); 
         startTimer();
+        if(sunkMenuOpen) updateSunkAnimationStack();
     }
 
     function manualReset() { initGame(); }
@@ -2064,6 +2561,14 @@
     initGame();
     resizeGame();
     animate();
+
+// Fix for mobile touch on taunt buttons
+document.querySelectorAll('.taunt-btn').forEach(btn => {
+  btn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    btn.click();
+  });
+});
 
 </script>
 </body>
