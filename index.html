@@ -14,10 +14,17 @@
             --panel-bg: rgba(10, 15, 20, 0.95);
             --danger-color: #ff3333;
             --win-color: #ffd700;
+            --bot-anger-color: #ff4500; /* Cor para a raiva do bot */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
         
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
         body {
             background-color: var(--bg-color);
             background-image: 
@@ -26,29 +33,32 @@
                 linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px;
             font-family: 'Orbitron', sans-serif;
-            overflow: hidden;
-            height: 100vh;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            flex-direction: column;
         }
 
         .game-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
-            transform: scale(1);
-            transition: transform 0.3s;
+            gap: 2vh;
+            width: 100%;
+            max-width: 1400px; 
+            padding: 1vh 2vw;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* --- HUD SUPERIOR --- */
+        /* HUD SUPERIOR */
         .hud-panel {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 680px;
+            width: 95vw;
+            max-width: 1000px;
             background: var(--panel-bg);
             padding: 12px 25px;
             border-radius: 16px;
@@ -66,12 +76,21 @@
             opacity: 0.4;
             transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             filter: grayscale(100%);
+            position: relative; /* Para o chat button e bubble */
         }
         .player-section.active-turn { 
             opacity: 1; 
             transform: scale(1.05); 
             filter: grayscale(0%);
         }
+
+        /* BOT ANGER EFFECT */
+        #p2-section.bot-angry .avatar-img {
+            box-shadow: 0 0 15px 5px var(--bot-anger-color);
+            transition: box-shadow 0.3s;
+        }
+        /* FIM BOT ANGER EFFECT */
+
 
         .avatar-container {
             position: relative;
@@ -88,7 +107,7 @@
             fill: none; stroke: var(--primary-color); stroke-width: 5; 
             stroke-dasharray: 175; 
             stroke-dashoffset: 0;
-            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
             stroke-linecap: round;
         }
 
@@ -101,11 +120,37 @@
             box-shadow: 0 0 10px rgba(255,255,255,0.3);
         }
 
+        /* CHAT BUTTON */
+        .chat-btn {
+            position: absolute;
+            bottom: 0px; 
+            right: 0px; 
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: rgba(0, 243, 255, 0.9);
+            border: 2px solid var(--bg-color);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            transition: 0.2s;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+        .chat-btn:hover { background: var(--primary-color); transform: scale(1.1); }
+        .chat-btn svg { width: 12px; height: 12px; fill: #000; }
+        /* Posicionamento para o bot */
+        #p2-section .chat-btn {
+            left: 0px; 
+            right: auto;
+            background: var(--bot-anger-color); /* Cor para o chat do bot */
+            box-shadow: 0 0 10px rgba(255, 69, 0, 0.5);
+        }
+        #p2-section .chat-btn:hover { background: var(--bot-anger-color); transform: scale(1.1); }
+        /* FIM CHAT BUTTON */
+
         .p-info { display: flex; flex-direction: column; }
         .p-name { font-weight: 900; font-size: 14px; letter-spacing: 1px; color: #fff; text-shadow: 0 0 5px var(--primary-color); }
         .p-type { font-size: 10px; color: #aaa; margin-top: 3px; font-weight: bold; }
         
-        /* CONTADOR DE VITÓRIAS */
         .win-counter {
             font-size: 10px;
             color: var(--win-color);
@@ -118,45 +163,63 @@
         .dot { width: 8px; height: 8px; background: #222; border-radius: 50%; border: 1px solid #444; transition: 0.3s; }
         .dot.active { background: var(--primary-color); border-color: #fff; box-shadow: 0 0 8px var(--primary-color); transform: scale(1.2); }
 
-        /* --- MESA DE JOGO --- */
+        /* MESA DE JOGO */
         .main-area {
             display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            gap: 20px;
+            gap: 3vw;
+            justify-content: center;
+            width: 100%;
+            flex-grow: 1; 
+        }
+
+        .table-wrapper {
+            position: relative;
+            aspect-ratio: 1.743 / 1; 
+            max-width: 1000px;
+            align-self: center;
+            width: clamp(300px, 85vw, 1000px); 
+            height: auto; 
         }
 
         #game-container {
-            position: relative;
-            width: 680px; height: 390px;
-            padding: 30px;
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            padding: calc(30 / 680 * 100%);
             background: #0b0b0b;
-            border-radius: 35px;
+            border-radius: calc(35 / 680 * 100%);
             box-shadow: 
                 0 0 0 2px #222, 
                 0 20px 50px rgba(0,0,0,0.8), 
                 inset 0 0 60px rgba(0,0,0,0.9);
+            overflow: hidden;
         }
 
         #game-inner {
             position: relative; width: 100%; height: 100%;
-            border-radius: 16px; overflow: hidden; background: #000; 
+            border-radius: calc(16 / 620 * 100%);
+            overflow: hidden; background: #000; 
             border: 4px solid #1a1a1a;
             box-shadow: inset 0 0 20px #000;
         }
         
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        canvas { position: absolute; top: 0; left: 0; }
+        #input-layer { position: absolute; inset: 0; z-index: 100; cursor: crosshair; }
         #three-canvas { pointer-events: none; z-index: 2; }
-        #fx-canvas { pointer-events: none; z-index: 3; } /* UI Effects, Aim lines */
-        #input-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; cursor: crosshair; }
+        #fx-canvas { pointer-events: none; z-index: 3; }
+        
 
-        /* --- CONTROLES LATERAIS --- */
+        /* CONTROLES LATERAIS */
         .side-controls {
             display: flex; flex-direction: column; gap: 12px; padding: 15px;
             background: var(--panel-bg); border-radius: 16px; border: 1px solid #333;
-            height: 390px; justify-content: center; align-items: center; position: relative;
+            height: 100%; justify-content: center; align-items: center; position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 12vw;
+            max-width: 150px; 
         }
+
         .btn-neon {
             width: 60px; height: 60px; background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
@@ -168,6 +231,7 @@
         .btn-neon svg { width: 22px; height: 22px; fill: currentColor; margin-bottom: 4px; }
         .btn-neon span { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
+        /* SPIN POPOVER */
         #spin-popover {
             position: absolute; top: 10px; right: 90px;
             width: 120px; height: 140px; background: rgba(10, 12, 16, 0.98);
@@ -182,34 +246,260 @@
         #spin-dot { width: 10px; height: 10px; background: #ff3333; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #ff3333; pointer-events: none;}
         #bot-spin-dot { width: 10px; height: 10px; background: #33ff33; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #33ff33; pointer-events: none; opacity: 0;}
 
-        /* TOAST NOTIFICATIONS AJUSTADO PARA SER MENOR */
+        /* TAUNT POPOVER */
+        #taunt-popover {
+            position: absolute; top: 80px; left: 90px;
+            width: 160px; background: rgba(10, 12, 16, 0.98);
+            border: 1px solid var(--primary-color); border-radius: 12px;
+            padding: 10px;
+            display: flex; flex-wrap: wrap; gap: 5px;
+            opacity: 0; visibility: hidden; transition: 0.3s; z-index: 200;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            transform: scale(0.8);
+        }
+        #taunt-popover.visible { opacity: 1; visibility: visible; transform: scale(1); left: 80px;}
+
+        .taunt-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 5px; border-radius: 8px;
+            font-size: 10px; color: var(--primary-color);
+            cursor: pointer; flex-grow: 1;
+            text-align: center;
+            transition: 0.2s;
+            font-weight: 700;
+        }
+        .taunt-btn:hover { background: rgba(0, 243, 255, 0.2); transform: scale(1.05); }
+        .taunt-btn-emoji { font-size: 18px; line-height: 1; border: none; padding: 2px 5px; background: none; }
+        .taunt-section-title { width: 100%; font-size: 8px; color: #888; text-transform: uppercase; margin-top: 5px; margin-bottom: 2px;}
+        /* FIM TAUNT POPOVER */
+
+
+        /* TOAST & BUBBLES */
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 150; pointer-events: none; display: flex; justify-content: center; align-items: flex-start; flex-direction: column; padding-top: 150px;}
         .toast {
-            background: rgba(0,0,0,0.9); color: #fff; padding: 8px 20px; /* Reduzido o padding */
+            background: rgba(0,0,0,0.9); color: #fff; padding: 8px 20px;
             border: 1px solid var(--primary-color); border-radius: 50px;
-            font-size: 16px; /* Reduzido o font-size */
+            font-size: 16px;
             font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
             opacity: 0; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: scale(0.5);
-            box-shadow: 0 0 20px var(--primary-color), inset 0 0 10px rgba(0, 243, 255, 0.2); /* Reduzido o shadow */
+            box-shadow: 0 0 20px var(--primary-color), inset 0 0 10px rgba(0, 243, 255, 0.2);
             text-shadow: 0 0 5px var(--primary-color);
             text-align: center; margin-bottom: 10px;
-            align-self: center; /* Centraliza */
+            align-self: center;
         }
         .toast.show { opacity: 1; transform: scale(1); }
         .toast.bad { border-color: #ff3333; box-shadow: 0 0 20px #ff3333; text-shadow: 0 0 5px #ff3333; color: #ff3333; }
+        .toast.taunt { border-color: #ffd700; box-shadow: 0 0 20px #ffd700; text-shadow: 0 0 5px #ffd700; color: #ffd700; }
 
-        /* Chat Bubbles */
         .chat-bubble {
-            position: absolute; top: 60px; left: 0;
-            background: #fff; color: #000; padding: 8px 14px;
-            border-radius: 16px; font-size: 20px;
+            position: absolute; top: 60px; 
+            background: #fff; color: #000; padding: 6px 10px; 
+            border-radius: 12px; font-size: 14px; 
             opacity: 0; transform: translateY(10px); transition: 0.3s;
             z-index: 20; box-shadow: 0 5px 15px rgba(0,0,0,0.5); pointer-events: none;
+            max-width: 150px; 
+            text-align: center;
         }
         .chat-bubble.show { opacity: 1; transform: translateY(0); }
         #p1-bubble { left: 10px; border-top-left-radius: 0; }
         #p2-bubble { right: 10px; left: auto; border-top-right-radius: 0; }
 
+        /* MOBILE / AJUSTES PARA TELA PEQUENA */
+        @media (max-width: 768px) {
+            .game-wrapper {
+                 height: 100%; 
+                 justify-content: flex-start; 
+            }
+
+            .main-area {
+                flex-direction: column;
+                gap: 2vh;
+                flex-grow: 1;
+                justify-content: center;
+            }
+
+            .table-wrapper {
+                width: 98vw;
+                max-height: 60vh; 
+            }
+
+            .side-controls {
+                flex-direction: row;
+                gap: 8vw;
+                height: auto;
+                padding: 10px 0;
+                width: 98vw;
+                max-width: 98vw;
+            }
+
+            .btn-neon {
+                width: 15vw;
+                height: 15vw;
+                max-width: 60px;
+                max-height: 60px;
+            }
+
+            .btn-neon svg {
+                width: 8vw;
+                height: 8vw;
+                max-width: 22px;
+                max-height: 22px;
+            }
+
+            .btn-neon span {
+                font-size: 2.5vw;
+                max-font-size: 8px;
+            }
+
+            #spin-popover {
+                width: 30vw;
+                height: 35vw;
+                top: auto; 
+                bottom: 100px;
+            }
+
+            #spin-popover.visible {
+                right: 50%;
+                transform: translateX(50%) scale(1);
+            }
+            
+            #taunt-popover {
+                width: 50vw; 
+                top: auto;
+                bottom: 100px;
+            }
+            #taunt-popover.visible {
+                left: 50%;
+                transform: translateX(-50%) scale(1);
+            }
+
+            .spin-ball {
+                width: 25vw;
+                height: 25vw;
+                max-width: 80px;
+                max-height: 80px;
+            }
+
+            #spin-dot, #bot-spin-dot {
+                width: 3vw;
+                height: 3vw;
+                max-width: 10px;
+                max-height: 10px;
+            }
+
+            .toast {
+                font-size: 5vw;
+                padding: 3vw 8vw;
+            }
+
+            .chat-bubble {
+                font-size: 3.5vw; 
+                padding: 2vw 4vw;
+                max-width: 120px;
+            }
+
+            .player-section.active-turn {
+                transform: scale(1.15);
+            }
+            
+            .taunt-btn {
+                font-size: 8px;
+            }
+        }
+
+        /* AJUSTES PARA MOBILE LANDSCAPE */
+        @media (orientation: landscape) and (max-height: 768px) {
+            .game-wrapper {
+                flex-direction: row;
+                align-items: stretch;
+                justify-content: center;
+                gap: 1vw;
+                padding: 1vh 1vw;
+            }
+
+            .hud-panel {
+                width: auto;
+                max-width: 30vw;
+                flex-direction: column;
+                justify-content: space-around;
+                height: 98vh;
+                padding: 20px 10px;
+            }
+
+            .main-area {
+                flex-direction: row;
+                gap: 1vw;
+                width: auto;
+                height: 98vh;
+            }
+
+            .table-wrapper {
+                width: auto;
+                height: 98vh;
+                aspect-ratio: 1.743 / 1;
+                max-width: 70vw;
+            }
+
+            .side-controls {
+                flex-direction: column;
+                width: auto;
+                max-width: 10vw;
+                height: 98vh;
+                padding: 15px 10px;
+                gap: 2vh;
+            }
+
+            .btn-neon {
+                width: 8vw;
+                height: 8vw;
+                max-width: 50px;
+                max-height: 50px;
+            }
+
+            .btn-neon svg {
+                width: 4vw;
+                height: 4vw;
+                max-width: 20px;
+                max-height: 20px;
+            }
+
+            .btn-neon span {
+                font-size: 1.5vw;
+                max-font-size: 8px;
+            }
+
+            #spin-popover {
+                top: 50%;
+                right: 100px;
+                transform: translateY(-50%);
+            }
+
+            #spin-popover.visible {
+                right: 90px;
+            }
+
+            #taunt-popover {
+                top: 50%;
+                left: -170px;
+                transform: translateY(-50%);
+            }
+
+            #taunt-popover.visible {
+                left: -160px;
+            }
+
+            .toast {
+                font-size: 2vw;
+                padding: 1vw 4vw;
+            }
+
+            .chat-bubble {
+                font-size: 1.8vw;
+                padding: 1vw 2vw;
+                max-width: 100px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -218,12 +508,40 @@
         <div class="hud-panel">
             
             <div class="player-section active-turn" id="p1-section">
+                <div id="taunt-popover">
+                    <span class="taunt-section-title">Frases:</span>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Fácil demais!')">Fácil demais!</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Isso é tudo?')">Isso é tudo?</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Boteco!')">Boteco!</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Zerando o sistema!')">Zerando o sistema!</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Vou te resetar.')">Vou te resetar.</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Eu sou o 🎯')">Eu sou o 🎯</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Só isso que você sabe fazer?')">Só isso?</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'TheuZ, você é muito ruim!')">Você é ruim!</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Vai chorar, robô?')">Vai chorar?</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Atualize seu software!')">Atualize!</button>
+                    <button class="taunt-btn" onclick="tauntPlayer(1, 'Sem chances contra mim!')">Sem chances!</button>
+                    
+                    <span class="taunt-section-title">Emojis:</span>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '😴')">😴</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '🤣')">🤣</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '🔥')">🔥</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '🥶')">🥶</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '👎')">👎</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '💥')">💥</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '🤖💩')">🤖💩</button>
+                    <button class="taunt-btn taunt-btn-emoji" onclick="tauntPlayer(1, '🚮')">🚮</button>
+                </div>
+
                 <div class="avatar-container">
                     <svg class="timer-svg">
                         <circle class="timer-circle-bg" cx="32" cy="32" r="28"></circle>
                         <circle id="p1-timer" class="timer-circle-fg" cx="32" cy="32" r="28"></circle>
                     </svg>
                     <div class="avatar-img" style="background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=King');"></div>
+                    <div class="chat-btn" onclick="toggleTauntMenu(event)">
+                        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+                    </div>
                 </div>
                 <div class="p-info">
                     <span class="p-name">VOCÊ</span>
@@ -231,16 +549,15 @@
                     <div class="win-counter" id="p1-wins-display">VITÓRIAS: 0</div>
                     <div class="score-dots" id="p1-score"></div>
                 </div>
-                <div class="chat-bubble" id="p1-bubble">😎</div>
+                <div class="chat-bubble" id="p1-bubble"></div>
             </div>
 
             <div style="font-size: 24px; font-weight:900; opacity: 0.2; font-style: italic;">VS</div>
 
             <div class="player-section" id="p2-section">
-                <div class="chat-bubble" id="p2-bubble">🤖</div>
+                <div class="chat-bubble" id="p2-bubble"></div>
                 <div class="p-info" style="align-items: flex-end;">
-                    <span class="p-name">SKYNET AI</span>
-                    <span class="p-type" id="p2-type-label">--</span>
+                    <span class="p-name">THEUZ IA</span> <span class="p-type" id="p2-type-label">--</span>
                     <div class="win-counter" id="p2-wins-display">VITÓRIAS: 0</div>
                     <div class="score-dots" id="p2-score"></div>
                 </div>
@@ -250,19 +567,24 @@
                         <circle id="p2-timer" class="timer-circle-fg" cx="32" cy="32" r="28"></circle>
                     </svg>
                     <div class="avatar-img" style="background-image: url('https://api.dicebear.com/7.x/bottts/svg?seed=Terminator');"></div>
+                    <div class="chat-btn">
+                        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="main-area">
-            <div id="game-container">
-                <div id="game-inner">
-                    <canvas id="table-canvas" width="620" height="330"></canvas>
-                    <div id="input-layer"></div>
-                    <canvas id="fx-canvas" width="620" height="330"></canvas>
-                </div>
-                <div id="ui-layer">
-                    <div id="game-toast" class="toast"></div>
+            <div class="table-wrapper">
+                <div id="game-container">
+                    <div id="game-inner">
+                        <canvas id="table-canvas"></canvas>
+                        <canvas id="fx-canvas"></canvas>
+                        <div id="input-layer"></div>
+                    </div>
+                    <div id="ui-layer">
+                        <div id="game-toast" class="toast"></div>
+                    </div>
                 </div>
             </div>
 
@@ -310,22 +632,22 @@
     let p1Wins = 0;
     let p2Wins = 0;
 
-    // FORÇA MÁXIMA AJUSTADA (DE 150*0.4=60 PARA 120*0.4=48)
-    const MAX_DRAG_DISTANCE = 120; // Max distance for drag input
-    const POWER_MULTIPLIER = 0.4;  // Power = drag_distance * multiplier
-    const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; // Max power is 48
+    // FORÇA MÁXIMA (REDUZIDA)
+    const MAX_DRAG_DISTANCE = 100; // Reduzida de 120
+    const POWER_MULTIPLIER = 0.35; // Reduzida de 0.4
+    const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
 
     // TEMAS
     const THEMES = [
         { primary: '#00f3ff', feltStart: '#081015', feltEnd: '#000000', lightColor: 0x00f3ff },
         { primary: '#39ff14', feltStart: '#051005', feltEnd: '#000500', lightColor: 0x39ff14 },
-        { primary: '#ff0099', feltStart: '#150510', feltEnd: '#050005', lightColor: 0xff0099 },
+        { primary: '#ff0099', feltStart: '#051005', feltEnd: '#050005', lightColor: 0xff0099 },
         { primary: '#ffae00', feltStart: '#151005', feltEnd: '#050200', lightColor: 0xffae00 }
     ];
     let currentThemeIdx = 0;
     function getTheme() { return THEMES[currentThemeIdx]; }
 
-    // CORES DAS BOLAS (Padrão Pool)
+    // CORES DAS BOLAS
     const BALL_COLORS = [
         0xffffff, // 0 - Cue
         0xffd700, 0x0044ff, 0xff3333, 0x800080, 0xff8800, 0x008800, 0x880000, // 1-7 Solids
@@ -339,7 +661,7 @@
     camera.position.z = 500;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(WIDTH, HEIGHT);
+
     renderer.domElement.id = "three-canvas";
     document.getElementById('game-inner').appendChild(renderer.domElement);
 
@@ -357,10 +679,8 @@
         const w = canvas.width, h = canvas.height;
         const color = '#' + new THREE.Color(colorHex).getHexString();
 
-        // Fundo
         if (n === 0) { 
             ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,w,h);
-            // Ponto vermelho na branca para ver o giro
             ctx.fillStyle = '#cc0000'; ctx.beginPath(); ctx.arc(w/2, h/2, 4, 0, Math.PI*2); ctx.fill();
         } else if (n === 8) {
             ctx.fillStyle = '#151515'; ctx.fillRect(0,0,w,h);
@@ -371,7 +691,6 @@
             ctx.fillStyle = color; ctx.fillRect(0, h/4, w, h/2);
         }
 
-        // Numero
         if (n > 0) {
             ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(w/4, h/2, 14, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.arc(w*0.75, h/2, 14, 0, Math.PI*2); ctx.fill();
@@ -415,10 +734,8 @@
                 return; 
             }
 
-            // Atrito
             let friction = 0.986;
             
-            // Spin só se aplica ao jogador (turn === 1)
             let currentSpin = {x:0, y:0};
             if (this.isCue) {
                  currentSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
@@ -428,27 +745,23 @@
             
             this.vx *= friction; this.vy *= friction;
             
-            // Parar se muito lento
             if (Math.abs(this.vx) < 0.03) this.vx = 0;
             if (Math.abs(this.vy) < 0.03) this.vy = 0;
 
             this.x += this.vx; 
             this.y += this.vy;
 
-            // Colisão com Paredes
             let hitWall = false;
             if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -0.9; hitWall=true; }
             if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -0.9; hitWall=true; }
             if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -0.9; hitWall=true; }
             if (this.y > HEIGHT - TABLE_MARGIN - this.radius) { this.y = HEIGHT - TABLE_MARGIN - this.radius; this.vy *= -0.9; hitWall=true; }
             
-            // Efeito nas tabelas (Spin lateral)
             if(hitWall && this.isCue) { 
                 if(Math.abs(this.vx)>0.5) this.vy += currentSpin.x * 0.8; 
-                currentSpin.x *= 0.5; // Spin lateral se dissipa após a colisão
+                currentSpin.x *= 0.5;
             }
 
-            // Caçapa
             getPockets().forEach(p => {
                 let dx = this.x - p.x, dy = this.y - p.y;
                 if (dx*dx + dy*dy < POCKET_RADIUS**2) {
@@ -487,7 +800,6 @@
         }
 
         updateRotation() {
-            // Rotação da esfera baseada na velocidade linear
             const v = Math.sqrt(this.vx**2 + this.vy**2);
             if (v > 0.01) {
                 const axis = new THREE.Vector3(-this.vy, this.vx, 0).normalize();
@@ -516,7 +828,7 @@
     // VARIÁVEIS DE JOGO
     let balls = [], cueBall, particles = [];
     let gameState = {
-        turn: 1, // 1 = Player, 2 = Bot
+        turn: 1, 
         p1Type: null, 
         p2Type: null,
         isMoving: false, 
@@ -528,8 +840,8 @@
         pocketedThisTurn: [], 
         gameOver: false, 
         ballInHand: false, 
-        playerSpin: {x:0, y:0}, // Spin do Jogador
-        botSpin: {x:0, y:0}     // Spin do Bot
+        playerSpin: {x:0, y:0}, 
+        botSpin: {x:0, y:0}     
     };
 
     // IA STATE
@@ -538,10 +850,14 @@
         targetBall: null,
         aimAngle: 0,
         aimPower: 0,
-        scanLines: [],
-        aimTargetAngle: 0, // Novo: Ângulo final para onde a mira deve ir
-        aimTargetPower: 0, // Novo: Força final para onde a barra deve ir
-        timer: 0
+        scanLines: [], // Para a varredura visual
+        aimTargetAngle: 0, 
+        aimTargetPower: 0, 
+        timer: 0,
+        angerLevel: 0, // 0 a 100. Aumenta a precisão
+        currentScanTarget: 0,
+        scanTargets: [],
+        aimMode: 'direct' // 'direct' ou 'bank'
     };
 
     // TIMER DO JOGO
@@ -555,7 +871,7 @@
         updateTimerVisuals();
         if(gameState.gameOver) return;
         turnTimer = setInterval(() => {
-            if (gameState.turn === 2 && botState.phase !== 'idle') return; 
+            if (gameState.turn === 2 && botState.phase !== 'idle' && botState.phase !== 'scanning') return; 
             timeLeft -= 0.1;
             updateTimerVisuals();
             if (timeLeft <= 0) { clearInterval(turnTimer); handleTimeOut(); }
@@ -570,11 +886,12 @@
             p1.style.stroke = timeLeft < 5 ? '#ff3333' : getTheme().primary;
         } else {
             p2.style.strokeDashoffset = offset; p1.style.strokeDashoffset = 175;
-            p2.style.stroke = timeLeft < 5 ? '#ff3333' : getTheme().primary;
+            p2.style.stroke = timeLeft < 5 ? '#ff3333' : '#ff4757'; // Bot Timer Vermelho
         }
     }
     function handleTimeOut() {
         showToast("TEMPO ESGOTADO!", true);
+        tauntBotAutomatic(1, '💤'); // Você provoca o bot por demorar
         gameState.ballInHand = true;
         gameState.turn = gameState.turn === 1 ? 2 : 1;
         updateHUD();
@@ -601,7 +918,6 @@
             ctx2D.fillStyle = "#000"; 
             ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI*2); ctx2D.fill();
             
-            // Glow da caçapa
             ctx2D.shadowColor = theme.primary; ctx2D.shadowBlur = 10;
             ctx2D.strokeStyle = theme.primary; ctx2D.lineWidth = 2; 
             ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS-2, 0, Math.PI*2); ctx2D.stroke();
@@ -610,12 +926,17 @@
 
         // --- VISUALIZAÇÃO PLAYER ---
         if (gameState.turn === 1 && !gameState.isMoving && !gameState.ballInHand) {
-            // Mira e Força do Jogador (enquanto arrasta)
-            if (gameState.isDragging) {
+            if (gameState.isDragging || gameState.power > 0) { 
+                
                 const aimData = calculateAimTrajectory(cueBall, gameState.angle);
-                drawAimLines(cueBall, aimData, theme.primary, false);
+                let color = getTheme().primary;
+                if (gameState.p1Type && aimData.target) {
+                    const isOwnType = (gameState.p1Type === 'solids' && aimData.target.isSolid) || (gameState.p1Type === 'stripes' && aimData.target.isStripe);
+                    if (!isOwnType && !aimData.target.isEight) color = '#ff3333'; // Vermelho se mirar em bola errada
+                }
+                drawAimLines(cueBall, aimData, color, false);
 
-                // --- BARRA DE FORÇA CIRCULAR ---
+                // BARRA DE FORÇA CIRCULAR
                 const powerPct = Math.min(gameState.power / MAX_POWER, 1);
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + (Math.PI * 2 * powerPct);
@@ -640,17 +961,19 @@
 
         // --- VISUALIZAÇÃO BOT (Thinking) ---
         if (gameState.turn === 2 && !gameState.isMoving) {
-            // Interpolação para Mira Lenta
+            
+            // Simula o movimento suave da mira do bot
             if(botState.phase === 'aiming' || botState.phase === 'shooting') {
-                // Interpolar ângulo
-                botState.aimAngle = lerpAngle(botState.aimAngle, botState.aimTargetAngle, 0.05); // Lento
-                // Interpolar força (barra)
-                botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.1); 
+                botState.aimAngle = lerpAngle(botState.aimAngle, botState.aimTargetAngle, 0.08); // Um pouco mais rápido no aim
+                botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.15); 
+            } else if (botState.phase === 'scanning' && botState.scanTargets.length > 0) {
+                 const target = botState.scanTargets[botState.currentScanTarget];
+                 botState.aimAngle = lerpAngle(botState.aimAngle, target.angle, 0.2);
+                 botState.aimPower = 0; // Não mostra poder durante a varredura
             }
-
-
-            if (botState.phase === 'scanning') {
-                // Desenha linhas de escaneamento
+            
+            // Varredura Visual
+            if (botState.phase === 'scanning' && botState.scanLines.length > 0) {
                 botState.scanLines.forEach(line => {
                     ctxFX.beginPath();
                     ctxFX.moveTo(cueBall.x, cueBall.y);
@@ -660,18 +983,52 @@
                     ctxFX.lineWidth = 1;
                     ctxFX.stroke();
                     ctxFX.setLineDash([]);
-                    
-                    ctxFX.beginPath(); ctxFX.arc(line.tx, line.ty, BALL_RADIUS+5, 0, Math.PI*2);
-                    ctxFX.strokeStyle = 'rgba(255,255,255,0.3)'; ctxFX.stroke();
                 });
+                
+                // Desenha a mira atual da varredura
+                if (botState.aimAngle) {
+                     const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
+                     drawAimLines(cueBall, aimData, '#ff3333', true);
+                }
             }
-
+            
+            // Mira Final
             if ((botState.phase === 'aiming' || botState.phase === 'shooting') && botState.targetBall) {
-                // Desenha mira do Bot
                 const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
-                drawAimLines(cueBall, aimData, '#ff3333', true);
+                
+                // MODO TABELA
+                if(botState.aimMode === 'bank') {
+                    const pocket = botState.finalChoice.pocket;
+                    const wallPoint = botState.finalChoice.wallPoint;
+                    
+                    // Linha da Bola Branca para a Tabela
+                    ctxFX.beginPath(); 
+                    ctxFX.moveTo(cueBall.x, cueBall.y);
+                    ctxFX.lineTo(wallPoint.x, wallPoint.y);
+                    ctxFX.lineWidth = 2; 
+                    ctxFX.setLineDash([4, 4]); 
+                    ctxFX.strokeStyle = '#ff3333';
+                    ctxFX.shadowColor = '#ff3333'; 
+                    ctxFX.shadowBlur = 10; 
+                    ctxFX.stroke(); 
+                    
+                    // Linha da Tabela para o Buraco
+                    ctxFX.beginPath(); 
+                    ctxFX.moveTo(wallPoint.x, wallPoint.y);
+                    ctxFX.lineTo(pocket.x, pocket.y);
+                    ctxFX.lineWidth = 2; 
+                    ctxFX.setLineDash([4, 4]); 
+                    ctxFX.strokeStyle = '#ff3333';
+                    ctxFX.shadowColor = '#ff3333'; 
+                    ctxFX.shadowBlur = 10; 
+                    ctxFX.stroke(); 
+                    ctxFX.shadowBlur = 0; 
+                    ctxFX.setLineDash([]);
+                } else {
+                   // MODO DIRETO
+                   drawAimLines(cueBall, aimData, '#ff3333', true);
+                }
 
-                // Desenha barra de força do Bot
                 const powerPct = Math.min(botState.aimPower / MAX_POWER, 1);
                 ctxFX.beginPath();
                 ctxFX.arc(cueBall.x, cueBall.y, BALL_RADIUS + 12, -Math.PI/2, -Math.PI/2 + (Math.PI*2*powerPct));
@@ -705,7 +1062,7 @@
             ctxFX.restore();
         }
 
-        // Partículas (CSS ajustado: menores e mais lentas)
+        // Partículas
         for(let i=particles.length-1; i>=0; i--) {
             let p = particles[i]; 
             p.x += p.vx; p.y += p.vy; p.life -= 0.04;
@@ -717,12 +1074,10 @@
         }
     }
 
-    // Interpolação Linear (para a mira do Bot)
     function lerp(a, b, t) {
         return a + (b - a) * t;
     }
 
-    // Interpolação de Ângulos (garante o caminho mais curto)
     function lerpAngle(a, b, t) {
         let diff = b - a;
         while (diff > Math.PI) diff -= 2 * Math.PI;
@@ -755,6 +1110,7 @@
     }
 
     function drawAimLines(startBall, aimData, color, isBot) {
+        
         ctxFX.beginPath(); 
         ctxFX.moveTo(startBall.x, startBall.y); 
         ctxFX.lineTo(aimData.endX, aimData.endY);
@@ -806,7 +1162,20 @@
         });
         
         if (!targetBall) {
-           bestDist = 400; 
+           // Checa por colisão com as paredes (para atirar no vazio)
+           const WALL_DIST_X1 = (TABLE_MARGIN + BALL_RADIUS - source.x) / dx;
+           const WALL_DIST_X2 = (WIDTH - TABLE_MARGIN - BALL_RADIUS - source.x) / dx;
+           const WALL_DIST_Y1 = (TABLE_MARGIN + BALL_RADIUS - source.y) / dy;
+           const WALL_DIST_Y2 = (HEIGHT - TABLE_MARGIN - BALL_RADIUS - source.y) / dy;
+
+           let shortestDist = maxDist;
+
+           if(dx > 0 && WALL_DIST_X2 > 0) shortestDist = Math.min(shortestDist, WALL_DIST_X2);
+           if(dx < 0 && WALL_DIST_X1 > 0) shortestDist = Math.min(shortestDist, WALL_DIST_X1);
+           if(dy > 0 && WALL_DIST_Y2 > 0) shortestDist = Math.min(shortestDist, WALL_DIST_Y2);
+           if(dy < 0 && WALL_DIST_Y1 > 0) shortestDist = Math.min(shortestDist, WALL_DIST_Y1);
+           
+           bestDist = Math.min(bestDist, shortestDist);
         }
 
         return { 
@@ -817,60 +1186,87 @@
         };
     }
 
-    // --- INPUT DO JOGADOR ---
-    function getMousePos(evt) {
+    // --- INPUT DO JOGADOR (CORRIGIDO PARA MOBILE) ---
+    function getMousePos(e) {
+        const clientX = e.clientX || (e.touches ? e.touches[0].clientX : e.clientX);
+        const clientY = e.clientY || (e.touches ? e.touches[0].clientY : e.clientY);
+        
         const rect = inputLayer.getBoundingClientRect();
-        return { x: (evt.clientX - rect.left) * (WIDTH/rect.width), y: (evt.clientY - rect.top) * (HEIGHT/rect.height) };
+        
+        const x = (clientX - rect.left) * (WIDTH / rect.width);
+        const y = (clientY - rect.top) * (HEIGHT / rect.height);
+        
+        return { x, y };
     }
     
     function handleInputStart(e) {
-        const pos = getMousePos(e);
+        const event = e.touches ? e.touches[0] : e;
+        e.preventDefault(); 
+        
+        const pos = getMousePos(event);
+
         if (gameState.turn !== 1 || gameState.isMoving || gameState.gameOver) return;
         
+        const dxToCue = pos.x - cueBall.x, dyToCue = pos.y - cueBall.y;
+
         if (gameState.ballInHand) {
              gameState.isDragging = true; 
+             handleBallInHandMove(pos);
              return; 
         }
 
-        const dx = pos.x - cueBall.x, dy = pos.y - cueBall.y;
-        if (dx*dx + dy*dy < BALL_RADIUS*BALL_RADIUS * 25) { 
+        if (dxToCue*dxToCue + dyToCue*dyToCue < BALL_RADIUS*BALL_RADIUS * 25) { 
             gameState.isDragging = true; 
             gameState.dragStart = {x: cueBall.x, y: cueBall.y}; 
             gameState.dragCurrent = pos;
+            gameState.power = 0; 
         }
     }
 
     function handleInputMove(e) {
-        const pos = getMousePos(e);
+        const event = e.touches ? e.touches[0] : e;
+        e.preventDefault(); 
+        const pos = getMousePos(event);
         
         if (gameState.ballInHand && gameState.isDragging && gameState.turn === 1) {
-            cueBall.x = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(WIDTH-TABLE_MARGIN-BALL_RADIUS, pos.x));
-            cueBall.y = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(HEIGHT-TABLE_MARGIN-BALL_RADIUS, pos.y));
-            
-            cueBall.vx = 0; cueBall.vy = 0;
-            cueBall.updateMeshPosition(); 
+            handleBallInHandMove(pos);
             return;
         }
 
         if (gameState.isDragging && !gameState.ballInHand) {
             gameState.dragCurrent = pos;
-            const dx = gameState.dragStart.x - pos.x, dy = gameState.dragStart.y - pos.y; 
+            const dx = gameState.dragStart.x - pos.x; 
+            const dy = gameState.dragStart.y - pos.y; 
+            
             gameState.angle = Math.atan2(dy, dx); 
-            // Limitar a força de arrasto ao novo máximo (MAX_DRAG_DISTANCE)
             gameState.power = Math.min(Math.hypot(dx, dy), MAX_DRAG_DISTANCE) * POWER_MULTIPLIER; 
         }
     }
+    
+    function handleBallInHandMove(pos) {
+        cueBall.x = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(WIDTH-TABLE_MARGIN-BALL_RADIUS, pos.x));
+        cueBall.y = Math.max(TABLE_MARGIN+BALL_RADIUS, Math.min(HEIGHT-TABLE_MARGIN-BALL_RADIUS, pos.y));
+        
+        cueBall.vx = 0; cueBall.vy = 0;
+        cueBall.updateMeshPosition(); 
+    }
 
-    function handleInputEnd() {
+    function handleInputEnd(e) {
         if (!gameState.isDragging) return;
+        
+        if (e.touches && e.touches.length > 0) return;
+
         gameState.isDragging = false;
         
         if (gameState.ballInHand) { 
             let collision = false;
             balls.forEach(b => {
-                if(b!==cueBall && b.active && Math.hypot(b.x-cueBall.x, b.y-cueBall.y) < BALL_RADIUS*2) collision = true;
+                if(b!==cueBall && b.active && Math.hypot(b.x-cueBall.x, b.y-cueBall.y) < BALL_RADIUS*2.1) collision = true;
             });
             
+            // Checkar se a bola está na região de quebra se for o primeiro tiro
+            if(gameState.p1Type === null && cueBall.x > WIDTH/4) collision = true;
+
             if(collision) {
                 showToast("POSIÇÃO INVÁLIDA", true);
             } else {
@@ -881,18 +1277,23 @@
         }
 
         if (gameState.power > 2) {
-             // Zera o spin do bot para garantir que só o playerSpin seja usado
              gameState.botSpin = {x:0, y:0};
              shoot(gameState.angle, gameState.power);
+        } else {
+             gameState.power = 0;
         }
+        
+        // Esconde o menu de provocação após a jogada
+        if(tauntMenuOpen) toggleTauntMenu();
     }
 
+    // Event Listeners Corrigidos (com passive:false para toque)
     inputLayer.addEventListener('mousedown', handleInputStart);
-    inputLayer.addEventListener('touchstart', (e)=>handleInputStart(e.touches[0]), {passive:false});
+    inputLayer.addEventListener('touchstart', handleInputStart, {passive:false});
     window.addEventListener('mousemove', handleInputMove);
-    window.addEventListener('touchmove', (e)=>handleInputMove(e.touches[0]), {passive:false});
+    window.addEventListener('touchmove', handleInputMove, {passive:false});
     window.addEventListener('mouseup', handleInputEnd);
-    window.addEventListener('touchend', handleInputEnd);
+    window.addEventListener('touchend', handleInputEnd); 
 
 
     // --- LÓGICA FÍSICA E REGRAS ---
@@ -904,12 +1305,10 @@
         gameState.isMoving = true; 
         gameState.power = 0;
         botState.phase = 'idle'; 
-        // Esconder spin do Bot se estava visível
         document.getElementById('bot-spin-dot').style.opacity = 0;
     }
 
     function checkCollisions() {
-        // Obter o spin apropriado para esta jogada
         const currentSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
 
         for (let i=0; i<balls.length; i++) {
@@ -936,7 +1335,6 @@
                     b1.vx = vf1.x * 0.97; b1.vy = vf1.y * 0.97; 
                     b2.vx = vf2.x * 0.97; b2.vy = vf2.y * 0.97;
 
-                    // Aplica Spin apenas da bola branca (b1 ou b2) para a outra
                     if(b1.isCue) { 
                         b2.vx += currentSpin.x * 0.5; 
                         b2.vy += currentSpin.y * 0.5; 
@@ -945,7 +1343,6 @@
                          b1.vy += currentSpin.y * 0.5;
                     }
                     
-                    // Colisão visual suave (apenas se muito forte)
                     if(Math.hypot(b1.vx, b1.vy) > 15) spawnExplosion((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#fff');
                 }
             }
@@ -969,14 +1366,15 @@
         
         if(winnerId === 1) {
             showToast("VITÓRIA!", false);
+            tauntPlayerAutomatic(1, 'Gostou do show?');
             p1Wins++;
         } else {
             showToast("BOT VENCEU!", true);
+            tauntBotAutomatic(2, 'EZ. Próximo.');
             p2Wins++;
         }
         updateWinsDisplay();
         
-        // Reinício Automático
         setTimeout(() => {
             initGame();
         }, 4000);
@@ -985,52 +1383,74 @@
     function handleTurnEnd() {
         let foul = false, turnContinues = false, msg = "";
         
-        // 1. Branca Caiu?
         const cueFell = gameState.pocketedThisTurn.find(b => b.isCue);
         if (cueFell) {
             foul = true; msg = "FALTA: BRANCA CAIU";
+            tauntBotAutomatic(2, 'Que feio. 🤦‍♂️');
             cueBall.active = true; cueBall.mesh.visible = true; cueBall.mesh.scale.set(1,1,1);
             cueBall.x = WIDTH/4; cueBall.y = HEIGHT/2; cueBall.vx=0; cueBall.vy=0;
             gameState.ballInHand = true;
         }
 
-        // 2. Bola 8
         const eightBallFell = gameState.pocketedThisTurn.find(b => b.number === 8);
         if (eightBallFell) {
-            if (cueFell) { triggerGameOver(gameState.turn === 1 ? 2 : 1); return; } // Perdeu (caiu branca + 8)
+            if (cueFell) { triggerGameOver(gameState.turn === 1 ? 2 : 1); return; }
             
             let myType = gameState.turn===1 ? gameState.p1Type : gameState.p2Type;
-            if (!myType) { triggerGameOver(gameState.turn === 1 ? 2 : 1); return; } // Perdeu (8 muito cedo)
+            if (!myType) { triggerGameOver(gameState.turn === 1 ? 2 : 1); return; }
 
             let remaining = balls.filter(b => b.active && !b.isCue && !b.isEight && (myType==='solids'?b.isSolid:b.isStripe)).length;
             
             if (remaining === 0) { 
-                triggerGameOver(gameState.turn); // Ganhou!
+                triggerGameOver(gameState.turn);
                 return; 
             } 
             else { 
-                triggerGameOver(gameState.turn === 1 ? 2 : 1); // Perdeu (ainda tinha bolas)
+                triggerGameOver(gameState.turn === 1 ? 2 : 1);
                 return; 
             }
         }
 
-        // 3. Bolas Normais
         if (!foul && gameState.pocketedThisTurn.length > 0) {
-            let sunkOwn = false, sunkOpp = false;
+            let sunkOwn = false, sunkOpp = false, sunkFirst = null;
+            
             gameState.pocketedThisTurn.forEach(b => {
                 if (!b.isCue && !b.isEight) {
                     let type = b.isSolid ? 'solids' : 'stripes';
+                    
                     if (!gameState.p1Type) {
-                        gameState.p1Type = (gameState.turn===1) ? type : (type==='solids'?'stripes':'solids');
-                        gameState.p2Type = (gameState.p1Type==='solids') ? 'stripes' : 'solids';
-                        updateTypeLabels();
-                        showToast(`VOCÊ É ${gameState.p1Type === 'solids' ? 'LISAS' : 'LISTRADAS'}`);
+                        // Se for a primeira bola a cair no jogo (separação de grupos)
+                        if (!sunkFirst) sunkFirst = type; 
                     }
+                    
                     if ((gameState.turn===1 ? gameState.p1Type : gameState.p2Type) === type) sunkOwn = true; else sunkOpp = true;
                 }
             });
-            if (sunkOwn && !sunkOpp) turnContinues = true;
-            else if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; }
+            
+            if (!gameState.p1Type && sunkFirst) {
+                 gameState.p1Type = (gameState.turn===1) ? sunkFirst : (sunkFirst==='solids'?'stripes':'solids');
+                 gameState.p2Type = (gameState.p1Type==='solids') ? 'stripes' : 'solids';
+                 updateTypeLabels();
+                 showToast(`VOCÊ É ${gameState.p1Type === 'solids' ? 'LISAS' : 'LISTRADAS'}`);
+            }
+
+            if (sunkOwn) {
+                 turnContinues = true;
+                 if(gameState.turn === 1) tauntPlayerAutomatic(1, '🎯'); // P1 provoca por acertar
+                 else tauntBotAutomatic(2, 'Obrigado. 👍');
+            }
+            if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; tauntBotAutomatic(2, 'Amador.'); }
+            if (sunkOwn && sunkOpp) { msg = "Bolas misturadas"; foul = true; } 
+            
+            // Verifica se a primeira bola tocada foi a correta
+            // Isso requer um sistema de rastreamento de primeira colisão que não está implementado,
+            // então vamos focar apenas nas bolas embolsadas para simplificar.
+        }
+
+        if (!foul && gameState.pocketedThisTurn.length === 0) {
+            // Se errou a tacada
+            if(gameState.turn === 1) tauntBotAutomatic(2, 'FALHA DE SISTEMA');
+            else tauntPlayerAutomatic(1, 'Foi mal, TheuZ?');
         }
 
         gameState.pocketedThisTurn = [];
@@ -1051,23 +1471,126 @@
         }
     }
 
-    // --- SISTEMA DE BOT AVANÇADO (COM MIRA LENTA) ---
+    // --- SISTEMA DE BOT AVANÇADO (COM MIRA LENTA E RAIVA) ---
+    
+    // Função auxiliar para verificar obstrução
+    function checkObstruction(p1, p2) {
+         const dist = Math.hypot(p1.x-p2.x, p1.y-p2.y);
+         const dx = (p2.x-p1.x)/dist;
+         const dy = (p2.y-p1.y)/dist;
+         const step = BALL_RADIUS*0.5;
+         
+         for(let d=step; d<dist-step; d+=step) {
+             const cx = p1.x + dx*d;
+             const cy = p1.y + dy*d;
+             
+             for(const ball of balls) {
+                 if(ball.active && ball !== cueBall && ball.x !== p1.x && ball.x !== p2.x) {
+                      if(Math.hypot(ball.x-cx, ball.y-cy) < BALL_RADIUS*1.5) return true;
+                 }
+             }
+         }
+         return false;
+    }
+
+
+    // Ajusta a precisão com base na raiva (0 = erro de 0.1 rad; 100 = erro de 0.005 rad)
+    function getBotErrorFactor() {
+        const MAX_ERROR = 0.08; 
+        const MIN_ERROR = 0.005; 
+        
+        let error = (100 - botState.angerLevel) * (MAX_ERROR - MIN_ERROR) / 100 + MIN_ERROR;
+        
+        if (botState.angerLevel >= 100) error = 0.00; 
+        
+        return error;
+    }
+    
+    // Calcula um tiro de tabela em uma das quatro paredes
+    function calculateBankShot(targetBall, pocket) {
+        const walls = [
+            { id: 'top', minX: TABLE_MARGIN + POCKET_RADIUS, maxX: WIDTH - TABLE_MARGIN - POCKET_RADIUS, fixed: 'y', val: TABLE_MARGIN, dir: 1, angleOffset: -Math.PI/2 },
+            { id: 'bottom', minX: TABLE_MARGIN + POCKET_RADIUS, maxX: WIDTH - TABLE_MARGIN - POCKET_RADIUS, fixed: 'y', val: HEIGHT - TABLE_MARGIN, dir: -1, angleOffset: Math.PI/2 },
+            { id: 'left', minY: TABLE_MARGIN + POCKET_RADIUS, maxY: HEIGHT - TABLE_MARGIN - POCKET_RADIUS, fixed: 'x', val: TABLE_MARGIN, dir: 1, angleOffset: 0 },
+            { id: 'right', minY: TABLE_MARGIN + POCKET_RADIUS, maxY: HEIGHT - TABLE_MARGIN - POCKET_RADIUS, fixed: 'x', val: WIDTH - TABLE_MARGIN, dir: -1, angleOffset: Math.PI }
+        ];
+
+        for (const wall of walls) {
+            let targetPoint;
+            
+            // Usa o método da imagem espelhada
+            const pocketReflected = {};
+            if (wall.fixed === 'y') {
+                 pocketReflected.y = wall.val + (wall.val - pocket.y);
+                 pocketReflected.x = pocket.x;
+            } else {
+                 pocketReflected.x = wall.val + (wall.val - pocket.x);
+                 pocketReflected.y = pocket.y;
+            }
+            
+            // Encontra a linha de visada entre a bola alvo e a caçapa refletida
+            const angleToReflected = Math.atan2(pocketReflected.y - targetBall.y, pocketReflected.x - targetBall.x);
+            
+            // Calcula o ponto de intersecção com a parede
+            const tX = targetBall.x + 999 * Math.cos(angleToReflected);
+            const tY = targetBall.y + 999 * Math.sin(angleToReflected);
+            
+            if (wall.fixed === 'y') {
+                const slope = (tY - targetBall.y) / (tX - targetBall.x);
+                if (slope === Infinity || slope === -Infinity) continue;
+                
+                const wallX = targetBall.x + (wall.val - targetBall.y) / slope;
+                targetPoint = {x: wallX, y: wall.val};
+                
+                if (wallX < wall.minX || wallX > wall.maxX) continue;
+            } else { // wall.fixed === 'x'
+                const slope = (tY - targetBall.y) / (tX - targetBall.x);
+                if (slope === 0) continue;
+                
+                const wallY = targetBall.y + slope * (wall.val - targetBall.x);
+                targetPoint = {x: wall.val, y: wallY};
+                
+                if (wallY < wall.minY || wallY > wall.maxY) continue;
+            }
+            
+            // Se o ponto de intersecção for válido (targetPoint), calcula o ângulo de mira da branca
+            const aimPointX = targetBall.x - Math.cos(angleToReflected) * BALL_RADIUS * 2;
+            const aimPointY = targetBall.y - Math.sin(angleToReflected) * BALL_RADIUS * 2;
+
+            const finalAngle = Math.atan2(aimPointY - cueBall.y, aimPointX - cueBall.x);
+            const powerNeeded = Math.hypot(aimPointX - cueBall.x, aimPointY - cueBall.y) * 0.4 + 20;
+
+            if (powerNeeded < MAX_POWER && !checkObstruction(cueBall, {x:aimPointX, y:aimPointY})) {
+                 return { 
+                    angle: finalAngle, 
+                    power: powerNeeded, 
+                    wallPoint: targetPoint, 
+                    pocket: pocket,
+                    aimPoint: {x:aimPointX, y:aimPointY} 
+                 };
+            }
+        }
+        return null;
+    }
+
+
     function initBotTurn() {
         if (gameState.gameOver) return;
         
-        // Zera o spin do bot no início da jogada
+        // Reduz levemente a raiva a cada turno, mas com piso em 10
+        botState.angerLevel = Math.max(10, botState.angerLevel - 10);
+        document.getElementById('p2-section').classList.toggle('bot-angry', botState.angerLevel > 40);
+        
         gameState.botSpin = {x:0, y:0};
 
         if (gameState.ballInHand) {
-            // Reposicionamento mais esperto se possível
             let pos = {x: WIDTH/4 + (Math.random()-0.5)*50, y: HEIGHT/2 + (Math.random()-0.5)*100};
-            // Checar colisão na posição
             let validPos = false;
             let attempts = 0;
             while(!validPos && attempts++ < 10) {
                  validPos = true;
                  balls.forEach(b => {
-                    if(b!==cueBall && b.active && Math.hypot(b.x-pos.x, b.y-pos.y) < BALL_RADIUS*2.5) validPos = false;
+                    if(b!==cueBall && b.active && Math.hypot(b.x-cueBall.x, b.y-cueBall.y) < BALL_RADIUS*2.1) validPos = false;
                  });
                  if(!validPos) pos = {x: WIDTH/4 + (Math.random()-0.5)*100, y: HEIGHT/2 + (Math.random()-0.5)*100};
             }
@@ -1085,14 +1608,10 @@
 
         botState.phase = 'scanning';
         botState.scanLines = [];
-        
-        // Exibe 3 linhas de escaneamento para dar a ideia de "análise"
-        for(let i=0; i<3; i++) {
-            let rBall = targets[Math.floor(Math.random() * targets.length)];
-            botState.scanLines.push({tx: rBall.x, ty: rBall.y});
-        }
+        botState.scanTargets = [];
 
-        let best = null, minD = Infinity;
+        // 1. Busca Tiro Direto
+        let bestDirectShot = null, minD = Infinity;
         targets.forEach(t => {
             getPockets().forEach(p => {
                 let a = Math.atan2(p.y - t.y, p.x - t.x);
@@ -1100,69 +1619,240 @@
                 let ay = t.y - Math.sin(a)*BALL_RADIUS*2;
                 let aimAngle = Math.atan2(ay - cueBall.y, ax - cueBall.x);
                 let d = Math.hypot(ax-cueBall.x, ay-cueBall.y);
+                
+                // Verifica se há obstrução
+                if (checkObstruction(cueBall, {x:ax, y:ay})) return;
+                
+                // Pequeno ajuste para corte (não muito extremo)
                 let cutAngle = Math.abs(a - aimAngle);
                 while(cutAngle > Math.PI) cutAngle -= Math.PI*2;
+                while(cutAngle < -Math.PI) cutAngle += Math.PI*2;
                 cutAngle = Math.abs(cutAngle);
 
-                // Critério de escolha: Distância e ângulo de corte (não pode ser muito fino)
                 if (d < minD && cutAngle < Math.PI/2.2) { 
                     minD = d;
-                    let error = (Math.random()-0.5) * 0.05; // Pequeno erro na mira do Bot
-                    best = { 
+                    
+                    const errorFactor = getBotErrorFactor();
+                    let error = (Math.random()-0.5) * errorFactor;
+                    let powerBoost = botState.angerLevel / 100 * 10;
+                    
+                    bestDirectShot = { 
                         ball: t,
                         angle: aimAngle + error, 
-                        // Power ajustado para o novo MAX_POWER
-                        power: Math.min(d*0.35 + 20, MAX_POWER - 5) 
+                        power: Math.min(d*0.35 + 20 + powerBoost, MAX_POWER - 5),
+                        spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
+                        spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
+                        mode: 'direct'
                     };
                 }
             });
         });
-
-        if (!best) {
+        
+        // 2. Busca Tiro de Tabela (se não houver tiro direto fácil)
+        let bestBankShot = null;
+        if (!bestDirectShot || Math.random() < 0.2) { // 20% de chance de tentar uma tabela
+            for(const target of targets) {
+                for(const pocket of getPockets()) {
+                    const bankShot = calculateBankShot(target, pocket);
+                    if(bankShot) {
+                         bestBankShot = { 
+                            ball: target,
+                            angle: bankShot.angle, 
+                            power: bankShot.power,
+                            spinX: (Math.random()-0.5) * 1.5,
+                            spinY: (Math.random()-0.5) * 1.5,
+                            mode: 'bank',
+                            pocket: pocket,
+                            wallPoint: bankShot.wallPoint
+                         };
+                         break; 
+                    }
+                }
+                if(bestBankShot) break;
+            }
+        }
+        
+        // 3. Define a jogada
+        let finalChoice;
+        if (bestDirectShot) {
+            finalChoice = bestDirectShot;
+        } else if (bestBankShot) {
+            finalChoice = bestBankShot;
+            tauntBotAutomatic(2, 'Vou te ganhar de tabela, humano! 😈');
+        } else {
+            // Tiro de segurança (apenas atira na bola mais próxima)
             let t = targets[0];
-            best = { ball: t, angle: Math.atan2(t.y-cueBall.y, t.x-cueBall.x), power: MAX_POWER/2 };
+            finalChoice = { 
+                ball: t, 
+                angle: Math.atan2(t.y-cueBall.y, t.x-cueBall.x), 
+                power: MAX_POWER/2, 
+                spinX:0, 
+                spinY:0,
+                mode: 'direct'
+            };
         }
 
-        botState.targetBall = best.ball;
-        botState.finalChoice = best;
-        botState.aimTargetAngle = best.angle;
-        botState.aimTargetPower = best.power; 
+        // --- Configuração da Varredura Visual ---
+        const anglesToScan = [];
+        targets.forEach(t => anglesToScan.push(Math.atan2(t.y - cueBall.y, t.x - cueBall.x)));
         
-        // Inicializa a mira do bot na direção do alvo, mas com força 0
-        botState.aimAngle = Math.atan2(best.ball.y - cueBall.y, best.ball.x - cueBall.x);
+        // Adiciona 3 alvos aleatórios de varredura
+        for(let i=0; i<3; i++) {
+            let rBall = targets[Math.floor(Math.random() * targets.length)];
+            botState.scanLines.push({tx: rBall.x, ty: rBall.y});
+            botState.scanTargets.push({angle: Math.atan2(rBall.y - cueBall.y, rBall.x - cueBall.x)});
+        }
+        
+        // Adiciona o alvo final
+        botState.scanTargets.push({angle: finalChoice.angle});
+        botState.currentScanTarget = 0;
+        botState.aimAngle = botState.scanTargets[0].angle; // Começa na primeira mira
+        // ----------------------------------------
+
+
+        botState.targetBall = finalChoice.ball;
+        botState.finalChoice = finalChoice;
+        botState.aimTargetAngle = finalChoice.angle;
+        botState.aimTargetPower = finalChoice.power; 
+        botState.aimMode = finalChoice.mode;
         botState.aimPower = 0;
 
 
-        setTimeout(() => {
-            botState.phase = 'aiming';
-            
-            // Define o spin do bot (randomizado e independente do jogador)
-            gameState.botSpin.x = (Math.random()-0.5) * 1.5; // Mais chance de não ser 0
-            gameState.botSpin.y = (Math.random()-0.5) * 1.5;
-            
-            // Exibir o ponto de spin do bot (verde)
-            const d = document.getElementById('bot-spin-dot');
-            d.style.left = (gameState.botSpin.x/2+0.5)*100+'%'; 
-            d.style.top = (gameState.botSpin.y/2+0.5)*100+'%';
-            d.style.opacity = 1;
-
-
-        }, 1000); 
-
-        // Atira após um tempo de mira e carregamento visual
-        setTimeout(() => {
-            if(!gameState.gameOver) {
-                 botState.phase = 'shooting'; // Fase de tiro (barra de força preenche)
-                 let chargeInterval = setInterval(() => {
-                    if(botState.aimPower < botState.aimTargetPower - 0.5) {
-                        botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.2);
-                    } else {
-                        clearInterval(chargeInterval);
-                        shoot(botState.aimTargetAngle, botState.aimTargetPower); // Tiro final
+        // Inicia a transição de varredura
+        let scanInterval = setInterval(() => {
+            if(botState.currentScanTarget < botState.scanTargets.length - 1) {
+                // Se a mira atual estiver perto do alvo
+                if (Math.abs(lerpAngle(botState.aimAngle, botState.scanTargets[botState.currentScanTarget].angle, 0.2) - botState.scanTargets[botState.currentScanTarget].angle) < 0.05) {
+                    botState.currentScanTarget++; // Move para o próximo alvo
+                }
+            } else {
+                clearInterval(scanInterval);
+                // Chegou ao alvo final, inicia a fase de mira
+                botState.phase = 'aiming';
+                
+                gameState.botSpin.x = finalChoice.spinX;
+                gameState.botSpin.y = finalChoice.spinY;
+                
+                const d = document.getElementById('bot-spin-dot');
+                d.style.left = (gameState.botSpin.x/2+0.5)*100+'%'; 
+                d.style.top = (gameState.botSpin.y/2+0.5)*100+'%';
+                d.style.opacity = 1;
+                
+                // Inicia o carregamento do tiro
+                setTimeout(() => {
+                    if(!gameState.gameOver) {
+                         botState.phase = 'shooting';
+                         let chargeInterval = setInterval(() => {
+                            if(botState.aimPower < botState.aimTargetPower - 0.5) {
+                                botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.2);
+                            } else {
+                                clearInterval(chargeInterval);
+                                shoot(botState.aimTargetAngle, botState.aimTargetPower);
+                            }
+                        }, 20);
                     }
-                }, 20);
+                }, 1500); // Dá um tempo para o jogador ver a mira final
             }
-        }, 3000);
+        }, 200);
+    }
+
+
+    // --- SISTEMA DE PROVOCAÇÃO (TAUNT SYSTEM) ---
+    let tauntMenuOpen = false;
+    const BOT_TAUNTS = [
+        'Análise: 0/10. Erro de mira.', 
+        'Meu algoritmo ri. 🤣', 
+        'Vou te punir por isso.', 
+        'Processando a vitória em 3, 2...', 
+        'Não me irrite. 😠', 
+        'Erro 404: Habilidade não encontrada.',
+        'Isso não é um jogo de criança.',
+        'Eu vejo todos os ângulos.',
+        '🤖',
+        '👎',
+        'Humano fraco. Atualize seu cérebro!',
+        'Só isso? Patético.',
+        'TheuZ, você é muito ruim!',
+        'Falha crítica detectada.',
+        'Você chama isso de jogada? Haha!',
+        'Meu processador ri da sua mira.',
+        'Prepare-se para o reset total!',
+        'Você não tem chance contra minha IA superior.',
+        'Erro humano típico.',
+        '💀',
+        '🤖🔥'
+    ];
+    const PLAYER_TAUNTS = [
+        'Vou resetar o sistema.', 
+        'Isso é tudo?', 
+        'Tenta de novo, robô.', 
+        'Foi mal, TheuZ?',
+        'Onde está o seu poder de processamento?',
+        'Errou o cálculo, Boteco!',
+        'A máquina falhou!',
+        '💤',
+        '🤷‍♂️',
+        '😂',
+        'Só isso que você sabe fazer?',
+        'TheuZ, você é muito ruim!',
+        'Atualize seu firmware, bot!',
+        'Que jogada ridícula!',
+        'Vou te desmontar peça por peça.',
+        'Sem graça, robô.',
+        'Você é lento como um 486.',
+        'Meu cachorro joga melhor!',
+        '🤖💥',
+        '🚀>🤖'
+    ];
+
+    function toggleTauntMenu(e) { 
+        if(gameState.turn !== 1 || gameState.isMoving) return;
+        tauntMenuOpen = !tauntMenuOpen; 
+        document.getElementById('taunt-popover').classList.toggle('visible', tauntMenuOpen); 
+    }
+
+    function tauntPlayer(player, msg) {
+        if(player === 1) {
+            // P1 provoca o bot (Aumenta a raiva do bot)
+            tauntMenuOpen = false; 
+            document.getElementById('taunt-popover').classList.remove('visible');
+            showBubble(1, msg);
+            
+            botState.angerLevel = Math.min(100, botState.angerLevel + 25);
+            document.getElementById('p2-section').classList.add('bot-angry');
+            
+            // Bot responde
+            setTimeout(() => {
+                const botMsg = BOT_TAUNTS[Math.floor(Math.random() * BOT_TAUNTS.length)];
+                showBubble(2, botMsg);
+            }, 1000);
+
+        } else if (player === 2) {
+            // Bot provoca P1
+             showBubble(2, msg);
+        }
+    }
+    
+    // Função para provocar automaticamente o bot em eventos
+    function tauntPlayerAutomatic(player, msg) {
+        if(player === 1) showBubble(1, msg);
+        else tauntPlayer(1, msg); // Dispara o ciclo de taunt e aumenta a raiva
+    }
+    
+    // Função para o bot provocar automaticamente o player em eventos
+    function tauntBotAutomatic(player, msg) {
+        if(player === 2) showBubble(2, msg);
+        else tauntPlayer(2, msg);
+    }
+
+
+    function showBubble(player, msg) {
+        const el = document.getElementById(`p${player}-bubble`);
+        el.innerText = msg;
+        el.classList.add('show');
+        
+        // Limpa a bolha após 2.5 segundos
+        setTimeout(() => el.classList.remove('show'), 2500);
     }
 
 
@@ -1172,7 +1862,8 @@
         document.getElementById('p1-section').classList.toggle('active-turn', gameState.turn === 1);
         document.getElementById('p2-section').classList.toggle('active-turn', gameState.turn === 2);
         
-        // Se for a vez do bot, esconde o spin do jogador e mostra o do bot
+        document.getElementById('p2-section').classList.toggle('bot-angry', botState.angerLevel > 40);
+        
         document.getElementById('spin-dot').style.opacity = gameState.turn === 1 ? 1 : 0;
         document.getElementById('bot-spin-dot').style.opacity = gameState.turn === 2 && botState.phase !== 'idle' ? 1 : 0;
 
@@ -1207,16 +1898,16 @@
         } else { p1L.innerText = '--'; p2L.innerText = '--'; }
     }
 
-    // TOAST MENOR (AJUSTADO NO CSS E NO DURATION)
-    function showToast(msg, isBad=false) {
+    function showToast(msg, isBad=false, isTaunt=false) {
         const el = document.getElementById('game-toast');
         el.innerText = msg; 
-        if(isBad) el.classList.add('bad'); else el.classList.remove('bad');
+        el.classList.remove('bad', 'taunt');
+        if(isBad) el.classList.add('bad'); 
+        if(isTaunt) el.classList.add('taunt');
         el.classList.add('show');
-        setTimeout(()=>el.classList.remove('show'), 1500); // Duração menor
+        setTimeout(()=>el.classList.remove('show'), 1500);
     }
 
-    // EFEITO DE EXPLOSÃO AJUSTADO (MENOR)
     function spawnExplosion(x, y, color) {
         for(let i=0; i<8; i++) {
             particles.push({
@@ -1233,19 +1924,28 @@
     // --- CONTROLES DE MENU ---
     let spinMenuOpen = false;
     function toggleSpinMenu() { 
+        if(gameState.turn !== 1 || gameState.isMoving) return;
         spinMenuOpen = !spinMenuOpen; 
         document.getElementById('spin-popover').classList.toggle('visible', spinMenuOpen); 
     }
     
     document.getElementById('spin-control').addEventListener('mousedown', setSpin);
-    document.getElementById('spin-control').addEventListener('touchstart', (e)=>{e.preventDefault(); setSpin(e.touches[0])});
+    document.getElementById('spin-control').addEventListener('touchstart', (e)=>{e.preventDefault(); setSpin(e.touches[0])}, {passive:false});
     
     function setSpin(e) {
-        const rect = e.target.getBoundingClientRect();
-        let sx = ((e.clientX - rect.left)/rect.width - 0.5)*2;
-        let sy = ((e.clientY - rect.top)/rect.height - 0.5)*2;
+        const rect = e.currentTarget.getBoundingClientRect(); // Mudança para currentTarget
+        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : e.clientX);
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : e.clientY);
+
+        let sx = (clientX - rect.left) / rect.width;
+        let sy = (clientY - rect.top) / rect.height;
+        
+        sx = (sx - 0.5) * 2; 
+        sy = (sy - 0.5) * 2; 
+        
         if(sx*sx+sy*sy > 1) { let d=Math.sqrt(sx*sx+sy*sy); sx/=d; sy/=d; }
-        gameState.playerSpin = {x:sx, y:sy}; // Define o spin do JOGADOR
+        
+        gameState.playerSpin = {x:sx, y:sy};
         const d = document.getElementById('spin-dot'); 
         d.style.left = (sx/2+0.5)*100+'%'; 
         d.style.top = (sy/2+0.5)*100+'%';
@@ -1260,19 +1960,16 @@
     }
 
     function initGame() {
-        // Limpar Three.js
         balls.forEach(b => scene.remove(b.mesh));
         balls = [];
         
-        // Criar Bolas
         cueBall = new Ball(WIDTH*0.25, HEIGHT/2, 0); 
         balls.push(cueBall);
         
         let startX = WIDTH*0.72, startY = HEIGHT/2;
-        let s = BALL_RADIUS*2.02; // Espaçamento
+        let s = BALL_RADIUS*2.02;
         let h = s*Math.sin(Math.PI/3);
         
-        // Padrão de Rack 8-ball
         const rows = [
             [1], 
             [9,2], 
@@ -1291,17 +1988,18 @@
         gameState.p1Type=null; 
         gameState.p2Type=null;
         gameState.ballInHand=false; 
-        gameState.playerSpin={x:0,y:0}; // Resetar Spin do jogador
-        gameState.botSpin={x:0,y:0};   // Resetar Spin do bot
+        gameState.playerSpin={x:0,y:0};
+        gameState.botSpin={x:0,y:0};
         gameState.pocketedThisTurn = [];
+        botState.angerLevel = 0; // Resetar a raiva
         
-        // Reset Spin UI do jogador
         const d = document.getElementById('spin-dot'); 
         d.style.left = '50%'; d.style.top = '50%';
         d.style.opacity = 1;
 
-        // Reset Spin UI do bot
         document.getElementById('bot-spin-dot').style.opacity = 0;
+        document.getElementById('p2-section').classList.remove('bot-angry');
+
 
         updateTypeLabels(); 
         updateHUD();
@@ -1310,9 +2008,40 @@
         startTimer();
     }
 
-    // Função do Botão Reiniciar 
     function manualReset() { initGame(); }
     
+    // RESIZE RESPONSIVO
+    function resizeGame() {
+        const inner = document.getElementById('game-inner');
+        const displayWidth = inner.clientWidth;
+        const displayHeight = inner.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+
+        // Three.js
+        renderer.setSize(displayWidth, displayHeight);
+        renderer.setPixelRatio(dpr);
+        camera.left = displayWidth / -2 / (displayWidth/WIDTH);
+        camera.right = displayWidth / 2 / (displayWidth/WIDTH);
+        camera.top = displayHeight / 2 / (displayHeight/HEIGHT);
+        camera.bottom = displayHeight / -2 / (displayHeight/HEIGHT);
+        camera.updateProjectionMatrix();
+
+
+        // Canvases 2D
+        const canvases = [document.getElementById('table-canvas'), document.getElementById('fx-canvas')];
+        canvases.forEach(c => {
+            c.width = displayWidth * dpr;
+            c.height = displayHeight * dpr;
+            c.style.width = displayWidth + 'px';
+            c.style.height = displayHeight + 'px';
+        });
+
+        const scaleX = displayWidth / WIDTH;
+        const scaleY = displayHeight / HEIGHT;
+        ctx2D.setTransform(scaleX * dpr, 0, 0, scaleY * dpr, 0, 0);
+        ctxFX.setTransform(scaleX * dpr, 0, 0, scaleY * dpr, 0, 0);
+    }
+
     // LOOP PRINCIPAL
     function animate() {
         requestAnimationFrame(animate);
@@ -1323,19 +2052,17 @@
             checkStop(); 
         } 
         
-        // A mira do bot é atualizada mesmo se não estiver "isMoving" para a animação lenta
-        if (gameState.turn === 2 && !gameState.isMoving && (botState.phase === 'aiming' || botState.phase === 'shooting')) {
-            // Chamada para forçar a atualização visual da mira (que depende de botState.aimAngle)
-             drawTable2D(); 
-        } else {
-            drawTable2D();
-        }
+        drawTable2D();
 
         renderer.render(scene, camera);
     }
 
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', resizeGame);
+
     // Iniciar
     initGame();
+    resizeGame();
     animate();
 
 </script>
