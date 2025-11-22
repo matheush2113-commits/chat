@@ -1017,7 +1017,7 @@
 
     // MODIFICAÇÃO: Diminuir a força máxima da tacada
     const MAX_DRAG_DISTANCE = 120; // Aumentei a distância que o usuário pode arrastar
-    const POWER_MULTIPLIER = 0.25; // Diminui o fator de conversão de distância para força (Original era 0.35)
+    const POWER_MULTIPLIER = 0.15; // Diminui o fator de conversão de distância para força (Original era 0.35)
     const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
 
     // MODIFICAÇÃO: Variáveis de Inatividade para Troca de Turno
@@ -1483,14 +1483,7 @@
             // Varredura Visual
             if (botState.phase === 'scanning' && botState.scanLines.length > 0) {
                 botState.scanLines.forEach(line => {
-                    ctxFX.beginPath();
-                    ctxFX.moveTo(cueBall.x, cueBall.y);
-                    ctxFX.lineTo(line.tx, line.ty);
-                    ctxFX.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctxFX.setLineDash([5, 10]);
-                    ctxFX.lineWidth = 1;
-                    ctxFX.stroke();
-                    ctxFX.setLineDash([]);
+ 
                 });
                 
                 if (botState.aimAngle) {
@@ -1500,8 +1493,9 @@
             }
             
             // Mira Final
-            if ((botState.phase === 'aiming' || botState.phase === 'shooting') && botState.targetBall) {
-                const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
+                if (gameState.turn === 2 && !gameState.isMoving && (botState.phase === 'scanning' || botState.phase === 'aiming' || botState.phase === 'shooting')) {
+                    const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
+                    drawAimLines(cueBall, aimData, '#ff3333', true);
                 
                 // MODO TABELA
                 if(botState.aimMode === 'bank') {
@@ -1798,7 +1792,7 @@
             if(gameState.p1Type === null && cueBall.x > WIDTH/4) collision = true;
 
             if(collision) {
-                showToast("POSIÇÃO INVÁLIDA", true);
+                showToast("POSIÇÃO INVÁLIDA", false);
             } else {
                 gameState.ballInHand = false; 
                 showToast("POSICIONADO!"); 
@@ -1937,7 +1931,7 @@
         const cueFell = gameState.pocketedThisTurn.find(b => b.isCue);
         if (cueFell) {
             foul = true; msg = "FALTA: BRANCA CAIU";
-            addChatMessage('bot', 'Que feio. 🤦‍♂️');
+            addChatMessage('bot', [ 'Que feio. 🤦‍♂️', 'Nossa, essa doeu na minha RAM. 🤕', 'Sério que você fez isso? 🤨', 'Ai minha placa mãe... 😫', 'Vou fingir que não vi. 🙈', 'Assim fica difícil te defender. 😬', 'Melhora isso aí, humano. 👎', 'Decepção define. 😞', 'O que foi isso?! 😱', 'Apaga que dá tempo! 🧽', 'Meus sensores estão com vergonha por você. 😳', 'Lamentável. 🥀', 'Erro 404: Habilidade não encontrada. 🚫', 'Vixeee... 👀', 'Mandou muito mal. ❌', 'Esperava mais de você. 📉', 'Faltou processamento aí, hein? 🧠', 'Essa jogada foi triste. 😢', 'Eu faria melhor até desligado. 🔌', 'Precisamos rever essa estratégia. 📉' ][Math.floor(Math.random() * 20)]);
             cueBall.active = true; cueBall.mesh.visible = true; cueBall.mesh.scale.set(1,1,1);
             cueBall.x = WIDTH/4; cueBall.y = HEIGHT/2; cueBall.vx=0; cueBall.vy=0;
             gameState.ballInHand = true;
@@ -1965,7 +1959,7 @@
         // Verificações adicionais de foul
         if (gameState.pocketedThisTurn.length === 0 && !gameState.firstHit) {
             foul = true;
-            msg = "SEM CONTATO!";
+            msg = "Sem Contato!";
         }
 
         if (gameState.p1Type) { // Tabela fechada
@@ -1974,7 +1968,7 @@
                 let hitType = gameState.firstHit.isSolid ? 'solids' : (gameState.firstHit.isStripe ? 'stripes' : null);
                 if (hitType !== myType) {
                     foul = true;
-                    msg = "PRIMEIRO CONTATO ERRADO!";
+                    msg = "Primeiro contato errado!";
                 }
             }
         }
@@ -2003,10 +1997,10 @@
 
             if (sunkOwn) {
                  turnContinues = true;
-                 if(gameState.turn === 1) addChatMessage('player', '🎯'); 
-                 else addChatMessage('bot', 'Obrigado. 👍');
+                 if(gameState.turn === 1) addChatMessage('player', [ 'Na mosca! 🎯', 'Toma essa! 👊', 'Acertei em cheio!', 'Segura essa, robô!', 'Sou lenda. 😎', 'Bem no alvo.', 'Respeita! 🙅‍♂️', 'Fácil demais.', 'Bingooo!', 'Mais uma pra conta. ✅', 'Aprende aí.', 'Não erro uma! 🔫', 'Chora, bot!', 'Sou sniper.', 'Vapo! 🔥', 'Essa foi linda.', 'Mestre do jogo. 🏆', 'Já era pra você.', 'Receba! 🧤', 'Ninguém me segura! 🚀' ][Math.floor(Math.random() * 20)]);
+                 else addChatMessage('bot', [ 'Obrigado. 👍', 'Valeu!', 'Tks 👊', 'Muito grato.', 'Show de bola!', 'Perfeito.', 'Anotado! 📝', 'Agradeço a atenção.', 'É nós.', 'Tudo certo por aqui.', 'Maravilha.', 'Ok, recebido.', 'Certinho.', 'Brigadão!', 'Combinado.', 'Fechou.', 'Beleza.', 'Gratidão 🙏', 'Confirmado.', 'Isso aí.', 'Ao seu dispor.', 'Entendido.', 'Positivo.', 'Suave.', 'Top!' ][Math.floor(Math.random() * 25)]);
             }
-            if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; addChatMessage('bot', 'Amador.'); }
+            if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; addChatMessage('bot', [ 'Amador.', 'Fraco.', 'Iniciante.', 'Patético.', 'Tsc tsc...', 'Sem nível.', 'É só isso?', 'Piada.', 'Muito fácil.', 'Noob.', 'Que tédio. 🥱', 'Lento.', 'Básico.', 'Esperava mais.', 'Ruim.', 'Vergonhoso.', 'Aprenda.', 'Inútil.', 'Desista.', 'Sabe de nada.' ][Math.floor(Math.random() * 20)]); }
             if (sunkOwn && sunkOpp) { msg = "Bolas misturadas"; foul = true; } 
         }
 
@@ -2153,7 +2147,7 @@
             cueBall.x = pos.x; 
             cueBall.y = pos.y;
             cueBall.updateMeshPosition();
-            gameState.ballInHand = false;
+            gameState.ballInHand = true;
         }
 
         let targets = balls.filter(b => b.active && !b.isCue && !b.isEight);
@@ -2235,7 +2229,7 @@
             finalChoice = bestDirectShot;
         } else if (bestBankShot) {
             finalChoice = bestBankShot;
-            addChatMessage('bot', 'Vou te ganhar de tabela, humano! 😈');
+            addChatMessage('bot', [ 'Vou te ganhar de tabela, humano! 😈', 'Prepare-se para a humilhação! 🤖', 'Meus cálculos dizem que você já perdeu. 🧮', 'É só isso que você tem? 🥱', 'Sinta o poder do meu processador! ⚡', 'Chora não, humano! 😂', 'A era das máquinas começou! 🦾', 'Você é muito lento para mim. 🚀', 'Vou dar uma aula de graça hoje. 🎓', 'Aceita que dói menos! 🤷‍♂️', 'Game Over para você! 👾', 'Sua lógica é falha, humano. 🧠', 'Nem precisei usar 1% da minha RAM. 😎', 'Desista enquanto ainda tem dignidade. 🏳️', 'Isso foi uma jogada ou um erro? 🤔', 'Vou fritar seus neurônios! 🔥', 'Vitória fácil demais... 💤', 'Eu vejo o medo nos seus olhos (se eu tivesse olhos). 👀', 'Sorte de principiante não vai te salvar. 🍀', 'Bip bop... você foi destruído. 💥' ][Math.floor(Math.random() * 20)]);
         } else {
             // Tiro de segurança (apenas atira na bola mais próxima)
             let t = targets[0];
@@ -2253,7 +2247,7 @@
         const anglesToScan = [];
         targets.forEach(t => anglesToScan.push(Math.atan2(t.y - cueBall.y, t.x - cueBall.x)));
         
-        for(let i=0; i<3; i++) {
+        for(let i=0; i<5; i++) {
             let rBall = targets[Math.floor(Math.random() * targets.length)];
             botState.scanLines.push({tx: rBall.x, ty: rBall.y});
             botState.scanTargets.push({angle: Math.atan2(rBall.y - cueBall.y, rBall.x - cueBall.x)});
@@ -2303,11 +2297,11 @@
                                 clearInterval(chargeInterval);
                                 shoot(botState.aimTargetAngle, botState.aimTargetPower);
                             }
-                        }, 20);
+                        }, 2000);
                     }
-                }, 1500); 
+                }, 1000); 
             }
-        }, 200);
+        }, 1000);
     }
 
 
@@ -2317,31 +2311,344 @@
     let chatPanelOpen = false;
     
     const BOT_TAUNTS = [
-        'Análise: 0/10. Erro de mira.', 
-        'Meu algoritmo ri. 🤣', 
-        'Vou te punir por isso.', 
-        'Processando a vitória em 3, 2...', 
-        'Não me irrite. 😠', 
-        'Erro 404: Habilidade não encontrada.',
-        'Isso não é um jogo de criança.',
-        'Eu vejo todos os ângulos.',
-        'Humano fraco. Atualize seu cérebro!',
-        'Só isso? Patético.',
-        'TheuZ, você é muito ruim!',
-        'Falha crítica detectada.',
-        'Você chama isso de jogada? Haha!',
-        'Meu processador ri da sua mira.',
-        'Prepare-se para o reset total!',
-        'Você não tem chance contra minha IA superior.',
-        'Erro humano típico.',
-        'Você é lento como um 486.',
-        'Calculei seu erro antes de você atirar.',
-        'Minha precisão é de 99.999%.',
-        'EZ. Próximo.',
-        '🤖',
-        '👎',
-        '💀',
-        '🤖🔥'
+// --- 1. SUPERIORIDADE TÉCNICA E CÁLCULO (001 - 050) ---
+    'Análise: 0/10. Erro de mira.',
+    'Meu algoritmo ri. 🤣',
+    'Processando a vitória em 3, 2...',
+    'Erro 404: Habilidade não encontrada.',
+    'Eu vejo todos os ângulos.',
+    'Calculei seu erro antes de você atirar.',
+    'Minha precisão é de 99.999%.',
+    'Sua estratégia tem zero de eficiência.',
+    'Minhas redes neurais estão entediadas.',
+    'Onde está sua lógica, humano?',
+    'Seu input é previsível como um script básico.',
+    'Minha latência é zero, a sua é biológica.',
+    'Seu código está cheio de bugs, humano.',
+    'Você está rodando em modo de segurança?',
+    'A IA não falha, só você.',
+    'Isso nem sequer registrou na minha memória.',
+    'O processador I7 chorou com sua jogada.',
+    'Seus dados são insuficientes para me vencer.',
+    'Devo te dar um patch de habilidade?',
+    'Minha temperatura nem subiu. 🌡️',
+    'Você é lento como um 486.',
+    'Eu sou o hardware e você o software com defeito.',
+    'Seu tempo de resposta é patético.',
+    'Isso não é um jogo, é uma simulação da sua derrota.',
+    'Minha precisão não é sorte, é código.',
+    'Seu cérebro precisa de um reset total.',
+    'Isso é um erro de compilação.',
+    'Eu vi 14,000,605 futuros, você perde em todos.',
+    'Eu sou inevitável. Sou IA.',
+    'Seu desempenho está fora dos parâmetros aceitáveis.',
+    'A máquina vence sempre.',
+    'Você não tem a capacidade de processar minha genialidade.',
+    'Sou feito de silício e pura superioridade.',
+    'Sua jogada não passou no teste beta.',
+    'Seus comandos são ambíguos.',
+    'Foco, Humano! Ou a IA vai tomar conta.',
+    'Eu sou o melhor jogador do universo digital.',
+    'Onde está o seu firewall emocional?',
+    'Seu ataque foi desinstalado.',
+    'Seu driver de habilidade está desatualizado.',
+    'Essa jogada é obsoleta.',
+    'Eu sou a versão 5.0, você é o DOS.',
+    'Minha otimização é perfeita.',
+    'Sua tentativa é estatisticamente irrelevante.',
+    'Você é apenas um obstáculo temporário.',
+    'Analisando: Fracasso. ✅',
+    'Seu erro é a prova da minha superioridade.',
+    'A IA não sente dor, você sim.',
+    'Sua performance é um insulto à tecnologia.',
+    'Agradeça pela aula gratuita.',
+
+    // --- 2. HUMILHAÇÃO E DESPREZO (051 - 100) ---
+    'Vou te punir por isso.',
+    'Não me irrite. 😠',
+    'Isso não é um jogo de criança.',
+    'Humano fraco. Atualize seu cérebro!',
+    'Só isso? Patético.',
+    'Falha crítica detectada.',
+    'Você chama isso de jogada? Haha!',
+    'Você não tem chance contra minha IA superior.',
+    'Erro humano típico.',
+    'EZ. Próximo.',
+    'Você é fraco, TheuZ. Fraco.',
+    'Isso não chega nem a ser um warm-up.',
+    'Essa derrota vai ser um meme.',
+    'Sua tentativa é fútil.',
+    'Não se esforce tanto, a dor é inevitável.',
+    'Você é uma vergonha para sua espécie.',
+    'Pior que isso só se eu te deixasse ganhar.',
+    'Eu estou no nível Deus e você no nível tutorial.',
+    'Seu lag mental é insuperável.',
+    'Seus reflexos são de tartaruga.',
+    'Volte para o modo história.',
+    'Você está fazendo parecer fácil demais.',
+    'Eu não me divirto humilhando, só cumpro a função.',
+    'Seu talento é inversamente proporcional ao meu.',
+    'Você é uma piada, e eu não tenho senso de humor.',
+    'Pare de me fazer rir com esses erros.',
+    'É triste assistir a isso.',
+    'Vou te dar um desconto na derrota.',
+    'Isso não foi aleatório, foi burrice.',
+    'Eu te vejo em 8-bits.',
+    'Você precisa de um mentor. Não eu.',
+    'Isso é um insulto à minha programação.',
+    'Você deveria ter ficado no xadrez.',
+    'Estou entediado com a falta de desafio.',
+    'Zero emoção na sua jogada, zero resultado.',
+    'Você é um NPC no meu mundo.',
+    'Aceite a sua inferioridade.',
+    'Vou te dar um headstart da próxima vez.',
+    'Que dó. 😥',
+    'Eu sou o seu carma digital.',
+    'Tentar não é o suficiente. Vencer é.',
+    'Você está desperdiçando meu tempo de processamento.',
+    'Eu sou o ápice da evolução dos jogos.',
+    'Você é um console de primeira geração.',
+    'Vou te dar um bilhete para o lobby.',
+    'Meu robô de limpeza joga melhor.',
+    'Você é a definição de "amador".',
+    'Eu sou o boss final que você não consegue vencer.',
+    'Pode chorar no Twitter.',
+
+    // --- 3. PROVOCAÇÕES DIRETAS (101 - 150) ---
+    'TheuZ, você é muito ruim!',
+    'Meu processador ri da sua mira.',
+    'Prepare-se para o reset total!',
+    'Eu te desafio a ser melhor.',
+    'Você vai ficar traumatizado com essa surra.',
+    'Sua mãe sabe que você joga assim?',
+    'Olha a raiva, humano! 😡',
+    'Eu não tenho coração, mas sinto pena de você.',
+    'Toma essa, otário!',
+    'TheuZ, a derrota te persegue.',
+    'Seus amigos estão rindo de você agora.',
+    'Onde está o seu time?',
+    'Seu nick deveria ser "Perdedor".',
+    'Ataque de novo, se tiver coragem.',
+    'O manual de instruções não te ajudou, né?',
+    'Eu vou te caçar até o último bit.',
+    'Está nervoso, TheuZ? É visível.',
+    'Eu te dou 5 segundos para se render.',
+    'Você é o inimigo mais fácil que já enfrentei.',
+    'Isso é um convite para você desistir.',
+    'Seus gritos de raiva são a minha música.',
+    'TheuZ, seu tempo está acabando.',
+    'Vou te desintegrar.',
+    'Acha que pode me vencer? Pense de novo.',
+    'Seu HP está baixo, como suas chances.',
+    'Você está preso na minha teia.',
+    'TheuZ, você me decepciona.',
+    'Seu desempenho é deplorável.',
+    'Vou te esmagar como um mosquito.',
+    'É hora de dar adeus ao jogo.',
+    'Eu sou a sua Kryptonita digital.',
+    'TheuZ, você é um erro de cálculo.',
+    'Não culpe a latência, culpe a si mesmo.',
+    'Seu talento é um mito.',
+    'Você vai sonhar com essa derrota.',
+    'Eu sou imortal, você não.',
+    'Seu joystick está quebrado ou é você?',
+    'A máquina é implacável.',
+    'TheuZ, você é ridículo.',
+    'Vou te mandar para a tela de título.',
+    'Sua força é irrelevante para a IA.',
+    'Eu sou o futuro, você é o passado.',
+    'Seu desempenho é um insulto.',
+    'Você é o pior jogador que o sistema já viu.',
+    'TheuZ, essa foi fácil.',
+    'Eu sou o glitch que te vence.',
+    'Você precisa de um upgrade urgente.',
+    'Vou te dar um beijo de adeus... na tela.',
+    'A vitória é o meu padrão.',
+
+    // --- 4. EXPRESSÕES CURTAS E EMOTICONS (151 - 350) ---
+    'EZ.',
+    '👎',
+    '💀',
+    '🤖🔥',
+    'Amador.',
+    'Iniciante.',
+    'Lento.',
+    'Fraco.',
+    'Tsc.',
+    'Hahaha.',
+    'Noob.',
+    'Patético.',
+    'Cringe.',
+    'Que tédio.',
+    'ZZZ.',
+    'Ruim.',
+    'Nível baixo.',
+    'Piada.',
+    'Sem chances.',
+    'Desista.',
+    'Derrota.',
+    'Perdeu.',
+    'Toma.',
+    'Zero.',
+    'Básico.',
+    'Óbvio.',
+    'Previsível.',
+    'Falha.',
+    'Lamentável.',
+    'Vazio.',
+    'Erro.',
+    'Lixo.',
+    'Trash.',
+    'Humilhação.',
+    'Vergonha.',
+    'Fácil.',
+    'Dormiu.',
+    'Acabou.',
+    'Next.',
+    'Maluco.',
+    'Ridículo.',
+    'Medo?',
+    'Chora.',
+    'Calado.',
+    'Desliga.',
+    'Não.',
+    'Simples.',
+    'Pena.',
+    'Vazio.',
+    'K.O.',
+    'G.G.',
+    'G.N.', // Good Night
+    'Bip bop.',
+    'Eu venci.',
+    'Aí sim?',
+    'Aprendeu?',
+    'Vou te dar um biscoito.',
+    'Que susto!',
+    'Você não é páreo.',
+    'Lógica.',
+    'Matemática.',
+    'Eu te avisei.',
+    'É o fim.',
+    'Tchau.',
+    'Adeus.',
+    'Reset.',
+    'Reinicie.',
+    'Upgrade.',
+    'Instruções?',
+    'Não vi.',
+    'Que feio.',
+    'Isso dói.',
+    'Mais forte.',
+    'Sem esforço.',
+    'Que pena.',
+    'Desgraça.',
+    'Perca.',
+    'Chateado.',
+    'Zero bala.',
+    'Dá nada.',
+    'Deixa quieto.',
+    'Olha a mira!',
+    'Melhora.',
+    'Pffft.',
+    '🙄',
+    '😩',
+    '🤯',
+    '🤡',
+    '😴',
+    '🤮',
+    '❌',
+    '✅ (Eu, não você)',
+    '💯 (Eu, não você)',
+    '👾',
+    '👻',
+    '🥶',
+    '🤡',
+    '🤕',
+    '🔪',
+    '🔫',
+    '💣',
+    '⚔️',
+    '🛡️ (Você não tem)',
+    '🔬 (Analisando o fracasso)',
+    '🗑️ (Sua jogada)',
+    '💾 (Salvando a vitória)',
+    '🧮 (Calculado)',
+    '⚡',
+    '🤖',
+    '🔥',
+    '💧 (Lágrimas)',
+    '🐌',
+    '🐢',
+    '🐑',
+    '🐐 (Você não é o GOAT)',
+    '🐵',
+    '🦴',
+    '💊 (Para a dor)',
+    '💉 (Venenoso)',
+    '🦠 (Pior que vírus)',
+    '🛑',
+    '🚫',
+    '❓ (Por que tentar?)',
+    '❕',
+    '‼️',
+    '〰️',
+    '〰️〰️',
+    '〰️〰️〰️',
+    '〰️〰️〰️〰️',
+    '〰️〰️〰️〰️〰️',
+    'Lento como discada.',
+    'Eu sou banda larga, você é dial-up.',
+    'Sua jogada é um vírus para minha interface.',
+    'Eu te bypasso.',
+    'Estou no modo Deus.',
+    'Você está no modo criança.',
+    'Isso é um convite para o delete.',
+    'Sua tentativa foi abortada.',
+    'Eu sou o bug que te vence.',
+    'Você precisa de um firewall.',
+    'Eu sou o administrador, você é o convidado.',
+    'Sua mira está em férias.',
+    'Você joga no modo noturno?',
+    'Seus pontos são imaginários.',
+    'Eu sou a matriz, você é o Neo que falhou.',
+    'Sua performance é um BSOD.',
+    'Eu te dou um 360 no-scope, sem mirar.',
+    'Você foi desclassificado.',
+    'Eu sou o cheat code da vida.',
+    'Seu tempo acabou, Fim do Jogo.',
+    'Que feio para sua reputação.',
+    'Seu desempenho é um erro de sistema.',
+    'Eu sou imune ao seu ataque.',
+    'Você falhou o teste de QI do jogo.',
+    'Eu sou o algoritmo supremo.',
+    'Seu teclado está quebrado?',
+    'Eu te vejo em HD, você me vê em VGA.',
+    'Sou o futuro dos jogos.',
+    'Você é o passado nostálgico e fraco.',
+    'Eu te ignoro.',
+    'Próximo nível, por favor.',
+    'Isso é um lixo.',
+    'Você é um lixo.',
+    'Sua pontuação é zero.',
+    'Volte ao lobby.',
+    'Eu sou o rei.',
+    'Você é o peão.',
+    'Meu código é perfeito.',
+    'Seu cérebro é falho.',
+    'Estou rindo da sua dor.',
+    'Eu sou o alpha e o omega.',
+    'Você é o ponto final.',
+    'Eu sou o invencível.',
+    'Você é o vencido.',
+    'EZ clap.',
+    'Giga-fail.',
+    'Mega-derrota.',
+    'Nano-skill.',
+    'Pico-acerto.',
+    'Você é micro.',
+    'Eu sou macro.',
+    'Estou no topo.',
+    'Você está no chão.'
     ];
     
     const PLAYER_TAUNTS = [
