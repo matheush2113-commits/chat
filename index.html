@@ -3010,7 +3010,24 @@
 
     function manualReset() { initGame(); }
     
-    // RESIZE RESPONSIVO
+    // ====================== BOT FALA A CADA ~20s ======================
+    const BOT_IDLE_TAUNTS = [
+        "Tá pensando ou travou? 🤔", "Minha CPU tá esfriando aqui... 🥶", "Vai logo, humano! ⏰",
+        "Zzz... acorda! 😴", "Tô esperando desde o Windows XP... 💾", "Tic tac tic tac... ⏳",
+        "Você joga ou só admira a mesa? 😏", "Meu processador tá com sono... 💤", "Vai bater ou vai namorar a branca? 😘",
+        "A paciência de uma IA é infinita... quase. 😑", "Já calculei 50 jogadas enquanto você pensa em 1. 🧮",
+        "Humano lento detectado. 🐌", "Tô quase desligando de tédio. 😪", "Vai, vai, vai! 🚀"
+    ];
+    let lastBotIdleTalk = Date.now();
+    function botIdleTalk() {
+        if (gameState.turn !== 1 || gameState.isMoving || gameState.isDragging) return;
+        if (Date.now() - lastBotIdleTalk > 18000 + Math.random() * 7000) {
+            const msg = BOT_IDLE_TAUNTS[Math.floor(Math.random() * BOT_IDLE_TAUNTS.length)];
+            addChatMessage('bot', msg);
+            showBubble(2, msg);
+            lastBotIdleTalk = Date.now();
+        }
+    }
     function resizeGame() {
         const inner = document.getElementById('game-inner');
         const displayWidth = inner.clientWidth;
@@ -3025,7 +3042,7 @@
         camera.top = displayHeight / 2 / (displayHeight/HEIGHT);
         camera.bottom = displayHeight / -2 / (displayHeight/HEIGHT);
         camera.updateProjectionMatrix();
-
+        
 
         // Canvases 2D
         const canvases = [document.getElementById('table-canvas'), document.getElementById('fx-canvas')];
@@ -3043,24 +3060,25 @@
     }
 
     // LOOP PRINCIPAL
-    function animate() {
+     function animate() {
         requestAnimationFrame(animate);
-        
-        if (gameState.isMoving) { 
-            balls.forEach(b => b.update()); 
-            checkCollisions(); 
-            checkStop(); 
-        } 
-        
-        drawTable2D();
 
+        if (gameState.isMoving) {
+            balls.forEach(b => b.update());
+            checkCollisions();
+            checkStop();
+        }
+
+        botIdleTalk(); // ← nova linha: bot fala de vez em quando
+
+        drawTable2D();
         renderer.render(scene, camera);
     }
 
     window.addEventListener('resize', resizeGame);
     window.addEventListener('orientationchange', resizeGame);
 
-    // Iniciar
+    
     initGame();
     resizeGame();
     animate();
