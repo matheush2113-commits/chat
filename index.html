@@ -234,6 +234,9 @@
         .btn-neon:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--primary-color); box-shadow: 0 0 15px var(--primary-color); transform: translateY(-2px); }
         .btn-neon:active { transform: scale(0.95); }
         .btn-neon svg { width: 22px; height: 22px; fill: currentColor; margin-bottom: 4px; pointer-events: none; } 
+        /* NOVO: estado ligado do botão de Visão de Cálculo do jogador */
+        .btn-neon.active-toggle { background: rgba(0,243,255,.22); border-color: var(--primary-color); box-shadow: 0 0 16px var(--primary-color); color: #fff; }
+        .btn-neon.active-toggle svg { filter: drop-shadow(0 0 4px var(--primary-color)); }
 
         /* SPIN POPOVER */
         #spin-popover {
@@ -1111,6 +1114,11 @@
                     <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
                 </button>
 
+                <!-- NOVO: PODER DO JOGADOR — Visão de Cálculo (liga/desliga, uso ilimitado) -->
+                <button class="btn-neon" id="player-focus-btn" onclick="togglePlayerFocus()" title="Visão de Cálculo: mostra a bola mirada e a previsão de onde a branca vai parar">
+                    <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg>
+                </button>
+
                 <button class="btn-neon" onclick="toggleSunkMenu()">
                     <svg viewBox="0 0 24 24"><path d="M12 21l-12-18h24z"/></svg>
                 </button>
@@ -1187,12 +1195,18 @@
     const POWER_MULTIPLIER = 0.21; // AJUSTADO: mais velocidade nas tacadas (era 0.15)
     const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
 
-    // ================== NOVO: MOTOR DE FÍSICA REALISTA ==================
-    const PHYSICS_SUBSTEPS = 6;              // Sub-passos por frame -> evita "atravessar" bolas em tacadas fortes e deixa colisões precisas
-    const FRICTION_PER_FRAME = 0.9965;       // Atrito de rolagem "base" (AJUSTADO 2x: agora perde velocidade bem mais aos poucos)
-    const FRICTION_PER_SUBSTEP = Math.pow(FRICTION_PER_FRAME, 1 / PHYSICS_SUBSTEPS);
-    const RAIL_RESTITUTION = 0.92;           // Quicada nas tabelas
-    const BALL_RESTITUTION = 0.985;          // Elasticidade bola-bola (quase perfeita, como sinuca de verdade)
+    // ================== FÍSICA REFEITA DO ZERO — MODELO REALISTA ==================
+    // ANTES: o atrito multiplicava a velocidade por uma porcentagem a cada frame (decaimento
+    // exponencial). Isso é fisicamente errado: uma bola de sinuca real não "perde uma % da
+    // velocidade" a cada instante — o atrito de rolagem é uma força praticamente CONSTANTE
+    // (F = μ·m·g) enquanto a bola está em contato com o pano. Uma força constante gera uma
+    // DESACELERAÇÃO CONSTANTE, ou seja, a velocidade cai de forma LINEAR ao longo do tempo até
+    // chegar a exatamente zero — sem cauda residual, sem cortes artificiais de "velocidade
+    // mínima" pra forçar a parada. É esse modelo que foi implementado agora.
+    const PHYSICS_SUBSTEPS = 6;              // Sub-passos por frame -> evita "atravessar" bolas em tacadas fortes e mantém colisões precisas
+    const ROLL_DECEL = 0.062;                // Desaceleração CONSTANTE de rolagem (unidades/frame², não porcentagem). Quanto menor, mais longe a bola desliza.
+    const RAIL_RESTITUTION = 0.92;           // Restituição da tabela (bola perde ~8% da velocidade normal ao quicar - realista para borracha de sinuca)
+    const BALL_RESTITUTION = 0.985;          // Restituição bola-bola (quase perfeitamente elástico, como marfim/resina real)
     const THROW_EFFECT = 0.045;              // "Efeito de arrasto" tangencial no impacto bola-bola (curva realista pós-taco)
     const SPIN_DECAY = 0.982;                // Decaimento do efeito (spin) da bola branca ao longo do tempo
     let screenShake = { x: 0, y: 0, t: 0, power: 0 }; // Sistema de tremor de câmera (juice)
@@ -1360,11 +1374,10 @@
             this.updateMeshPosition();
             this.sunkTime = null; // Para manter a ordem no popover
             this.spinZ = 0; // NOVO: giro visível em torno do eixo vertical (efeito/inglês) - independente da rolagem
-            // NOVO: pequena variação de atrito própria de cada bola (determinística, baseada no número),
-            // pra elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
-            // CORRIGIDO: a variação por bola só pode DIMINUIR o atrito, nunca ultrapassar 1 (multiplicador >1
-            // fazia a velocidade crescer sozinha a cada sub-passo — a bola "ganhava força do nada").
-            this.frictionSeed = 1 - (((number * 0.6180339887) % 1)) * 0.01;
+            // Pequena variação de atrito própria de cada bola (determinística, baseada no número), pra
+            // elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
+            // Agora é um multiplicador da DESACELERAÇÃO constante (0.94–1.06), não mais da velocidade.
+            this.frictionSeed = 1 + (((number * 0.6180339887) % 1) - 0.5) * 0.12;
         }
 
         update(dtScale = 1) {
@@ -1376,17 +1389,33 @@
                 return; 
             }
 
-            let friction = FRICTION_PER_SUBSTEP * this.frictionSeed;
-            
             let currentSpin = {x:0, y:0};
             if (this.isCue) {
                  currentSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
             }
 
-            // Efeito (topspin/backspin) altera levemente o atrito de rolagem - mais realista
-            if (this.isCue && Math.abs(currentSpin.y) > 0.1) friction += (currentSpin.y * 0.002) * dtScale;
-            
-            this.vx *= friction; this.vy *= friction;
+            // ================== FÍSICA REALISTA DE ATRITO (desaceleração constante) ==================
+            // Em vez de multiplicar a velocidade por uma porcentagem (exponencial, nunca chega a zero de
+            // verdade), aplicamos uma força de atrito CONSTANTE que reduz a velocidade em uma quantidade
+            // fixa a cada instante — exatamente como o atrito de rolagem funciona na vida real. O
+            // resultado: a bola perde velocidade de forma linear e suave, e para EXATAMENTE em zero,
+            // sem cortes artificiais nem "cauda" de movimento residual.
+            const speed = Math.hypot(this.vx, this.vy);
+            if (speed > 0) {
+                // Efeito (topspin/backspin) influencia levemente a força de atrito - mais realista:
+                // topspin "ajuda" a rolagem (menos atrito), backspin resiste mais (mais atrito) até morrer.
+                let spinFrictionMod = 0;
+                if (this.isCue && Math.abs(currentSpin.y) > 0.1) spinFrictionMod = currentSpin.y * 0.008;
+
+                const decel = Math.max(0.01, ROLL_DECEL * this.frictionSeed + spinFrictionMod) * dtScale;
+                const newSpeed = Math.max(0, speed - decel);
+                if (newSpeed <= 0) {
+                    this.vx = 0; this.vy = 0;
+                } else {
+                    const scale = newSpeed / speed;
+                    this.vx *= scale; this.vy *= scale;
+                }
+            }
 
             // Decaimento suave do próprio efeito ao longo do tempo (o spin "morre" enquanto a bola rola)
             if (this.isCue) {
@@ -1394,18 +1423,12 @@
                 currentSpin.y *= Math.pow(SPIN_DECAY, dtScale);
             }
 
-            const speed = Math.hypot(this.vx, this.vy);
-            // Corte mínimo só por limpeza numérica (evita "vx=0.0000001" para sempre) - SEM freio extra artificial.
-            // Cada bola tem sua própria variação de atrito (this.frictionSeed), então elas desaceleram e
-            // param de forma independente/orgânica, nunca todas "coladas" no mesmo instante.
-            if (Math.abs(this.vx) < 0.006) this.vx = 0;
-            if (Math.abs(this.vy) < 0.006) this.vy = 0;
+            const impactSpeed = speed;
 
             this.x += this.vx * dtScale; 
             this.y += this.vy * dtScale;
 
             let hitWall = false;
-            const impactSpeed = speed;
             if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
             if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
             if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -RAIL_RESTITUTION; hitWall=true; }
@@ -1438,12 +1461,15 @@
                 }
             });
 
-            // Rastro de movimento (motion trail) para bolas rápidas - efeito "viciante" de velocidade
-            if (speed > 2.2) {
+            // Rastro de movimento (motion trail) — AJUSTADO: agora é bem mais discreto e só aparece
+            // de vez em quando em bolas realmente rápidas (tacadas fortes), em vez de "colar" um
+            // brilho constante em qualquer bola em movimento. Isso evita o efeito de rastro forte
+            // grudado na bola o tempo todo, mantendo só um efeito leve e ocasional.
+            if (speed > 6 && Math.random() < 0.35) {
                 let arr = trailPositions.get(this.number);
                 if (!arr) { arr = []; trailPositions.set(this.number, arr); }
                 arr.push({x: this.x, y: this.y, life: 1});
-                if (arr.length > 10) arr.shift();
+                if (arr.length > 5) arr.shift();
             }
 
             this.updateMeshPosition();
@@ -1565,7 +1591,11 @@
         firstHit: null,
         groupRemainingAtShotStart: null,
         consecutivePlayerBalls: 0,
-        playerUltReady: false
+        playerUltReady: false,
+        // NOVO: PODER DO JOGADOR — "Visão de Cálculo". Diferente da ULT (uso único, precisa carregar),
+        // esse é um alternador (liga/desliga) que o próprio jogador controla quando quiser, mostrando
+        // constantemente qual bola está mirando e uma previsão de onde a branca vai parar.
+        playerFocusActive: false
     };
 
     // IA STATE
@@ -1787,6 +1817,7 @@
                 }
                 drawAimLines(cueBall, aimData, color, false);
                 drawUltPrediction(aimData);
+                if (gameState.playerFocusActive) drawPlayerFocusOverlay(aimData);
 
                 // BARRA DE FORÇA CIRCULAR
                 const powerPct = Math.min(gameState.power / MAX_POWER, 1);
@@ -1931,15 +1962,15 @@
             ctxFX.restore();
         }
 
-        // Rastro de movimento (motion trail) das bolas rápidas
+        // Rastro de movimento (motion trail) — bem mais sutil e ocasional agora
         trailPositions.forEach((arr, num) => {
             for (let i = 0; i < arr.length; i++) {
                 const t = arr[i];
-                t.life -= 0.12;
+                t.life -= 0.22;
                 if (t.life <= 0) continue;
-                ctxFX.globalAlpha = t.life * 0.25;
+                ctxFX.globalAlpha = t.life * 0.12;
                 ctxFX.fillStyle = getTheme().primary;
-                ctxFX.beginPath(); ctxFX.arc(t.x, t.y, BALL_RADIUS * (0.5 + t.life*0.3), 0, Math.PI*2); ctxFX.fill();
+                ctxFX.beginPath(); ctxFX.arc(t.x, t.y, BALL_RADIUS * (0.4 + t.life*0.25), 0, Math.PI*2); ctxFX.fill();
             }
             ctxFX.globalAlpha = 1;
             while (arr.length && arr[0].life <= 0) arr.shift();
@@ -2184,6 +2215,123 @@
         ctxFX.fillText('ULT · PREVISÃO LEVE', endX, endY - 14);
         ctxFX.restore();
     }
+
+    // ================== NOVO: PODER DO JOGADOR — VISÃO DE CÁLCULO ==================
+    // Sistema de poder do próprio jogador (liga/desliga, sem gasto), tipo o "Modo Focus" do bot mas
+    // pro seu personagem: enquanto mira, mostra qual bola está sendo mirada e onde a bola branca vai
+    // acabar parando, recalculado constantemente a cada frame usando a MESMA física real do jogo
+    // (decomposição de velocidade no impacto + a fórmula de desaceleração constante do atrito).
+
+    // Simula pra frente a trajetória da branca após o impacto usando exatamente as mesmas fórmulas
+    // de atrito e quicada nas tabelas do motor de física real (sem colidir com outras bolas — é só
+    // uma prévia). Retorna onde ela vai parar (e se cai numa caçapa nesse caminho).
+    function predictCueBallResting(startX, startY, angle, power) {
+        let x = startX, y = startY;
+        let vx = Math.cos(angle) * power, vy = Math.sin(angle) * power;
+        const dt = 1 / PHYSICS_SUBSTEPS;
+        let pocketed = false;
+
+        for (let i = 0; i < 3000; i++) {
+            const speed = Math.hypot(vx, vy);
+            if (speed <= 0.05) break;
+
+            const decel = ROLL_DECEL * dt;
+            const newSpeed = Math.max(0, speed - decel);
+            if (newSpeed <= 0) { vx = 0; vy = 0; break; }
+            const sc = newSpeed / speed; vx *= sc; vy *= sc;
+
+            x += vx * dt; y += vy * dt;
+
+            if (x < TABLE_MARGIN + BALL_RADIUS) { x = TABLE_MARGIN + BALL_RADIUS; vx *= -RAIL_RESTITUTION; }
+            if (x > WIDTH - TABLE_MARGIN - BALL_RADIUS) { x = WIDTH - TABLE_MARGIN - BALL_RADIUS; vx *= -RAIL_RESTITUTION; }
+            if (y < TABLE_MARGIN + BALL_RADIUS) { y = TABLE_MARGIN + BALL_RADIUS; vy *= -RAIL_RESTITUTION; }
+            if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -RAIL_RESTITUTION; }
+
+            for (const p of getPockets()) {
+                if (Math.hypot(x - p.x, y - p.y) < POCKET_RADIUS) { pocketed = true; break; }
+            }
+            if (pocketed) break;
+        }
+        return { x, y, pocketed };
+    }
+
+    // Calcula a direção/velocidade da branca DEPOIS do primeiro impacto, decompondo o vetor de
+    // velocidade em componente normal (transferida pra bola alvo) e tangencial (que fica com a
+    // branca) — é exatamente a mesma lógica usada em checkCollisions(), então a previsão bate com
+    // o que realmente vai acontecer numa tacada "seca" (sem efeito).
+    function computePlayerFocusPrediction(aimData) {
+        let originX = aimData.endX, originY = aimData.endY;
+        let dirAngle, speed;
+
+        if (aimData.target) {
+            const t = aimData.target;
+            const nx = t.x - originX, ny = t.y - originY;
+            const nlen = Math.hypot(nx, ny) || 1;
+            const ux = nx / nlen, uy = ny / nlen;
+
+            const vx = Math.cos(gameState.angle) * gameState.power;
+            const vy = Math.sin(gameState.angle) * gameState.power;
+            const vn = vx * ux + vy * uy;
+            const tx = vx - vn * ux, ty = vy - vn * uy;
+
+            speed = Math.hypot(tx, ty);
+            dirAngle = speed > 0.001 ? Math.atan2(ty, tx) : 0;
+        } else {
+            dirAngle = gameState.angle;
+            speed = gameState.power;
+        }
+
+        if (speed < 0.4) return null;
+        return predictCueBallResting(originX, originY, dirAngle, speed);
+    }
+
+    function drawPlayerFocusOverlay(aimData) {
+        const focusColor = getTheme().primary;
+
+        // Destaca a bola que está sendo mirada no momento (scanner pulsante)
+        if (aimData.target) {
+            const t = aimData.target;
+            const pulse = 1 + Math.sin(Date.now() * 0.008) * 0.18;
+            ctxFX.save();
+            ctxFX.strokeStyle = focusColor;
+            ctxFX.lineWidth = 2;
+            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 10;
+            ctxFX.beginPath();
+            ctxFX.arc(t.x, t.y, BALL_RADIUS * 1.7 * pulse, 0, Math.PI * 2);
+            ctxFX.stroke();
+            ctxFX.restore();
+        }
+
+        // Previsão de onde a branca vai parar (atualizada a cada frame enquanto mira/carrega força)
+        const prediction = computePlayerFocusPrediction(aimData);
+        if (!prediction) return;
+
+        ctxFX.save();
+        ctxFX.setLineDash([2, 4]);
+        ctxFX.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctxFX.lineWidth = 1.3;
+        ctxFX.beginPath();
+        ctxFX.moveTo(aimData.endX, aimData.endY);
+        ctxFX.lineTo(prediction.x, prediction.y);
+        ctxFX.stroke();
+        ctxFX.setLineDash([]);
+
+        const markerColor = prediction.pocketed ? '#ff3333' : '#ffffff';
+        ctxFX.beginPath();
+        ctxFX.arc(prediction.x, prediction.y, BALL_RADIUS * 0.85, 0, Math.PI * 2);
+        ctxFX.strokeStyle = markerColor;
+        ctxFX.lineWidth = 1.5;
+        ctxFX.shadowColor = markerColor; ctxFX.shadowBlur = 8;
+        ctxFX.stroke();
+        ctxFX.shadowBlur = 0;
+
+        ctxFX.font = 'bold 7.5px Orbitron';
+        ctxFX.textAlign = 'center';
+        ctxFX.fillStyle = markerColor;
+        ctxFX.fillText(prediction.pocketed ? 'BRANCA CAI! ⚠' : 'BRANCA PARA AQUI', prediction.x, prediction.y - 14);
+        ctxFX.restore();
+    }
+    // ================== FIM PODER DO JOGADOR ==================
 
     function calculateAimTrajectory(source, angle) {
         const dx = Math.cos(angle), dy = Math.sin(angle);
@@ -3678,6 +3826,16 @@
         spinMenuOpen = !spinMenuOpen; 
         document.getElementById('spin-popover').classList.toggle('visible', spinMenuOpen); 
         resetInactivityTimer(); // Nova atividade
+    }
+
+    // NOVO: PODER DO JOGADOR — "Visão de Cálculo". Liga/desliga livremente (sem gasto/carga),
+    // mostrando enquanto mira: qual bola está sendo mirada e uma previsão de onde a bola branca
+    // vai parar depois da tacada, recalculada em tempo real a cada frame.
+    function togglePlayerFocus() {
+        gameState.playerFocusActive = !gameState.playerFocusActive;
+        document.getElementById('player-focus-btn').classList.toggle('active-toggle', gameState.playerFocusActive);
+        showToast(gameState.playerFocusActive ? 'VISÃO DE CÁLCULO ATIVADA' : 'VISÃO DE CÁLCULO DESATIVADA', false);
+        resetInactivityTimer();
     }
     
     document.getElementById('spin-control').addEventListener('mousedown', (e) => { isSettingSpin = true; setSpin(e); });
