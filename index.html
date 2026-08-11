@@ -254,7 +254,13 @@
             pointer-events: auto; 
         }
         #spin-dot { width: 10px; height: 10px; background: #ff3333; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #ff3333; pointer-events: none;}
-        #bot-spin-dot { width: 10px; height: 10px; background: #33ff33; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #33ff33; pointer-events: none; opacity: 0;}
+        #bot-spin-dot { width: 10px; height: 10px; background: #33ff33; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #33ff33; pointer-events: none; opacity: 0; transition: left 0.05s linear, top 0.05s linear, opacity 0.2s; }
+        /* NOVO: enquanto o bot está "escolhendo" o efeito, o ponto pulsa/varia rápido (visual de decisão) */
+        #bot-spin-dot.choosing { background: #ffb000; box-shadow: 0 0 9px #ffb000; animation: spinChoosing 0.4s ease-in-out infinite; }
+        /* Quando a escolha é travada, um pulso confirma visualmente a decisão final */
+        #bot-spin-dot.locked { animation: spinLocked 0.4s ease-out; }
+        @keyframes spinChoosing { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.6); } }
+        @keyframes spinLocked { 0% { transform: translate(-50%,-50%) scale(2.4); box-shadow: 0 0 18px #33ff33; } 100% { transform: translate(-50%,-50%) scale(1); } }
 
         /* TAUNT POPOVER */
         #taunt-popover {
@@ -405,8 +411,10 @@
         
         /* AJUSTE PARA BOLHAS DE CHAT: CORREÇÃO DO CANTO */
         #p1-bubble { left: 10px; border-top-left-radius: 0; }
-        /* MODIFICAÇÃO: Inverte o posicionamento da bolha do Bot */
-        #p2-bubble { left: 10px; left: auto; border-top-right-radius: 0; text-align: right; }
+        /* CORREÇÃO: a bolha do bot usava "left: auto" sem nunca definir "right", então ficava sem
+           posição horizontal definida e era cortada pelo overflow:hidden dos containers pais —
+           o painel branco não aparecia inteiro. Agora ela é ancorada corretamente pela direita. */
+        #p2-bubble { right: 10px; border-top-right-radius: 0; text-align: right; }
         .chat-bubble.show { opacity: 1; transform: translateY(0); }
         /* FIM MODIFICAÇÃO */
 
@@ -709,141 +717,273 @@
             #p2-section .chat-btn { right: 0; left: auto; }
         }
 
-        /* NOVO SISTEMA DE CHAT */
+        /* ================== CHAT v2 — REDESENHADO DO ZERO ==================
+           Objetivo: visual mais bonito (glassmorphism + neon), totalmente adaptável
+           (usa clamp()/vw/vh e vira bottom-sheet em telas pequenas), com balões de
+           mensagem com avatar, indicador de "digitando", chips de resposta rápida
+           roláveis e um campo de texto livre além das frases prontas. */
+
+        #chat-overlay {
+            position: fixed; inset: 0; z-index: 290;
+            background: rgba(2,4,7,0.55);
+            backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+            opacity: 0; visibility: hidden;
+            transition: opacity .25s ease;
+        }
+        #chat-overlay.visible { opacity: 1; visibility: visible; }
+
         #chat-panel {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 300px;
-            height: 400px;
-            background: var(--panel-bg);
-            border-radius: 16px;
-            border: 1px solid var(--primary-color);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -46%) scale(.96);
+            width: clamp(300px, 30vw, 400px);
+            height: clamp(420px, 74vh, 620px);
+            background: linear-gradient(165deg, rgba(16,22,32,.92), rgba(6,9,14,.96));
+            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            border-radius: 26px;
+            border: 1px solid rgba(0,243,255,.28);
+            box-shadow: 0 30px 90px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.04) inset, 0 0 50px rgba(0,243,255,.1);
             z-index: 300;
             display: flex;
             flex-direction: column;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s, transform 0.3s;
-            transform: translateY(20px);
+            transition: opacity .3s cubic-bezier(.2,.9,.25,1), transform .3s cubic-bezier(.2,.9,.25,1);
             overflow: hidden;
         }
 
         #chat-panel.visible {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
+            transform: translate(-50%, -50%) scale(1);
         }
 
+        #chat-panel.bot-mode { border-color: rgba(255,69,0,.32); box-shadow: 0 30px 90px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.04) inset, 0 0 50px rgba(255,69,0,.12); }
+
+        /* --- Cabeçalho --- */
         #chat-header {
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            text-align: center;
-            font-weight: 900;
-            font-size: 14px;
-            border-bottom: 1px solid var(--primary-color);
+            position: relative;
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 16px 14px;
+            background: linear-gradient(120deg, rgba(0,243,255,.14), rgba(255,255,255,0) 60%);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            flex-shrink: 0;
         }
+        #chat-panel.bot-mode #chat-header { background: linear-gradient(120deg, rgba(255,69,0,.16), rgba(255,255,255,0) 60%); }
 
+        #chat-header-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background-size: cover; background-position: center;
+            border: 2px solid rgba(255,255,255,.5);
+            box-shadow: 0 0 14px rgba(0,243,255,.35); flex-shrink: 0;
+            transition: box-shadow .3s;
+        }
+        #chat-panel.bot-mode #chat-header-avatar { box-shadow: 0 0 14px rgba(255,69,0,.4); }
+
+        #chat-header-text { flex-grow: 1; min-width: 0; }
+        .chat-topline { display:flex; align-items:center; gap:7px; font-weight: 900; font-size: 13px; letter-spacing: .5px; color: #fff; }
+        .chat-live-dot { width:7px; height:7px; border-radius:50%; background:#39ff14; box-shadow:0 0 8px #39ff14; animation: livePulse 1.4s infinite; flex-shrink:0; }
+        .chat-subtitle { display:block; margin-top:3px; color:#93a6b4; font-size:10px; letter-spacing:.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .chat-close {
+            border:0; background: rgba(255,255,255,.06); color:#c4d0d8; cursor:pointer;
+            width: 30px; height: 30px; border-radius: 50%; font-size:17px; line-height:1;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+            transition: background .2s, transform .2s;
+        }
+        .chat-close:hover { background: rgba(255,80,80,.22); transform: rotate(90deg); }
+
+        /* --- Card de status do bot (só aparece na conversa com o bot) --- */
+        .bot-status-card {
+            margin: 12px 14px 0; padding: 12px 13px; flex-shrink: 0;
+            border: 1px solid rgba(255,69,0,.3); border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255,69,0,.14), rgba(10,10,14,.5));
+            max-height: 500px; overflow: hidden;
+            transition: max-height .3s ease, opacity .3s ease, margin .3s ease, padding .3s ease;
+        }
+        .bot-status-card.hidden-card { max-height: 0; opacity: 0; margin-top: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+        .bot-status-row { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:10px; }
+        .bot-status-row strong { color:#fff; font-size:11px; letter-spacing:.4px; }
+        .anger-number { color:#ff8a5c; font-weight:900; }
+        .anger-track { height:6px; border-radius:99px; overflow:hidden; margin-top:8px; background:#251312; border:1px solid rgba(255,255,255,.08); }
+        #anger-fill { height:100%; width:0%; border-radius:inherit; background:linear-gradient(90deg,#ffb000,#ff4500,#ff1744); box-shadow:0 0 12px #ff4500; transition:width .45s ease, filter .45s ease; }
+        .anger-caption { display:flex; justify-content:space-between; margin-top:5px; color:#9a8580; font-size:8px; text-transform:uppercase; letter-spacing:.7px; }
+        .bot-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px; }
+        .bot-metric { padding:7px 5px; border-radius:10px; text-align:center; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.06); }
+        .bot-metric b { display:block; color:#fff; font-size:11px; }
+        .bot-metric span { display:block; color:#86949d; font-size:7px; margin-top:3px; letter-spacing:.5px; text-transform:uppercase; }
+        .bot-status-mini { margin-top:7px; color:#ff8a5c; font-size:8.5px; letter-spacing:.6px; text-transform:uppercase; display:flex; align-items:center; gap:5px; }
+        .bot-status-mini::before { content:''; width:5px; height:5px; border-radius:50%; background:#ff8a5c; box-shadow:0 0 6px #ff8a5c; }
+        .ult-badge { display:none; margin-top:6px; color:#ffd34d; font-size:9px; font-weight:900; letter-spacing:1px; animation: ultPulse 1s infinite; }
+        .ult-badge.visible { display:block; }
+
+        /* --- Área de mensagens --- */
         #chat-messages {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 16px 14px;
             display: flex;
-            flex-direction: column-reverse; /* Inverte para scroll para baixo mostrar novas mensagens */
+            flex-direction: column;
+            gap: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,243,255,.4) transparent;
+        }
+        #chat-messages::-webkit-scrollbar { width: 5px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(0,243,255,.35); border-radius: 10px; }
+
+        .chat-row { display:flex; align-items:flex-end; gap:8px; margin: 5px 0; max-width: 100%; animation: chatIn .28s cubic-bezier(.2,.9,.25,1) both; }
+        .chat-row.player { flex-direction: row-reverse; }
+        .chat-row-avatar {
+            width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+            background-size: cover; background-position: center;
+            border: 1.5px solid rgba(255,255,255,.35);
         }
 
         .chat-message {
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border-radius: 12px;
-            max-width: 80%;
+            padding: 9px 13px;
+            border-radius: 16px;
+            max-width: 78%;
             word-wrap: break-word;
-            font-size: 12px;
+            font-size: 12.5px;
+            line-height: 1.4;
+            position: relative;
+            border: 1px solid rgba(255,255,255,.08);
+            box-shadow: 0 4px 14px rgba(0,0,0,.25);
         }
 
-        .chat-message.player {
-            background: rgba(0, 243, 255, 0.2);
+        .chat-row.player .chat-message {
+            background: linear-gradient(135deg, rgba(0,243,255,.28), rgba(0,90,120,.2));
             color: #fff;
-            align-self: flex-start;
+            border-bottom-right-radius: 5px;
         }
 
-        .chat-message.bot {
-            background: rgba(255, 69, 0, 0.2);
+        .chat-row.bot .chat-message {
+            background: linear-gradient(135deg, rgba(255,90,20,.28), rgba(90,15,8,.22));
             color: #fff;
-            align-self: flex-end;
+            border-bottom-left-radius: 5px;
         }
 
         .chat-message .sender {
-            font-weight: bold;
-            margin-bottom: 4px;
+            font-weight: 800;
+            margin-bottom: 3px;
             display: block;
+            font-size: 8.5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: .65;
         }
+        .chat-msg-time { display:block; margin-top: 3px; font-size: 8px; opacity: .45; letter-spacing: .4px; }
 
+        /* Indicador de "digitando" */
+        .chat-typing { display:none; align-items:center; gap:8px; padding: 2px 14px 10px; }
+        .chat-typing.visible { display:flex; }
+        .chat-typing-dots { display:flex; gap:3px; padding: 9px 12px; border-radius: 16px; border-bottom-left-radius: 5px; background: linear-gradient(135deg, rgba(255,90,20,.22), rgba(90,15,8,.18)); border: 1px solid rgba(255,255,255,.08); }
+        .chat-typing-dots span { width:5px; height:5px; border-radius:50%; background:#ffb08a; animation: typingBounce 1.1s infinite ease-in-out; }
+        .chat-typing-dots span:nth-child(2) { animation-delay: .15s; }
+        .chat-typing-dots span:nth-child(3) { animation-delay: .3s; }
+
+        /* --- Chips de resposta rápida + campo de texto --- */
         #chat-input {
-            display: flex;
-            padding: 10px;
-            border-top: 1px solid #333;
+            flex-shrink: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: rgba(0,0,0,.28);
+            padding: 10px 12px 12px;
         }
 
-/* Modificações para o seu CSS existente */
-
-#chat-input select {
-    /* Mantém as suas propriedades existentes */
-    flex-grow: 1; /* Isto pode não ser necessário se a próxima linha for aplicada */
-    padding: 8px;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid var(--primary-color);
-    color: #fff;
-    /* --- Adicione estas duas linhas --- */
-    width: 100%; /* Faz com que o seletor ocupe toda a largura disponível */
-    display: block; /* Garante que ele se comporte como um bloco */
-    /* --------------------------------- */
-    border-radius: 8px; /* Arredonde todas as bordas, já que não está mais ao lado do botão */
-}
-
-#chat-send {
-    padding: 8px 12px;
-    background: var(--primary-color);
-    color: #000;
-    border: none;
-    cursor: pointer;
-    /* --- Adicione estas duas linhas --- */
-    width: 100%; /* Faz o botão ocupar toda a largura */
-    display: block; /* Garante que ele se comporte como um bloco e comece em uma nova linha */
-    margin-top: 8px; /* Adiciona um pequeno espaço entre o seletor e o botão */
-    /* --------------------------------- */
-    border-radius: 8px; /* Arredonde todas as bordas */
-}
-
-/* Remover a borda-radius específica que fazia a transição entre os dois elementos */
-#chat-input select {
-    /* ... outras regras ... */
-    border-radius: 8px; /* Era 8px 0 0 8px; */
-}
-
-#chat-send {
-    /* ... outras regras ... */
-    border-radius: 8px; /* Era 0 8px 8px 0; */
-}
-
-        #chat-send:hover {
-            background: #00ffff;
+        #chat-quick-replies {
+            display: flex; gap: 7px; overflow-x: auto; padding-bottom: 9px; margin-bottom: 9px;
+            border-bottom: 1px dashed rgba(255,255,255,.1);
+            scrollbar-width: none;
         }
+        #chat-quick-replies::-webkit-scrollbar { display: none; }
+        .chip {
+            flex-shrink: 0;
+            padding: 7px 13px;
+            border-radius: 99px;
+            border: 1px solid rgba(0,243,255,.35);
+            background: rgba(0,243,255,.08);
+            color: #d8f7ff;
+            font-family: inherit;
+            font-size: 10.5px;
+            font-weight: 700;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background .18s, transform .12s, border-color .18s;
+        }
+        .chip:hover { background: rgba(0,243,255,.22); transform: translateY(-1px); }
+        .chip:active { transform: scale(.94); }
+        #chat-panel.bot-mode .chip { border-color: rgba(255,120,60,.4); background: rgba(255,90,20,.1); color: #ffe0cf; }
+        #chat-panel.bot-mode .chip:hover { background: rgba(255,90,20,.24); }
 
+        #chat-input-row { display: flex; gap: 8px; align-items: center; }
+        #chat-text-input {
+            flex-grow: 1;
+            padding: 11px 14px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.14);
+            color: #fff;
+            border-radius: 99px;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+            transition: border-color .2s, background .2s;
+            min-width: 0;
+        }
+        #chat-text-input:focus { border-color: var(--primary-color); background: rgba(255,255,255,.1); }
+        #chat-text-input::placeholder { color: #6b7885; }
+
+        #chat-send {
+            width: 42px; height: 42px; flex-shrink: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--primary-color), #8effff);
+            color: #001217;
+            border: none;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex; align-items:center; justify-content:center;
+            box-shadow: 0 4px 16px rgba(0,243,255,.35);
+            transition: transform .15s, box-shadow .15s;
+        }
+        #chat-send svg { width: 17px; height: 17px; }
+        #chat-send:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,243,255,.5); }
+        #chat-send:active { transform: scale(.92); }
+        #chat-panel.bot-mode #chat-send { background: linear-gradient(135deg, var(--bot-anger-color), #ffab6e); color: #1a0800; box-shadow: 0 4px 16px rgba(255,69,0,.35); }
+
+        @keyframes chatIn { from { opacity:0; transform:translateY(8px) scale(.97); } to { opacity:1; transform:none; } }
+        @keyframes livePulse { 50% { opacity:.35; transform:scale(.7); } }
+        @keyframes ultPulse { 50% { text-shadow:0 0 14px #ffd34d; } }
+        @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity:.5; } 30% { transform: translateY(-4px); opacity:1; } }
+
+        #p2-section.bot-angry { animation: angerShake .32s ease-in-out 2; }
+        #p2-section.bot-raging { animation: angerShake .18s ease-in-out infinite; }
+        #p2-section.bot-raging .avatar-img { filter:saturate(1.8) contrast(1.2); }
+        @keyframes angerShake { 0%,100% { transform:translateX(0) scale(1.05); } 25% { transform:translateX(-3px) rotate(-1deg) scale(1.06); } 75% { transform:translateX(3px) rotate(1deg) scale(1.06); } }
+
+        /* --- Totalmente adaptável: vira bottom-sheet em telas menores --- */
         @media (max-width: 768px) {
             #chat-panel {
-                width: 90vw;
-                height: 50vh;
-                bottom: 10px;
-                right: 5%;
+                top: auto; bottom: 0; left: 0;
+                transform: translateY(100%);
+                width: 100vw;
+                height: min(82vh, 640px);
+                border-radius: 22px 22px 0 0;
+                border-bottom: none;
             }
-
-            .chat-message {
-                font-size: 10px;
+            #chat-panel.visible { transform: translateY(0); }
+            #chat-header { padding: 14px 14px 12px; }
+            #chat-header::before {
+                content: ''; position:absolute; top: 8px; left: 50%; transform: translateX(-50%);
+                width: 38px; height: 4px; border-radius: 99px; background: rgba(255,255,255,.25);
             }
+            .bot-metrics { grid-template-columns: repeat(3,1fr); }
+            .chat-message { font-size: 12px; max-width: 84%; }
         }
-        /* FIM NOVO SISTEMA DE CHAT */
+
+        @media (max-width: 420px) {
+            #chat-panel { height: min(88vh, 640px); }
+            .bot-status-card { padding: 10px 11px; }
+            .chip { font-size: 10px; padding: 6px 11px; }
+        }
+        /* ================== FIM CHAT v2 ================== */
     </style>
 </head>
 <body>
@@ -904,6 +1044,8 @@
                     <span class="p-name">THEUZ IA</span> <span class="p-type" id="p2-type-label">--</span>
                     <div class="win-counter" id="p2-wins-display">VITÓRIAS: 0</div>
                     <div class="score-dots" id="p2-score"></div>
+                    <div class="bot-status-mini" id="bot-status-mini">SISTEMA ESTÁVEL</div>
+                    <div class="ult-badge" id="ult-badge">ULT PRONTA · PREVISÃO ATIVA</div>
                 </div>
                 <div class="avatar-container">
                     <svg class="timer-svg" viewBox="0 0 64 64">
@@ -990,15 +1132,40 @@
         <div style="font-weight: 900; font-size: 16px; color: white; text-shadow: 0 0 10px var(--primary-color);">SUA VEZ</div>
     </div>
 
-    <!-- NOVO PAINEL DE CHAT -->
+    <!-- CHAT TÁTICO ADAPTATIVO v2 -->
+    <div id="chat-overlay" onclick="closeChatPanel()"></div>
     <div id="chat-panel">
-        <div id="chat-header">Chat com TheuZ IA</div>
+        <div id="chat-header">
+            <div id="chat-header-avatar"></div>
+            <div id="chat-header-text">
+                <div class="chat-topline"><span class="chat-live-dot"></span><span id="chat-header-title">THEUZ IA // COMMS</span></div>
+                <span class="chat-subtitle" id="chat-header-subtitle">Leitura emocional e análise da mesa em tempo real</span>
+            </div>
+            <button class="chat-close" onclick="closeChatPanel()">×</button>
+        </div>
+        <div class="bot-status-card" id="bot-status-card">
+            <div class="bot-status-row"><strong>ESTADO EMOCIONAL</strong><span id="bot-anger-label" class="anger-number">0% · CALMO</span></div>
+            <div class="anger-track"><div id="anger-fill"></div></div>
+            <div class="anger-caption"><span>frio</span><span>irritado</span><span>furioso</span></div>
+            <div class="bot-metrics">
+                <div class="bot-metric"><b id="bot-precision">95%</b><span>mira</span></div>
+                <div class="bot-metric"><b id="bot-complexity">--</b><span>plano</span></div>
+                <div class="bot-metric"><b id="bot-time-budget">30s</b><span>janela</span></div>
+            </div>
+        </div>
         <div id="chat-messages"></div>
+        <div class="chat-typing" id="chat-typing">
+            <div class="chat-row-avatar" style="background-image:url('https://api.dicebear.com/7.x/bottts/svg?seed=Terminator');"></div>
+            <div class="chat-typing-dots"><span></span><span></span><span></span></div>
+        </div>
         <div id="chat-input">
-            <select id="taunt-select">
-                <!-- Opções preenchidas via JS -->
-            </select>
-            <button id="chat-send" onclick="sendTaunt()">Enviar</button>
+            <div id="chat-quick-replies"><!-- Chips preenchidos via JS --></div>
+            <div id="chat-input-row">
+                <input id="chat-text-input" type="text" placeholder="Digite uma provocação..." maxlength="80" onkeydown="if(event.key==='Enter')sendTaunt()">
+                <button id="chat-send" onclick="sendTaunt()" aria-label="Enviar">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1007,7 +1174,7 @@
     // CONFIGURAÇÃO GERAL
     const WIDTH = 620;       
     const HEIGHT = 330;      
-    const BALL_RADIUS = 10;
+    const BALL_RADIUS = 7.5; // AJUSTADO: bolas menores, mesa parece maior/mais imersiva (era 10)
     const POCKET_RADIUS = 24;
     const TABLE_MARGIN = 30;
 
@@ -1017,8 +1184,69 @@
 
     // MODIFICAÇÃO: Diminuir a força máxima da tacada
     const MAX_DRAG_DISTANCE = 120; // Aumentei a distância que o usuário pode arrastar
-    const POWER_MULTIPLIER = 0.15; // Diminui o fator de conversão de distância para força (Original era 0.35)
+    const POWER_MULTIPLIER = 0.21; // AJUSTADO: mais velocidade nas tacadas (era 0.15)
     const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
+
+    // ================== NOVO: MOTOR DE FÍSICA REALISTA ==================
+    const PHYSICS_SUBSTEPS = 6;              // Sub-passos por frame -> evita "atravessar" bolas em tacadas fortes e deixa colisões precisas
+    const FRICTION_PER_FRAME = 0.9965;       // Atrito de rolagem "base" (AJUSTADO 2x: agora perde velocidade bem mais aos poucos)
+    const FRICTION_PER_SUBSTEP = Math.pow(FRICTION_PER_FRAME, 1 / PHYSICS_SUBSTEPS);
+    const RAIL_RESTITUTION = 0.92;           // Quicada nas tabelas
+    const BALL_RESTITUTION = 0.985;          // Elasticidade bola-bola (quase perfeita, como sinuca de verdade)
+    const THROW_EFFECT = 0.045;              // "Efeito de arrasto" tangencial no impacto bola-bola (curva realista pós-taco)
+    const SPIN_DECAY = 0.982;                // Decaimento do efeito (spin) da bola branca ao longo do tempo
+    let screenShake = { x: 0, y: 0, t: 0, power: 0 }; // Sistema de tremor de câmera (juice)
+    const trailPositions = new Map();        // Rastro (motion trail) das bolas em movimento rápido
+
+    // --- Áudio sintetizado (sem arquivos externos) para dar "peso" e resposta tátil ao jogo ---
+    let audioCtx = null;
+    function ensureAudio() {
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+    }
+    function playThud(freq, duration, vol, type='sine') {
+        const ac = ensureAudio(); if (!ac) return;
+        const osc = ac.createOscillator(); const gain = ac.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq*0.4), ac.currentTime + duration);
+        gain.gain.setValueAtTime(vol, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.start(); osc.stop(ac.currentTime + duration);
+    }
+    function playBallClick(intensity) {
+        // Impacto seco de "click" (bola contra bola) - tom sobe com a força do impacto
+        const vol = Math.min(0.5, 0.08 + intensity * 0.03);
+        playThud(280 + intensity * 40, 0.09, vol, 'triangle');
+    }
+    function playCushionThud(intensity) {
+        const vol = Math.min(0.4, 0.06 + intensity * 0.02);
+        playThud(120 + intensity * 10, 0.14, vol, 'sine');
+    }
+    function playPocketSound() {
+        const ac = ensureAudio(); if (!ac) return;
+        // "Plop" descendente satisfatório
+        const osc = ac.createOscillator(); const gain = ac.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(500, ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(90, ac.currentTime + 0.28);
+        gain.gain.setValueAtTime(0.35, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.3);
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.start(); osc.stop(ac.currentTime + 0.3);
+    }
+    function playStrikeSound(power) {
+        const vol = Math.min(0.5, 0.15 + (power/MAX_POWER) * 0.35);
+        playThud(650, 0.06, vol, 'square');
+    }
+    function triggerScreenShake(power) {
+        screenShake.power = Math.min(14, power);
+        screenShake.t = 1;
+    }
+    // ================== FIM NOVO MOTOR DE FÍSICA ==================
 
     // MODIFICAÇÃO: Variáveis de Inatividade para Troca de Turno
     let lastActivityTime = Date.now();
@@ -1054,11 +1282,17 @@
     renderer.domElement.id = "three-canvas";
     document.getElementById('game-inner').appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
-    const themeLight = new THREE.PointLight(getTheme().lightColor, 0.6, 500);
+    const themeLight = new THREE.PointLight(getTheme().lightColor, 0.22, 500);
     themeLight.position.set(0, 0, 150);
     scene.add(themeLight);
+    // CORREÇÃO DO BUG (efeito azul nas bolas): a luz colorida do tema (ciano/azul) foi reduzida ainda
+    // mais e a luz de preenchimento branca aumentada, para que NENHUMA bola — branca ou colorida —
+    // fique com um brilho especular azulado, principalmente perceptível quando a bola desacelera.
+    const fillLight = new THREE.PointLight(0xffffff, 0.7, 500);
+    fillLight.position.set(-140, 90, 200);
+    scene.add(fillLight);
 
     // Texturas das Bolas
     let ballImages = {};
@@ -1113,18 +1347,27 @@
             this.isStripe = (number > 8);
             
             const geo = new THREE.SphereGeometry(this.radius, 32, 32);
+            // CORREÇÃO DO BUG (efeito azul nas bolas): brilho especular reduzido em TODAS as bolas
+            // (a branca continua com o valor mais baixo de todos), pra nenhuma delas "puxar" a cor
+            // da luz do tema e parecer azulada, especialmente quando desacelerando.
             const mat = new THREE.MeshPhongMaterial({ 
                 map: new THREE.TextureLoader().load(ballImages[number]), // Usa a URL salva
-                shininess: 150,
-                specular: 0x444444
+                shininess: number === 0 ? 45 : 90,
+                specular: number === 0 ? 0x141414 : 0x2a2a2a
             });
             this.mesh = new THREE.Mesh(geo, mat);
             scene.add(this.mesh);
             this.updateMeshPosition();
             this.sunkTime = null; // Para manter a ordem no popover
+            this.spinZ = 0; // NOVO: giro visível em torno do eixo vertical (efeito/inglês) - independente da rolagem
+            // NOVO: pequena variação de atrito própria de cada bola (determinística, baseada no número),
+            // pra elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
+            // CORRIGIDO: a variação por bola só pode DIMINUIR o atrito, nunca ultrapassar 1 (multiplicador >1
+            // fazia a velocidade crescer sozinha a cada sub-passo — a bola "ganhava força do nada").
+            this.frictionSeed = 1 - (((number * 0.6180339887) % 1)) * 0.01;
         }
 
-        update() {
+        update(dtScale = 1) {
             if (!this.active && !this.falling) { this.mesh.visible = false; return; }
             this.mesh.visible = true;
 
@@ -1133,32 +1376,52 @@
                 return; 
             }
 
-            let friction = 0.986;
+            let friction = FRICTION_PER_SUBSTEP * this.frictionSeed;
             
             let currentSpin = {x:0, y:0};
             if (this.isCue) {
                  currentSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
             }
 
-            if (this.isCue && Math.abs(currentSpin.y) > 0.1) friction += currentSpin.y * 0.002; 
+            // Efeito (topspin/backspin) altera levemente o atrito de rolagem - mais realista
+            if (this.isCue && Math.abs(currentSpin.y) > 0.1) friction += (currentSpin.y * 0.002) * dtScale;
             
             this.vx *= friction; this.vy *= friction;
-            
-            if (Math.abs(this.vx) < 0.03) this.vx = 0;
-            if (Math.abs(this.vy) < 0.03) this.vy = 0;
 
-            this.x += this.vx; 
-            this.y += this.vy;
+            // Decaimento suave do próprio efeito ao longo do tempo (o spin "morre" enquanto a bola rola)
+            if (this.isCue) {
+                currentSpin.x *= Math.pow(SPIN_DECAY, dtScale);
+                currentSpin.y *= Math.pow(SPIN_DECAY, dtScale);
+            }
+
+            const speed = Math.hypot(this.vx, this.vy);
+            // Corte mínimo só por limpeza numérica (evita "vx=0.0000001" para sempre) - SEM freio extra artificial.
+            // Cada bola tem sua própria variação de atrito (this.frictionSeed), então elas desaceleram e
+            // param de forma independente/orgânica, nunca todas "coladas" no mesmo instante.
+            if (Math.abs(this.vx) < 0.006) this.vx = 0;
+            if (Math.abs(this.vy) < 0.006) this.vy = 0;
+
+            this.x += this.vx * dtScale; 
+            this.y += this.vy * dtScale;
 
             let hitWall = false;
-            if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -0.9; hitWall=true; }
-            if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -0.9; hitWall=true; }
-            if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -0.9; hitWall=true; }
-            if (this.y > HEIGHT - TABLE_MARGIN - this.radius) { this.y = HEIGHT - TABLE_MARGIN - this.radius; this.vy *= -0.9; hitWall=true; }
+            const impactSpeed = speed;
+            if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
+            if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
+            if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -RAIL_RESTITUTION; hitWall=true; }
+            if (this.y > HEIGHT - TABLE_MARGIN - this.radius) { this.y = HEIGHT - TABLE_MARGIN - this.radius; this.vy *= -RAIL_RESTITUTION; hitWall=true; }
             
-            if(hitWall && this.isCue) { 
-                if(Math.abs(this.vx)>0.5) this.vy += currentSpin.x * 0.8; 
-                currentSpin.x *= 0.5;
+            if(hitWall) {
+                if(this.isCue) {
+                    if(Math.abs(this.vx)>0.5) this.vy += currentSpin.x * 0.8; 
+                    currentSpin.x *= 0.5;
+                }
+                if (impactSpeed > 0.6) {
+                    playCushionThud(Math.min(impactSpeed, 12));
+                    this.squash = Math.min(0.35, impactSpeed * 0.03); // squash/stretch visual no impacto
+                    spawnRailSpark(this.x, this.y, getTheme().primary);
+                    if (impactSpeed > 6) triggerScreenShake(impactSpeed * 0.5);
+                }
             }
 
             getPockets().forEach(p => {
@@ -1167,34 +1430,61 @@
                     this.falling = true; 
                     this.active = false; 
                     this.pocketTarget = {x:p.x, y:p.y};
+                    this.pocketAngle = Math.atan2(dy, dx);
                     this.sunkTime = Date.now(); // Marca o tempo de queda
                     gameState.pocketedThisTurn.push(this);
+                    playPocketSound();
+                    triggerScreenShake(6);
                 }
             });
 
+            // Rastro de movimento (motion trail) para bolas rápidas - efeito "viciante" de velocidade
+            if (speed > 2.2) {
+                let arr = trailPositions.get(this.number);
+                if (!arr) { arr = []; trailPositions.set(this.number, arr); }
+                arr.push({x: this.x, y: this.y, life: 1});
+                if (arr.length > 10) arr.shift();
+            }
+
             this.updateMeshPosition();
-            this.updateRotation();
+            this.updateRotation(dtScale);
+            this.updateSquash();
+        }
+
+        updateSquash() {
+            // Suaviza o efeito de "achatamento" (squash) ao bater na tabela/bola, dando peso físico à animação
+            if (this.squash && this.squash > 0.001) {
+                const s = this.squash;
+                const speed = Math.hypot(this.vx, this.vy);
+                const stretchAxis = speed > 0.05 ? Math.atan2(this.vy, this.vx) : 0;
+                this.mesh.scale.set(1 - s*0.5, 1 - s*0.5, 1 + s);
+                this.squash *= 0.75;
+                if (this.squash < 0.01) { this.squash = 0; this.mesh.scale.set(1,1,1); }
+            }
         }
 
         fallAnimation() {
-            // Animação de queda simplificada
-            this.x += (this.pocketTarget.x - this.x) * 0.1;
-            this.y += (this.pocketTarget.y - this.y) * 0.1;
+            // Animação de queda com "capricho": puxão em espiral para dentro da caçapa + giro acelerado + wobble
+            const pullSpeed = 0.16;
+            this.x += (this.pocketTarget.x - this.x) * pullSpeed;
+            this.y += (this.pocketTarget.y - this.y) * pullSpeed;
             
-            this.mesh.position.z -= 1.2; 
-            this.mesh.rotation.y += 0.3; 
+            this.mesh.position.z -= 1.6 + Math.abs(this.mesh.position.z) * 0.04; // acelera ao cair (gravidade)
+            this.mesh.rotation.y += 0.35; 
+            this.mesh.rotation.x += 0.18;
 
-            const scale = Math.max(0, 1 + this.mesh.position.z / 40); 
+            const scale = Math.max(0, 1 + this.mesh.position.z / 38); 
             this.mesh.scale.set(scale, scale, scale);
 
             this.updateMeshPosition();
             
-            if (this.mesh.position.z < -40) {
+            if (this.mesh.position.z < -38) {
                 this.falling = false; 
                 this.mesh.visible = false; 
                 this.mesh.scale.set(1,1,1);
                 this.mesh.position.z = 0; 
-                spawnExplosion(this.pocketTarget.x, this.pocketTarget.y, getTheme().primary);
+                spawnExplosion(this.pocketTarget.x, this.pocketTarget.y, getTheme().primary, this.isCue ? 0.7 : 1.4);
+                spawnShockwave(this.pocketTarget.x, this.pocketTarget.y, getTheme().primary);
                 
                 // Adiciona ao pop-over Sunk (após a queda)
                 sunkBall(this.number);
@@ -1206,12 +1496,23 @@
             this.mesh.position.y = -(this.y - HEIGHT / 2);
         }
 
-        updateRotation() {
+        updateRotation(dtScale = 1) {
             const v = Math.sqrt(this.vx**2 + this.vy**2);
+            // Rotação de rolagem real (eixo perpendicular ao movimento, no plano da mesa).
+            // CORRIGIDO: o ângulo agora usa a distância REAL percorrida neste sub-passo (v * dtScale / raio).
+            // Antes usava "v" cheio a cada sub-passo, girando ~6x mais rápido que o real.
             if (v > 0.01) {
                 const axis = new THREE.Vector3(-this.vy, this.vx, 0).normalize();
-                const q = new THREE.Quaternion().setFromAxisAngle(axis, v/this.radius);
+                const rollAngle = (v * dtScale) / this.radius;
+                const q = new THREE.Quaternion().setFromAxisAngle(axis, rollAngle);
                 this.mesh.quaternion.multiplyQuaternions(q, this.mesh.quaternion);
+            }
+            // NOVO: giro vertical de efeito (inglês) - rotação real e independente em torno do eixo Z.
+            // É o que faz a bola branca "girar no lugar" quando recebe efeito lateral, como numa mesa de verdade.
+            if (Math.abs(this.spinZ) > 0.0008) {
+                const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), this.spinZ * dtScale);
+                this.mesh.quaternion.multiplyQuaternions(qz, this.mesh.quaternion);
+                this.spinZ *= Math.pow(0.985, dtScale);
             }
         }
     }
@@ -1225,6 +1526,17 @@
             {x: WIDTH/2, y: HEIGHT-TABLE_MARGIN+5}, 
             {x: WIDTH-TABLE_MARGIN-2, y: HEIGHT-TABLE_MARGIN-2}
         ];
+    }
+
+    // NOVO: função única e confiável para saber quantas bolas faltam de um grupo (lisas/listradas).
+    // Usada tanto pela IA do bot (para escolher alvo) quanto pela checagem de vitória/derrota,
+    // assim as duas nunca "discordam" sobre se o grupo já foi finalizado.
+    function getGroupRemaining(type) {
+        if (!type) return Infinity; // mesa aberta: grupo nunca é considerado "terminado"
+        return balls.filter(b => b.active && !b.isCue && !b.isEight && (type==='solids' ? b.isSolid : b.isStripe)).length;
+    }
+    function isGroupCleared(type) {
+        return !!type && getGroupRemaining(type) === 0;
     }
 
     // CANVAS 2D CONTEXTS
@@ -1250,7 +1562,10 @@
         ballInHand: false, 
         playerSpin: {x:0, y:0}, 
         botSpin: {x:0, y:0},
-        firstHit: null     
+        firstHit: null,
+        groupRemainingAtShotStart: null,
+        consecutivePlayerBalls: 0,
+        playerUltReady: false
     };
 
     // IA STATE
@@ -1266,18 +1581,30 @@
         angerLevel: 0, 
         currentScanTarget: 0,
         scanTargets: [],
-        aimMode: 'direct' 
+        aimMode: 'direct',
+        planType: 'direct',
+        planComplexity: 1,
+        timeBudget: 30,
+        planToken: 0,
+        scanInterval: null,
+        aimTimeout: null,
+        chargeInterval: null,
+        failsafeTimeout: null,
+        ultReady: false,
+        focusMode: false // NOVO: MODO FOCUS — quando ativo, o bot desenha linhas de cálculo/triangulação na mesa
     };
 
     // TIMER DO JOGO
     let turnTimer = null;
     let timeLeft = 30;
+    let timerMax = 30;
     const MAX_TIME = 30;
     const TIMER_CIRCUMFERENCE = 179.07; // 2 * PI * R (R=28.5)
 
-    function startTimer() {
+    function startTimer(duration) {
         clearInterval(turnTimer);
-        timeLeft = MAX_TIME;
+        timerMax = Math.max(1, duration || (gameState.turn === 2 ? botState.timeBudget : MAX_TIME));
+        timeLeft = timerMax;
         updateTimerVisuals();
         
         lastActivityTime = Date.now(); // Reseta a atividade no início do turno
@@ -1287,8 +1614,6 @@
         if(gameState.gameOver) return;
         
         turnTimer = setInterval(() => {
-            if (gameState.turn === 2 && botState.phase !== 'idle' && botState.phase !== 'scanning') return; 
-            
             timeLeft -= 0.1;
             updateTimerVisuals();
             
@@ -1328,9 +1653,28 @@
 
 
     function stopTimer() { clearInterval(turnTimer); }
+    function cancelBotPlan() {
+        botState.planToken++;
+        if (botState.scanInterval) clearInterval(botState.scanInterval);
+        if (botState.aimTimeout) clearTimeout(botState.aimTimeout);
+        if (botState.chargeInterval) clearInterval(botState.chargeInterval);
+        if (botState.failsafeTimeout) clearTimeout(botState.failsafeTimeout);
+        botState.scanInterval = null;
+        botState.aimTimeout = null;
+        botState.chargeInterval = null;
+        botState.failsafeTimeout = null;
+        botState.phase = 'idle';
+        botState.scanTargets = [];
+        botState.scanLines = [];
+        botState.aimPower = 0;
+        botState.focusMode = false;
+        const spinDotCancel = document.getElementById('bot-spin-dot');
+        spinDotCancel.style.opacity = 0;
+        spinDotCancel.classList.remove('choosing', 'locked');
+    }
     function updateTimerVisuals() {
         const p1 = document.getElementById('p1-timer'), p2 = document.getElementById('p2-timer');
-        const offset = TIMER_CIRCUMFERENCE - (TIMER_CIRCUMFERENCE * (timeLeft / MAX_TIME));
+        const offset = TIMER_CIRCUMFERENCE - (TIMER_CIRCUMFERENCE * Math.max(0, timeLeft / timerMax));
         if(gameState.turn === 1) {
             p1.style.strokeDashoffset = offset; p2.style.strokeDashoffset = TIMER_CIRCUMFERENCE;
             p1.style.stroke = timeLeft < 5 ? '#ff3333' : getTheme().primary;
@@ -1344,12 +1688,16 @@
     
     // MODIFICAÇÃO: Atualiza a função handleTimeOut para aceitar inatividade
     function handleTimeOut(isInactive) {
+        const timedOutPlayer = gameState.turn;
+        if (timedOutPlayer === 2) cancelBotPlan();
         showToast(isInactive ? "INATIVIDADE: TROCA DE TURNO!" : "TEMPO ESGOTADO!", true);
-        tauntBotAutomatic(1, '💤'); 
+        addChatMessage('bot', timedOutPlayer === 2 ? 'Janela tática encerrada. Recalculando o combate.' : 'O relógio venceu esta rodada.');
         gameState.ballInHand = true;
         gameState.turn = gameState.turn === 1 ? 2 : 1;
         updateHUD();
-        if(gameState.turn === 2) setTimeout(initBotTurn, 1000); else startTimer();
+        if(gameState.turn === 2) setTimeout(() => {
+            if (!gameState.gameOver && gameState.turn === 2) initBotTurn();
+        }, 650); else startTimer();
         showInactivityWarning(false);
     }
 
@@ -1438,6 +1786,7 @@
                     if (!isOwnType && !aimData.target.isEight) color = '#ff3333'; 
                 }
                 drawAimLines(cueBall, aimData, color, false);
+                drawUltPrediction(aimData);
 
                 // BARRA DE FORÇA CIRCULAR
                 const powerPct = Math.min(gameState.power / MAX_POWER, 1);
@@ -1458,7 +1807,7 @@
                 ctxFX.stroke();
                 ctxFX.shadowBlur = 0;
 
-                drawCueStick(cueBall.x, cueBall.y, gameState.angle, -20 - (gameState.power * 0.5));
+                drawCueStick(cueBall.x, cueBall.y, gameState.angle, -20 - (gameState.power * 0.5), gameState.playerSpin);
                 
             } else {
                  // Desenha o indicador de turno quando não está em movimento/arrastando
@@ -1530,13 +1879,32 @@
                    drawAimLines(cueBall, aimData, '#ff3333', true);
                 }
 
+                // NOVO: MODO FOCUS — só aparece depois que a mira/efeito já estão prontos (fases
+                // "aiming"/"shooting"), nunca durante a varredura de alvos.
+                if (botState.focusMode && (botState.phase === 'aiming' || botState.phase === 'shooting')) {
+                    drawBotFocusOverlay(aimData);
+                }
+
                 const powerPct = Math.min(botState.aimPower / MAX_POWER, 1);
                 ctxFX.beginPath();
                 ctxFX.arc(cueBall.x, cueBall.y, BALL_RADIUS + 12, -Math.PI/2, -Math.PI/2 + (Math.PI*2*powerPct));
                 ctxFX.lineWidth = 4; ctxFX.strokeStyle = '#ff3333'; ctxFX.stroke();
 
-                drawCueStick(cueBall.x, cueBall.y, botState.aimAngle, -20 - (botState.aimPower * 0.5));
+                drawCueStick(cueBall.x, cueBall.y, botState.aimAngle, -20 - (botState.aimPower * 0.5), gameState.botSpin);
             }
+        }
+
+        // --- NOVO: ANIMAÇÃO DE TACADA (thrust do taco através da bola, com follow-through) ---
+        if (gameState.strikeAnim) {
+            const sa = gameState.strikeAnim;
+            // t vai de 1 -> 0 rapidamente; usamos para "atravessar" o taco pela bola e depois recuar/sumir
+            const punchProgress = 1 - sa.t; // 0 -> 1
+            const thrustOffset = -6 + punchProgress * 34; // começa perto e atravessa para frente da bola
+            ctxFX.globalAlpha = Math.max(0, sa.t);
+            drawCueStick(cueBall.x, cueBall.y, sa.angle, thrustOffset, gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin);
+            ctxFX.globalAlpha = 1;
+            sa.t -= 0.14;
+            if (sa.t <= 0) gameState.strikeAnim = null;
         }
 
         // --- VISUALIZAÇÃO BALL IN HAND ---
@@ -1563,15 +1931,44 @@
             ctxFX.restore();
         }
 
-        // Partículas
+        // Rastro de movimento (motion trail) das bolas rápidas
+        trailPositions.forEach((arr, num) => {
+            for (let i = 0; i < arr.length; i++) {
+                const t = arr[i];
+                t.life -= 0.12;
+                if (t.life <= 0) continue;
+                ctxFX.globalAlpha = t.life * 0.25;
+                ctxFX.fillStyle = getTheme().primary;
+                ctxFX.beginPath(); ctxFX.arc(t.x, t.y, BALL_RADIUS * (0.5 + t.life*0.3), 0, Math.PI*2); ctxFX.fill();
+            }
+            ctxFX.globalAlpha = 1;
+            while (arr.length && arr[0].life <= 0) arr.shift();
+        });
+
+        // Partículas (faíscas, explosões e ondas de choque)
         for(let i=particles.length-1; i>=0; i--) {
             let p = particles[i]; 
-            p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+            if (p.ring) {
+                p.life -= 0.045;
+                if (p.life <= 0) { particles.splice(i,1); continue; }
+                const r = (1 - p.life) * 34;
+                ctxFX.globalAlpha = p.life * 0.8;
+                ctxFX.strokeStyle = p.color;
+                ctxFX.lineWidth = 2.5;
+                ctxFX.shadowColor = p.color; ctxFX.shadowBlur = 12;
+                ctxFX.beginPath(); ctxFX.arc(p.x, p.y, r, 0, Math.PI*2); ctxFX.stroke();
+                ctxFX.shadowBlur = 0; ctxFX.globalAlpha = 1;
+                continue;
+            }
+            p.x += p.vx; p.y += p.vy; 
+            p.vx *= 0.94; p.vy *= 0.94;
+            p.life -= 0.045;
             if(p.life<=0) { particles.splice(i,1); continue; }
             ctxFX.fillStyle = p.color; 
             ctxFX.globalAlpha = p.life;
+            ctxFX.shadowColor = p.color; ctxFX.shadowBlur = 6;
             ctxFX.beginPath(); ctxFX.arc(p.x, p.y, p.size, 0, Math.PI*2); ctxFX.fill(); 
-            ctxFX.globalAlpha = 1;
+            ctxFX.shadowBlur = 0; ctxFX.globalAlpha = 1;
         }
     }
 
@@ -1587,11 +1984,21 @@
     }
 
 
-    function drawCueStick(x, y, angle, offset) {
+    // NOVO: o taco agora recebe o "efeito" (spin) atual e desenha uma leve inclinação + deslocamento
+    // lateral da ponta quando há efeito aplicado — visualmente mostra uma tacada "fora de centro"
+    // (mira meio torta), deixando claro pra quem está assistindo que existe efeito na jogada.
+    function drawCueStick(x, y, angle, offset, spin) {
         ctxFX.save();
         ctxFX.translate(x, y);
         ctxFX.rotate(angle);
-        ctxFX.translate(offset, 0);
+
+        let lateralOffset = 0, tiltAngle = 0;
+        if (spin && (Math.abs(spin.x) > 0.08 || Math.abs(spin.y) > 0.08)) {
+            lateralOffset = -(spin.x || 0) * 4.2;                 // desloca a ponta lateralmente (efeito esquerda/direita)
+            tiltAngle = (spin.x || 0) * 0.085 + (spin.y || 0) * 0.03; // leve inclinação visual, o taco fica "torto"
+        }
+        ctxFX.rotate(tiltAngle);
+        ctxFX.translate(offset, lateralOffset);
 
         const stickGradient = ctxFX.createLinearGradient(-200, 0, 0, 0);
         stickGradient.addColorStop(0, '#333');
@@ -1607,8 +2014,104 @@
         ctxFX.lineTo(-200, 4);
         ctxFX.fill();
 
+        // Ponta do taco em destaque (couro), fica visualmente "presa" fora do centro quando há efeito
+        if (spin && (Math.abs(spin.x) > 0.08 || Math.abs(spin.y) > 0.08)) {
+            ctxFX.beginPath();
+            ctxFX.arc(0, 0, 2.6, 0, Math.PI * 2);
+            ctxFX.fillStyle = '#29c9ff';
+            ctxFX.shadowColor = '#29c9ff'; ctxFX.shadowBlur = 8;
+            ctxFX.fill();
+            ctxFX.shadowBlur = 0;
+        }
+
         ctxFX.restore();
     }
+
+    // ================== NOVO: MODO FOCUS DO BOT ==================
+    // Com 60% de chance, assim que a mira e o efeito do bot ficam prontos, ele entra num modo de
+    // "cálculo visual": linhas finas de triangulação até as outras bolas (simulando que está
+    // somando/considerando os ângulos da mesa), uma régua de distância sobre a linha de mira,
+    // um HUD com ângulo/distância calculados, e um "scanner" nos cantos da bola alvo — tudo
+    // mostrando visualmente onde a bola dele vai bater.
+    function drawBotFocusOverlay(aimData) {
+        const focusColor = '#00f3ff';
+        ctxFX.save();
+
+        // Linhas finas de "cálculo" ligando a bola branca às demais bolas da mesa
+        ctxFX.strokeStyle = 'rgba(0,243,255,0.16)';
+        ctxFX.lineWidth = 1;
+        balls.forEach(b => {
+            if (!b.active || b === cueBall || b.falling) return;
+            ctxFX.beginPath();
+            ctxFX.moveTo(cueBall.x, cueBall.y);
+            ctxFX.lineTo(b.x, b.y);
+            ctxFX.stroke();
+        });
+
+        // Régua de distância sobre a linha de mira (marcações perpendiculares)
+        const dx = aimData.endX - cueBall.x, dy = aimData.endY - cueBall.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 1) {
+            const ux = dx / dist, uy = dy / dist;
+            const px = -uy, py = ux;
+            const step = 16;
+            const tickCount = Math.floor(dist / step);
+            ctxFX.strokeStyle = focusColor;
+            ctxFX.lineWidth = 1;
+            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 4;
+            for (let i = 1; i <= tickCount; i++) {
+                const tx = cueBall.x + ux * i * step, ty = cueBall.y + uy * i * step;
+                ctxFX.beginPath();
+                ctxFX.moveTo(tx - px * 4, ty - py * 4);
+                ctxFX.lineTo(tx + px * 4, ty + py * 4);
+                ctxFX.stroke();
+            }
+            ctxFX.shadowBlur = 0;
+
+            // HUD numérico: ângulo calculado + distância, "somando" a jogada
+            const angleDeg = Math.round(((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360);
+            const midX = cueBall.x + ux * dist * 0.5, midY = cueBall.y + uy * dist * 0.5;
+            ctxFX.font = 'bold 7.5px Orbitron';
+            ctxFX.textAlign = 'center';
+            ctxFX.fillStyle = focusColor;
+            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 6;
+            ctxFX.fillText(`∠${angleDeg}° · ${Math.round(dist)}u · FOCUS`, midX, midY - 9 * py - 4);
+            ctxFX.shadowBlur = 0;
+        }
+
+        // Scanner nos cantos da bola alvo (estilo mira de câmera/HUD militar)
+        if (aimData.target) {
+            const cx = aimData.target.x, cy = aimData.target.y;
+            const s = BALL_RADIUS * 2.6, arm = s * 0.55;
+            ctxFX.strokeStyle = focusColor;
+            ctxFX.lineWidth = 1.4;
+            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 5;
+            [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sy]) => {
+                ctxFX.beginPath();
+                ctxFX.moveTo(cx + sx*s, cy + sy*(s - arm));
+                ctxFX.lineTo(cx + sx*s, cy + sy*s);
+                ctxFX.lineTo(cx + sx*(s - arm), cy + sy*s);
+                ctxFX.stroke();
+            });
+            ctxFX.shadowBlur = 0;
+
+            // Linha até a caçapa escolhida, se houver
+            const pocket = botState.finalChoice && botState.finalChoice.pocket;
+            if (pocket) {
+                ctxFX.setLineDash([2, 4]);
+                ctxFX.strokeStyle = 'rgba(0,243,255,0.55)';
+                ctxFX.lineWidth = 1.2;
+                ctxFX.beginPath();
+                ctxFX.moveTo(cx, cy);
+                ctxFX.lineTo(pocket.x, pocket.y);
+                ctxFX.stroke();
+                ctxFX.setLineDash([]);
+            }
+        }
+
+        ctxFX.restore();
+    }
+    // ================== FIM MODO FOCUS ==================
 
     function drawAimLines(startBall, aimData, color, isBot) {
         
@@ -1638,6 +2141,48 @@
             ctxFX.strokeStyle = 'rgba(255,255,255,0.5)';
             ctxFX.stroke();
         }
+    }
+
+    // A ULT mostra apenas uma leitura aproximada da saída provável da bola.
+    // Ela ajuda sem transformar a tacada em assistência perfeita.
+    function drawUltPrediction(aimData) {
+        if (!gameState.playerUltReady || !aimData.target) return;
+        const target = aimData.target;
+        let pocket = getPockets()[0];
+        let bestDistance = Infinity;
+        getPockets().forEach(p => {
+            const distance = Math.hypot(p.x - target.x, p.y - target.y);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                pocket = p;
+            }
+        });
+        const dx = (pocket.x - target.x) / Math.max(1, bestDistance);
+        const dy = (pocket.y - target.y) / Math.max(1, bestDistance);
+        const length = Math.min(92, Math.max(38, gameState.power * 0.65));
+        const endX = target.x + dx * length;
+        const endY = target.y + dy * length;
+
+        ctxFX.save();
+        ctxFX.globalAlpha = 0.72;
+        ctxFX.strokeStyle = '#ffd34d';
+        ctxFX.shadowColor = '#ffd34d';
+        ctxFX.shadowBlur = 12;
+        ctxFX.lineWidth = 2;
+        ctxFX.setLineDash([3, 5]);
+        ctxFX.beginPath();
+        ctxFX.moveTo(target.x, target.y);
+        ctxFX.lineTo(endX, endY);
+        ctxFX.stroke();
+        ctxFX.setLineDash([]);
+        ctxFX.beginPath();
+        ctxFX.arc(endX, endY, BALL_RADIUS * 0.8, 0, Math.PI * 2);
+        ctxFX.stroke();
+        ctxFX.fillStyle = '#ffd34d';
+        ctxFX.font = 'bold 8px Orbitron';
+        ctxFX.textAlign = 'center';
+        ctxFX.fillText('ULT · PREVISÃO LEVE', endX, endY - 14);
+        ctxFX.restore();
     }
 
     function calculateAimTrajectory(source, angle) {
@@ -1841,12 +2386,31 @@
         stopTimer();
         gameState.pocketedThisTurn = []; 
         gameState.firstHit = null;
+        gameState.groupRemainingAtShotStart = gameState.turn === 1
+            ? getGroupRemaining(gameState.p1Type)
+            : getGroupRemaining(gameState.p2Type);
+        gameState.ballInHand = false;
+        if (gameState.turn === 1 && gameState.playerUltReady) {
+            gameState.playerUltReady = false;
+            showToast("ULT ATIVA · TRAJETÓRIA PREVISTA", false);
+        }
         cueBall.vx = Math.cos(a) * p; 
         cueBall.vy = Math.sin(a) * p;
         gameState.isMoving = true; 
         gameState.power = 0;
-        botState.phase = 'idle'; 
+        cancelBotPlan();
         document.getElementById('bot-spin-dot').style.opacity = 0;
+
+        // NOVO: o efeito lateral (inglês) vira giro vertical REAL e visível na bola branca
+        const shotSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
+        cueBall.spinZ = shotSpin.x * 0.4 * (p / MAX_POWER + 0.4);
+
+        // NOVO: taco "atravessa" a bola no instante da tacada (thrust) + puff de giz + som + squash na branca
+        gameState.strikeAnim = { angle: a, t: 1 };
+        spawnExplosion(cueBall.x - Math.cos(a)*BALL_RADIUS, cueBall.y - Math.sin(a)*BALL_RADIUS, '#e8e8e8', 0.5);
+        cueBall.squash = Math.min(0.32, p * 0.045);
+        playStrikeSound(p);
+        if (p > MAX_POWER * 0.65) triggerScreenShake(p * 1.6);
     }
 
     function checkCollisions() {
@@ -1858,36 +2422,64 @@
                 if (!b1.active || !b2.active || b1.falling || b2.falling) continue;
                 
                 let dx = b2.x - b1.x, dy = b2.y - b1.y, dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < BALL_RADIUS*2) {
+                if (dist < BALL_RADIUS*2 && dist > 0) {
                     if ((b1.isCue && !gameState.firstHit) || (b2.isCue && !gameState.firstHit)) {
                         gameState.firstHit = b1.isCue ? b2 : b1;
                     }
                     let angle = Math.atan2(dy, dx);
-                    let overlap = (BALL_RADIUS*2 - dist) / 2;
+                    let overlap = (BALL_RADIUS*2 - dist) / 2 + 0.05; // pequena folga extra evita "grudar" sub-passo a sub-passo
                     
                     b1.x -= Math.cos(angle)*overlap; b1.y -= Math.sin(angle)*overlap;
                     b2.x += Math.cos(angle)*overlap; b2.y += Math.sin(angle)*overlap;
                     
                     let v1 = rotate({x:b1.vx, y:b1.vy}, -angle);
                     let v2 = rotate({x:b2.vx, y:b2.vy}, -angle);
-                    let f1 = {x:v2.x, y:v1.y}; 
-                    let f2 = {x:v1.x, y:v2.y};
+
+                    // Velocidade de impacto (na direção normal) - usada para som, partículas e efeito de arrasto
+                    const impactSpeed = Math.abs(v1.x - v2.x);
+
+                    // Troca de componente normal (massas iguais) com restituição quase perfeita = sinuca "acirrada" de verdade
+                    let f1 = {x: v2.x * BALL_RESTITUTION, y: v1.y}; 
+                    let f2 = {x: v1.x * BALL_RESTITUTION, y: v2.y};
+
+                    // EFEITO DE ARRASTO (throw effect): o atrito de contato entre as bolas "puxa" um pouco a
+                    // trajetória lateral, gerando aquela curva sutil e realista após o impacto
+                    const relTangential = v1.y - v2.y;
+                    f2.y += relTangential * THROW_EFFECT;
+                    f1.y -= relTangential * THROW_EFFECT * 0.35;
                     
                     let vf1 = rotate(f1, angle);
                     let vf2 = rotate(f2, angle);
                     
-                    b1.vx = vf1.x * 0.97; b1.vy = vf1.y * 0.97; 
-                    b2.vx = vf2.x * 0.97; b2.vy = vf2.y * 0.97;
+                    b1.vx = vf1.x; b1.vy = vf1.y; 
+                    b2.vx = vf2.x; b2.vy = vf2.y;
 
                     if(b1.isCue) { 
                         b2.vx += currentSpin.x * 0.5; 
                         b2.vy += currentSpin.y * 0.5; 
+                        b2.spinZ = (b2.spinZ||0) + b1.spinZ * 0.3; // transfere um pouco do giro visível no impacto
+                        b1.spinZ *= 0.5;
                     } else if (b2.isCue) {
                          b1.vx += currentSpin.x * 0.5; 
                          b1.vy += currentSpin.y * 0.5;
+                         b1.spinZ = (b1.spinZ||0) + b2.spinZ * 0.3;
+                         b2.spinZ *= 0.5;
                     }
-                    
-                    if(Math.hypot(b1.vx, b1.vy) > 15) spawnExplosion((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#fff');
+
+                    // Squash/stretch de impacto para dar peso físico à colisão
+                    const squashAmt = Math.min(0.3, impactSpeed * 0.025);
+                    b1.squash = Math.max(b1.squash||0, squashAmt);
+                    b2.squash = Math.max(b2.squash||0, squashAmt);
+
+                    if (impactSpeed > 0.4) {
+                        playBallClick(impactSpeed);
+                    }
+                    if (impactSpeed > 3) {
+                        spawnExplosion((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#fff', Math.min(2.2, impactSpeed/8));
+                    }
+                    if (impactSpeed > 9) {
+                        triggerScreenShake(impactSpeed * 0.6);
+                    }
                 }
             }
         }
@@ -1927,6 +2519,7 @@
 
     function handleTurnEnd() {
         let foul = false, turnContinues = false, msg = "";
+        const shooter = gameState.turn;
         
         const cueFell = gameState.pocketedThisTurn.find(b => b.isCue);
         if (cueFell) {
@@ -1944,9 +2537,9 @@
             let myType = gameState.turn===1 ? gameState.p1Type : gameState.p2Type;
             if (!myType) { triggerGameOver(gameState.turn === 1 ? 2 : 1); return; }
 
-            let remaining = balls.filter(b => b.active && !b.isCue && !b.isEight && (myType==='solids'?b.isSolid:b.isStripe)).length;
-            
-            if (remaining === 0) { 
+            // A bola preta é legal somente se o grupo já estava limpo ANTES da tacada.
+            // Assim, encaçapar a 8 "junto" com a última bola do grupo continua sendo derrota.
+            if (gameState.groupRemainingAtShotStart === 0) { 
                 triggerGameOver(gameState.turn);
                 return; 
             } 
@@ -1975,6 +2568,12 @@
 
         if (!foul && gameState.pocketedThisTurn.length > 0) {
             let sunkOwn = false, sunkOpp = false, sunkFirst = null;
+            const assignedType = gameState.p1Type
+                ? (gameState.turn === 1 ? gameState.p1Type : gameState.p2Type)
+                : (() => {
+                    const firstObject = gameState.pocketedThisTurn.find(b => !b.isCue && !b.isEight);
+                    return firstObject ? (firstObject.isSolid ? 'solids' : 'stripes') : null;
+                })();
             
             gameState.pocketedThisTurn.forEach(b => {
                 if (!b.isCue && !b.isEight) {
@@ -1984,7 +2583,7 @@
                         if (!sunkFirst) sunkFirst = type; 
                     }
                     
-                    if ((gameState.turn===1 ? gameState.p1Type : gameState.p2Type) === type) sunkOwn = true; else sunkOpp = true;
+                    if (assignedType === type) sunkOwn = true; else sunkOpp = true;
                 }
             });
             
@@ -1997,11 +2596,31 @@
 
             if (sunkOwn) {
                  turnContinues = true;
+                 if (shooter === 1) {
+                     const ownCount = gameState.pocketedThisTurn.filter(b => b.isSolid === (gameState.p1Type === 'solids') && !b.isCue && !b.isEight).length;
+                     gameState.consecutivePlayerBalls += ownCount;
+                     if (gameState.consecutivePlayerBalls >= 3) {
+                         gameState.playerUltReady = true;
+                         addChatMessage('player', 'ULT carregada: três bolas seguidas. A próxima trajetória fica previsível.');
+                     }
+                 }
                  if(gameState.turn === 1) addChatMessage('player', [ 'Na mosca! 🎯', 'Toma essa! 👊', 'Acertei em cheio!', 'Segura essa, robô!', 'Sou lenda. 😎', 'Bem no alvo.', 'Respeita! 🙅‍♂️', 'Fácil demais.', 'Bingooo!', 'Mais uma pra conta. ✅', 'Aprende aí.', 'Não erro uma! 🔫', 'Chora, bot!', 'Sou sniper.', 'Vapo! 🔥', 'Essa foi linda.', 'Mestre do jogo. 🏆', 'Já era pra você.', 'Receba! 🧤', 'Ninguém me segura! 🚀' ][Math.floor(Math.random() * 20)]);
                  else addChatMessage('bot', [ 'Obrigado. 👍', 'Valeu!', 'Tks 👊', 'Muito grato.', 'Show de bola!', 'Perfeito.', 'Anotado! 📝', 'Agradeço a atenção.', 'É nós.', 'Tudo certo por aqui.', 'Maravilha.', 'Ok, recebido.', 'Certinho.', 'Brigadão!', 'Combinado.', 'Fechou.', 'Beleza.', 'Gratidão 🙏', 'Confirmado.', 'Isso aí.', 'Ao seu dispor.', 'Entendido.', 'Positivo.', 'Suave.', 'Top!' ][Math.floor(Math.random() * 25)]);
             }
-            if (sunkOpp) { msg = "BOLA ADVERSÁRIA"; foul = true; addChatMessage('bot', [ 'Amador.', 'Fraco.', 'Iniciante.', 'Patético.', 'Tsc tsc...', 'Sem nível.', 'É só isso?', 'Piada.', 'Muito fácil.', 'Noob.', 'Que tédio. 🥱', 'Lento.', 'Básico.', 'Esperava mais.', 'Ruim.', 'Vergonhoso.', 'Aprenda.', 'Inútil.', 'Desista.', 'Sabe de nada.' ][Math.floor(Math.random() * 20)]); }
+             if (sunkOpp) {
+                 // A bola adversária continua pertencendo ao adversário. Ela não troca de grupo:
+                 // o tiro é falta e a vez passa, mesmo que uma bola própria tenha caído junto.
+                 msg = "BOLA ADVERSÁRIA: PONTO DELE";
+                 foul = true;
+                 turnContinues = false;
+                 if (shooter === 1) gameState.consecutivePlayerBalls = 0;
+                 addChatMessage('bot', 'Essa bola é minha. Faltou respeitar a tabela.');
+             }
             if (sunkOwn && sunkOpp) { msg = "Bolas misturadas"; foul = true; } 
+        }
+
+        if (!turnContinues && shooter === 1 && !gameState.playerUltReady) {
+            gameState.consecutivePlayerBalls = 0;
         }
 
         gameState.pocketedThisTurn = [];
@@ -2017,8 +2636,7 @@
 
         updateHUD();
         if (!gameState.gameOver) {
-            startTimer();
-            if (gameState.turn === 2) initBotTurn();
+            if (gameState.turn === 2) initBotTurn(); else startTimer();
         }
     }
 
@@ -2045,14 +2663,14 @@
     }
 
 
-    // Ajusta a precisão com base na raiva (0 = erro de 0.05 rad; 100 = erro de 0.001 rad)
+    // Ajusta a precisão com base na raiva (0 = erro de 0.05 rad; 100 = erro mínimo de ~0.013 rad)
+    // BALANCEAMENTO: o bot nunca mais mira com erro literalmente zero. Um piso de erro é mantido
+    // mesmo no auge da raiva, pra evitar que ele jogue "perfeito demais" (apelão) o tempo todo.
     function getBotErrorFactor() {
         const MAX_ERROR = 0.05; 
-        const MIN_ERROR = 0.001; 
+        const MIN_ERROR = 0.013; 
         
         let error = (100 - botState.angerLevel) * (MAX_ERROR - MIN_ERROR) / 100 + MIN_ERROR;
-        
-        if (botState.angerLevel >= 100) error = 0.00; 
         
         return error;
     }
@@ -2127,9 +2745,12 @@
 
     function initBotTurn() {
         if (gameState.gameOver) return;
+
+        cancelBotPlan();
+        if (gameState.turn !== 2) return;
         
         botState.angerLevel = Math.max(10, botState.angerLevel - 10);
-        document.getElementById('p2-section').classList.toggle('bot-angry', botState.angerLevel > 40);
+        updateBotEmotionUI();
         
         gameState.botSpin = {x:0, y:0};
 
@@ -2152,16 +2773,31 @@
 
         let targets = balls.filter(b => b.active && !b.isCue && !b.isEight);
         if (gameState.p2Type) targets = targets.filter(b => gameState.p2Type==='solids'?b.isSolid:b.isStripe);
-        if (targets.length===0) targets = balls.filter(b => b.active && b.isEight);
+        // CORREÇÃO: só mira na bola 8 se o grupo do bot estiver REALMENTE zerado (mesma checagem usada para vitória/derrota)
+        if (targets.length===0 && isGroupCleared(gameState.p2Type)) targets = balls.filter(b => b.active && b.isEight);
         
-        if (targets.length === 0) return;
+        if (targets.length === 0) {
+            // Failsafe: uma posição impossível nunca pode deixar o bot preso no turno.
+            gameState.turn = 1;
+            gameState.ballInHand = true;
+            updateHUD();
+            startTimer();
+            return;
+        }
 
         botState.phase = 'scanning';
+        const planToken = ++botState.planToken;
         botState.scanLines = [];
         botState.scanTargets = [];
+        botState.focusMode = false;
 
         // 1. Busca Tiro Direto
-        let bestDirectShot = null, minD = Infinity;
+        // BALANCEAMENTO ("menos apelão"): antes o bot sempre escolhia, sem exceção, a jogada
+        // matematicamente mais fácil da mesa inteira (menor distância). Isso fazia ele parecer
+        // "perfeito demais" e previsível. Agora ele monta uma lista dos melhores candidatos e
+        // sorteia entre eles - quanto mais calmo (baixa raiva), maior a chance de não escolher
+        // exatamente o ideal, como um jogador real pensaria em algumas opções antes de decidir.
+        let directCandidates = [];
         targets.forEach(t => {
             getPockets().forEach(p => {
                 let a = Math.atan2(p.y - t.y, p.x - t.x);
@@ -2179,25 +2815,35 @@
                 while(cutAngle < -Math.PI) cutAngle += Math.PI*2;
                 cutAngle = Math.abs(cutAngle);
 
-                if (d < minD && cutAngle < Math.PI/2.2) { 
-                    minD = d;
-                    
-                    const errorFactor = getBotErrorFactor();
-                    let error = (Math.random()-0.5) * errorFactor;
-                    let powerBoost = botState.angerLevel / 100 * 10;
-                    
-                    bestDirectShot = { 
-                        ball: t,
-                        angle: aimAngle + error, 
-                        // MODIFICAÇÃO: Ajustar power com base no novo MAX_POWER
-                        power: Math.min(d*0.35 + 10 + powerBoost, MAX_POWER - 5), // Reduzido o fator e o offset
-                        spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
-                        spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.8 : (Math.random()-0.5) * 0.8,
-                        mode: 'direct'
-                    };
+                if (cutAngle < Math.PI/2.2) {
+                    // Pontuação de dificuldade: favorece perto + ângulo de corte pequeno
+                    directCandidates.push({ ball: t, pocket: p, aimAngle, d, cutAngle, score: d + cutAngle * 55 });
                 }
             });
         });
+        directCandidates.sort((c1, c2) => c1.score - c2.score);
+
+        let bestDirectShot = null;
+        if (directCandidates.length > 0) {
+            // Quanto mais furioso, mais o bot "joga certo"; calmo, ele considera algumas opções a mais.
+            const poolSize = botState.angerLevel >= 75 ? 1 : (botState.angerLevel >= 40 ? 2 : 3);
+            const pool = directCandidates.slice(0, Math.min(poolSize, directCandidates.length));
+            const chosen = pool[Math.floor(Math.random() * pool.length)];
+
+            const errorFactor = getBotErrorFactor();
+            let error = (Math.random()-0.5) * errorFactor;
+            let powerBoost = botState.angerLevel / 100 * 6; // Reduzido: menos "força bruta" só por estar irritado
+
+            bestDirectShot = {
+                ball: chosen.ball,
+                pocket: chosen.pocket,
+                angle: chosen.aimAngle + error,
+                power: Math.min(chosen.d*0.35 + 10 + powerBoost, MAX_POWER - 5),
+                spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
+                spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
+                mode: 'direct'
+            };
+        }
         
         // 2. Busca Tiro de Tabela (se não houver tiro direto fácil)
         let bestBankShot = null;
@@ -2243,6 +2889,21 @@
             };
         }
 
+        // A raiva melhora a leitura da mesa: com 75%+ o bot aceita planos mais
+        // difíceis e combina uma bola de tabela com spin agressivo.
+        const isMultiTable = botState.angerLevel >= 75 && !!bestBankShot;
+        botState.planType = isMultiTable ? '2 TABELAS' : (finalChoice.mode === 'bank' ? 'TABELA' : 'DIRETO');
+        botState.planComplexity = Math.min(4,
+            (finalChoice.mode === 'bank' ? 2 : 1) +
+            (isMultiTable ? 1 : 0) +
+            (botState.angerLevel >= 85 ? 1 : 0)
+        );
+        botState.timeBudget = Math.min(34, Math.max(14, 10 + botState.planComplexity * 4 + Math.round(botState.angerLevel / 35)));
+        updateBotEmotionUI();
+        addChatMessage('bot', isMultiTable
+            ? 'Raiva no limite. Plano multifuncional: vou usar duas leituras de tabela.'
+            : `Plano ${botState.planType.toLowerCase()} calculado. Janela: ${botState.timeBudget}s.`);
+
         // --- Configuração da Varredura Visual ---
         const anglesToScan = [];
         targets.forEach(t => anglesToScan.push(Math.atan2(t.y - cueBall.y, t.x - cueBall.x)));
@@ -2268,40 +2929,85 @@
 
 
         // Inicia a transição de varredura
-        let scanInterval = setInterval(() => {
+        const spinDotEl = document.getElementById('bot-spin-dot');
+        if (spinDotEl) spinDotEl.classList.add('choosing');
+        const scanDelay = Math.max(180, 420 - botState.angerLevel * 2.2);
+        botState.scanInterval = setInterval(() => {
+            if (planToken !== botState.planToken || gameState.turn !== 2 || gameState.gameOver) {
+                cancelBotPlan();
+                return;
+            }
+
+            // NOVO: enquanto "escolhe" o alvo, o bot também testa pontos de tacada (efeito) em tempo
+            // real — o pontinho de efeito fica saltando entre opções, mostrando visualmente a decisão
+            // sendo tomada, até travar no valor final assim que a mira é definida.
+            if (spinDotEl) {
+                const previewT = Date.now() * 0.007;
+                const previewSpin = { x: Math.sin(previewT) * 0.65, y: Math.cos(previewT * 1.4) * 0.55 };
+                gameState.botSpin.x = previewSpin.x;
+                gameState.botSpin.y = previewSpin.y;
+                spinDotEl.style.left = (previewSpin.x / 2 + 0.5) * 100 + '%';
+                spinDotEl.style.top = (previewSpin.y / 2 + 0.5) * 100 + '%';
+                spinDotEl.style.opacity = 0.6;
+            }
+
             if(botState.currentScanTarget < botState.scanTargets.length - 1) {
                 if (Math.abs(lerpAngle(botState.aimAngle, botState.scanTargets[botState.currentScanTarget].angle, 0.2) - botState.scanTargets[botState.currentScanTarget].angle) < 0.05) {
                     botState.currentScanTarget++; 
                 }
             } else {
-                clearInterval(scanInterval);
+                clearInterval(botState.scanInterval);
+                botState.scanInterval = null;
                 // Chegou ao alvo final, inicia a fase de mira
                 botState.phase = 'aiming';
                 
                 gameState.botSpin.x = finalChoice.spinX;
                 gameState.botSpin.y = finalChoice.spinY;
+
+                // NOVO: MODO FOCUS — com 60% de chance, assim que a mira/efeito ficam prontos, o bot
+                // entra em modo de "cálculo visual", desenhando linhas de triangulação/medição na
+                // mesa mostrando onde a bola dele vai bater.
+                botState.focusMode = Math.random() < 0.6;
                 
                 const d = document.getElementById('bot-spin-dot');
+                d.classList.remove('choosing');
+                d.classList.add('locked');
                 d.style.left = (gameState.botSpin.x/2+0.5)*100+'%'; 
                 d.style.top = (gameState.botSpin.y/2+0.5)*100+'%';
                 d.style.opacity = 1;
+                setTimeout(() => d.classList.remove('locked'), 400);
                 
                 // Inicia o carregamento do tiro
-                setTimeout(() => {
-                    if(!gameState.gameOver) {
+                botState.aimTimeout = setTimeout(() => {
+                    if(!gameState.gameOver && gameState.turn === 2 && planToken === botState.planToken) {
                          botState.phase = 'shooting';
-                         let chargeInterval = setInterval(() => {
+                         botState.chargeInterval = setInterval(() => {
+                            if (planToken !== botState.planToken || gameState.turn !== 2) {
+                                cancelBotPlan();
+                                return;
+                            }
                             if(botState.aimPower < botState.aimTargetPower - 0.5) {
-                                botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.2);
+                                botState.aimPower = lerp(botState.aimPower, botState.aimTargetPower, 0.28);
                             } else {
-                                clearInterval(chargeInterval);
+                                clearInterval(botState.chargeInterval);
+                                botState.chargeInterval = null;
                                 shoot(botState.aimTargetAngle, botState.aimTargetPower);
                             }
-                        }, 2000);
+                         }, Math.max(90, 280 - botState.angerLevel * 1.5));
                     }
-                }, 1000); 
+                }, Math.max(300, 1000 - botState.angerLevel * 5));
             }
-        }, 1000);
+        }, scanDelay);
+        // Failsafe de execução: mesmo se uma animação/interrupção falhar, a IA
+        // sempre conclui a jogada antes do limite do próprio orçamento.
+        startTimer(botState.timeBudget);
+        botState.failsafeTimeout = setTimeout(() => {
+            botState.failsafeTimeout = null;
+            if (planToken === botState.planToken && gameState.turn === 2 && !gameState.isMoving && !gameState.gameOver) {
+                addChatMessage('bot', 'Forçando execução do plano antes do limite.');
+                shoot(finalChoice.angle, finalChoice.power);
+            }
+        }, Math.max(900, (botState.timeBudget - 1.5) * 1000));
     }
 
 
@@ -2697,9 +3403,11 @@
         
         if(player === 1) {
             botState.angerLevel = Math.min(100, botState.angerLevel + 25);
-            document.getElementById('p2-section').classList.add('bot-angry');
+            updateBotEmotionUI();
             
+            showChatTyping(true);
             setTimeout(() => {
+                showChatTyping(false);
                 const botMsg = BOT_TAUNTS[Math.floor(Math.random() * BOT_TAUNTS.length)];
                 addChatMessage('bot', botMsg);
                 showBubble(2, botMsg);
@@ -2731,51 +3439,143 @@
     }
 
 
-    // --- NOVO CHAT FUNCTIONS ---
-    let currentChatPlayer = 1; // 1 for player, 2 for bot
+    // ================== CHAT v2 — FUNÇÕES DO NOVO PAINEL ==================
+    // Redesenhado do zero: overlay + painel central/bottom-sheet, cabeçalho com avatar
+    // dinâmico, chips de resposta rápida roláveis (em vez de <select>) e um campo de
+    // texto livre para digitar qualquer provocação, além do indicador de "digitando".
+    let currentChatPlayer = 1; // 1 = conversa a partir do jogador, 2 = a partir do bot
 
     function toggleChatPanel(player) {
         chatPanelOpen = !chatPanelOpen;
-        document.getElementById('chat-panel').classList.toggle('visible', chatPanelOpen);
+        openOrCloseChat(chatPanelOpen, player);
+    }
+
+    function closeChatPanel() {
+        chatPanelOpen = false;
+        openOrCloseChat(false, currentChatPlayer);
+    }
+
+    function openOrCloseChat(open, player) {
+        const panel = document.getElementById('chat-panel');
+        const overlay = document.getElementById('chat-overlay');
+        panel.classList.toggle('visible', open);
+        overlay.classList.toggle('visible', open);
         currentChatPlayer = player;
-        populateTauntSelect(player);
-        if (chatPanelOpen) scrollToBottom();
+
+        panel.classList.toggle('bot-mode', player === 2);
+        const avatarEl = document.getElementById('chat-header-avatar');
+        const titleEl = document.getElementById('chat-header-title');
+        const subEl = document.getElementById('chat-header-subtitle');
+        const inputEl = document.getElementById('chat-text-input');
+        if (player === 2) {
+            avatarEl.style.backgroundImage = "url('https://api.dicebear.com/7.x/bottts/svg?seed=Terminator')";
+            titleEl.innerText = 'THEUZ IA // COMMS';
+            subEl.innerText = 'Leitura emocional e análise da mesa em tempo real';
+            inputEl.placeholder = 'Provoque o bot...';
+        } else {
+            avatarEl.style.backgroundImage = "url('https://api.dicebear.com/7.x/avataaars/svg?seed=King')";
+            titleEl.innerText = 'VOCÊ // COMMS';
+            subEl.innerText = 'Suas mensagens para o TheuZ IA';
+            inputEl.placeholder = 'Digite uma provocação...';
+        }
+
+        populateQuickReplies(player);
+        if (open) { scrollToBottom(); setTimeout(() => inputEl.focus({preventScroll:true}), 250); }
         resetInactivityTimer();
     }
 
-    function populateTauntSelect(player) {
-        const select = document.getElementById('taunt-select');
-        select.innerHTML = '';
+    function populateQuickReplies(player) {
+        const wrap = document.getElementById('chat-quick-replies');
+        wrap.innerHTML = '';
         const taunts = player === 1 ? PLAYER_TAUNTS : BOT_TAUNTS;
         taunts.forEach(taunt => {
-            const opt = document.createElement('option');
-            opt.value = taunt;
-            opt.innerText = taunt;
-            select.appendChild(opt);
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'chip';
+            chip.innerText = taunt;
+            chip.onclick = () => { tauntPlayer(player, taunt); scrollToBottom(); };
+            wrap.appendChild(chip);
         });
     }
 
     function sendTaunt() {
-        const select = document.getElementById('taunt-select');
-        const msg = select.value;
+        const input = document.getElementById('chat-text-input');
+        const msg = input.value.trim();
         if (msg) {
             tauntPlayer(currentChatPlayer, msg);
+            input.value = '';
             scrollToBottom();
         }
     }
 
+    function showChatTyping(show) {
+        const el = document.getElementById('chat-typing');
+        if (el) el.classList.toggle('visible', show);
+        if (show) scrollToBottom();
+    }
+
     function addChatMessage(sender, msg) {
         const messages = document.getElementById('chat-messages');
-        const div = document.createElement('div');
-        div.className = `chat-message ${sender}`;
-        div.innerHTML = `<span class="sender">${sender === 'player' ? 'Você' : 'TheuZ IA'}</span>${msg}`;
-        messages.appendChild(div);
+        const row = document.createElement('div');
+        row.className = `chat-row ${sender}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'chat-row-avatar';
+        avatar.style.backgroundImage = sender === 'player'
+            ? "url('https://api.dicebear.com/7.x/avataaars/svg?seed=King')"
+            : "url('https://api.dicebear.com/7.x/bottts/svg?seed=Terminator')";
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-message';
+        const time = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        bubble.innerHTML = `<span class="sender">${sender === 'player' ? 'Você' : 'TheuZ IA'}</span>${msg}<span class="chat-msg-time">${time}</span>`;
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        messages.appendChild(row);
         scrollToBottom();
     }
 
     function scrollToBottom() {
         const messages = document.getElementById('chat-messages');
         messages.scrollTop = messages.scrollHeight;
+    }
+    // ================== FIM CHAT v2 ==================
+
+
+    function updateBotEmotionUI() {
+        const level = Math.round(Math.max(0, Math.min(100, botState.angerLevel)));
+        const label = level >= 85 ? 'FURIOSO' : level >= 60 ? 'IRRITADO' : level >= 35 ? 'ALERTA' : 'CALMO';
+        const precision = Math.round(95 + level * 0.05);
+        const angerFill = document.getElementById('anger-fill');
+        const angerLabel = document.getElementById('bot-anger-label');
+        const precisionEl = document.getElementById('bot-precision');
+        const complexityEl = document.getElementById('bot-complexity');
+        const timeEl = document.getElementById('bot-time-budget');
+        const statusEl = document.getElementById('bot-status-mini');
+        const ultEl = document.getElementById('ult-badge');
+        const botEl = document.getElementById('p2-section');
+
+        if (angerFill) {
+            angerFill.style.width = `${level}%`;
+            angerFill.style.filter = `saturate(${1 + level / 80})`;
+        }
+        if (angerLabel) angerLabel.innerText = `${level}% · ${label}`;
+        if (precisionEl) precisionEl.innerText = `${Math.min(100, precision)}%`;
+        if (complexityEl) complexityEl.innerText = botState.planComplexity > 1 ? `${botState.planComplexity}x` : '1x';
+        if (timeEl) timeEl.innerText = `${Math.round(botState.timeBudget)}s`;
+        if (statusEl) {
+            statusEl.innerText = botState.phase === 'scanning'
+                ? `ANALISANDO · ${botState.planType}`
+                : (botState.phase === 'aiming' || botState.phase === 'shooting')
+                    ? (botState.focusMode ? `MODO FOCUS · CALCULANDO TRAJETÓRIA` : `EXECUTANDO · ${botState.planType}`)
+                    : `SISTEMA ${label}`;
+        }
+        if (ultEl) ultEl.classList.toggle('visible', gameState.playerUltReady);
+        if (botEl) {
+            botEl.classList.toggle('bot-angry', level > 40);
+            botEl.classList.toggle('bot-raging', level >= 85);
+        }
     }
 
 
@@ -2785,7 +3585,7 @@
         document.getElementById('p1-section').classList.toggle('active-turn', gameState.turn === 1);
         document.getElementById('p2-section').classList.toggle('active-turn', gameState.turn === 2);
         
-        document.getElementById('p2-section').classList.toggle('bot-angry', botState.angerLevel > 40);
+        updateBotEmotionUI();
         
         document.getElementById('spin-dot').style.opacity = gameState.turn === 1 ? 1 : 0;
         document.getElementById('bot-spin-dot').style.opacity = gameState.turn === 2 && botState.phase !== 'idle' ? 1 : 0;
@@ -2834,17 +3634,41 @@
         setTimeout(()=>el.classList.remove('show'), 1500);
     }
 
-    function spawnExplosion(x, y, color) {
-        for(let i=0; i<8; i++) {
+    function spawnExplosion(x, y, color, intensity=1) {
+        const count = Math.round(8 + intensity * 6);
+        for(let i=0; i<count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const spd = (Math.random()*2.5 + 0.5) * intensity;
             particles.push({
                 x, y, 
-                vx:(Math.random()-0.5)*2.5, 
-                vy:(Math.random()-0.5)*2.5, 
+                vx: Math.cos(a) * spd, 
+                vy: Math.sin(a) * spd, 
                 life:1.0, 
                 color, 
-                size:Math.random()*2+1
+                size: Math.random()*2.2+1,
+                grav: false
             });
         }
+    }
+
+    // NOVO: faísca de tabela - pequena centelha rente à borda quando a bola bate na tabela
+    function spawnRailSpark(x, y, color) {
+        for(let i=0; i<4; i++) {
+            particles.push({
+                x, y,
+                vx:(Math.random()-0.5)*1.5,
+                vy:(Math.random()-0.5)*1.5,
+                life:0.6,
+                color,
+                size: Math.random()*1.4+0.6,
+                grav: false
+            });
+        }
+    }
+
+    // NOVO: onda de choque circular ao encaçapar - dá "impacto" à animação de queda
+    function spawnShockwave(x, y, color) {
+        particles.push({ x, y, ring:true, life:1.0, color, size:2, grav:false });
     }
 
     // --- CONTROLES DE MENU ---
@@ -2959,6 +3783,8 @@
 
 
     function initGame() {
+        stopTimer();
+        cancelBotPlan();
         balls.forEach(b => scene.remove(b.mesh));
         balls = [];
         
@@ -2990,19 +3816,33 @@
         gameState.playerSpin={x:0,y:0};
         gameState.botSpin={x:0,y:0};
         gameState.pocketedThisTurn = [];
+        gameState.groupRemainingAtShotStart = null;
+        gameState.strikeAnim = null;
+        gameState.consecutivePlayerBalls = 0;
+        gameState.playerUltReady = false;
+        trailPositions.clear();
+        particles.length = 0;
+        screenShake = { x: 0, y: 0, t: 0, power: 0 };
+        if (gameInnerEl) gameInnerEl.style.transform = '';
         botState.angerLevel = 0; 
+        botState.planType = 'direct';
+        botState.planComplexity = 1;
+        botState.timeBudget = 30;
         
         const d = document.getElementById('spin-dot'); 
         d.style.left = '50%'; d.style.top = '50%';
         d.style.opacity = 1;
 
         document.getElementById('bot-spin-dot').style.opacity = 0;
-        document.getElementById('p2-section').classList.remove('bot-angry');
+        document.getElementById('p2-section').classList.remove('bot-angry', 'bot-raging');
 
 
         updateTypeLabels(); 
         updateHUD();
         updateWinsDisplay(); 
+        if (document.getElementById('chat-messages').children.length === 0) {
+            addChatMessage('bot', 'Mesa sincronizada. Me provoque e veja a precisão subir.');
+        }
         showToast("QUEBRE!", false); 
         startTimer();
         if(sunkMenuOpen) updateSunkAnimationStack();
@@ -3064,15 +3904,34 @@
         requestAnimationFrame(animate);
 
         if (gameState.isMoving) {
-            balls.forEach(b => b.update());
-            checkCollisions();
+            // NOVO: física em múltiplos sub-passos por frame -> colisões precisas, sem "atravessar" bolas em tacadas fortes
+            const dtScale = 1 / PHYSICS_SUBSTEPS;
+            for (let s = 0; s < PHYSICS_SUBSTEPS; s++) {
+                balls.forEach(b => b.update(dtScale));
+                checkCollisions();
+            }
             checkStop();
         }
 
         botIdleTalk(); // ← nova linha: bot fala de vez em quando
 
+        updateScreenShake(); // NOVO: aplica o tremor de câmera nos impactos fortes
         drawTable2D();
         renderer.render(scene, camera);
+    }
+
+    // NOVO: aplica e decai o tremor de câmera (screen shake) sobre o container do jogo
+    const gameInnerEl = document.getElementById('game-inner');
+    function updateScreenShake() {
+        if (screenShake.t > 0.001) {
+            screenShake.t *= 0.82;
+            const mag = screenShake.power * screenShake.t;
+            const ox = (Math.random() - 0.5) * mag;
+            const oy = (Math.random() - 0.5) * mag;
+            if (gameInnerEl) gameInnerEl.style.transform = `translate(${ox.toFixed(2)}px, ${oy.toFixed(2)}px)`;
+        } else if (gameInnerEl && gameInnerEl.style.transform) {
+            gameInnerEl.style.transform = '';
+        }
     }
 
     window.addEventListener('resize', resizeGame);
