@@ -817,6 +817,8 @@
         .bot-status-mini { margin-top:7px; color:#ff8a5c; font-size:8.5px; letter-spacing:.6px; text-transform:uppercase; display:flex; align-items:center; gap:5px; }
         .bot-status-mini::before { content:''; width:5px; height:5px; border-radius:50%; background:#ff8a5c; box-shadow:0 0 6px #ff8a5c; }
         .ult-badge { display:none; margin-top:6px; color:#ffd34d; font-size:9px; font-weight:900; letter-spacing:1px; animation: ultPulse 1s infinite; }
+        /* NOVO: selo do "Modo Poder" do bot — usa a mesma base do ult-badge, cor de alerta laranja */
+        .bot-power-badge { color: #ffb000; text-shadow: 0 0 8px rgba(255,176,0,.7); }
         .ult-badge.visible { display:block; }
 
         /* --- Área de mensagens --- */
@@ -1049,6 +1051,7 @@
                     <div class="score-dots" id="p2-score"></div>
                     <div class="bot-status-mini" id="bot-status-mini">SISTEMA ESTÁVEL</div>
                     <div class="ult-badge" id="ult-badge">ULT PRONTA · PREVISÃO ATIVA</div>
+                    <div class="ult-badge bot-power-badge" id="bot-power-badge">⚡ MODO PODER · ANALISANDO ROTA ÓTIMA</div>
                 </div>
                 <div class="avatar-container">
                     <svg class="timer-svg" viewBox="0 0 64 64">
@@ -1117,6 +1120,11 @@
                 <!-- NOVO: PODER DO JOGADOR — Visão de Cálculo (liga/desliga, uso ilimitado) -->
                 <button class="btn-neon" id="player-focus-btn" onclick="togglePlayerFocus()" title="Visão de Cálculo: mostra a bola mirada e a previsão de onde a branca vai parar">
                     <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg>
+                </button>
+
+                <!-- NOVO: liga/desliga TODOS os visuais de análise da IA na mesa (varredura, foco, modo poder, previsão de ULT) -->
+                <button class="btn-neon active-toggle" id="ai-visuals-btn" onclick="toggleAiVisuals()" title="Mostrar/ocultar os visuais de análise da IA (varredura, foco, modo poder, previsão de ULT) na mesa">
+                    <svg viewBox="0 0 24 24"><path d="M12 6c3.79 0 7.17 2.13 8.82 5.5-.59 1.22-1.42 2.27-2.41 3.12l1.41 1.41c1.39-1.23 2.49-2.77 3.18-4.53C21.27 7.11 17 4 12 4c-1.27 0-2.49.2-3.64.57l1.65 1.65C10.66 6.09 11.32 6 12 6zm-1.07 1.14L13 9.21c.57.25 1.03.71 1.28 1.28l2.07 2.07c.08-.34.14-.7.14-1.07C16.5 9.01 14.48 7 12 7c-.37 0-.72.05-1.07.14zM2.01 3.87l2.68 2.68C3.06 7.83 1.77 9.53 1 12c1.73 5.11 6.7 8.5 12.5 8.5 1.83 0 3.63-.4 5.28-1.13l3.72 3.72L23.83 21 3.83 1 2.01 3.87zm7.5 7.5l2.61 2.61c-.06.01-.12.02-.19.02-1.44 0-2.63-1.19-2.63-2.63 0-.07.01-.13.02-.19zm-3.9-3.9l1.98 1.98c-.14.4-.24.83-.24 1.28 0 2.35 1.9 4.25 4.25 4.25.45 0 .88-.1 1.28-.24l1.55 1.55c-.9.3-1.86.47-2.83.47C7.24 17 3.99 14.3 2.72 12c.42-1.35 1.15-2.53 2.08-3.53z"/></svg>
                 </button>
 
                 <button class="btn-neon" onclick="toggleSunkMenu()">
@@ -1260,6 +1268,24 @@
         screenShake.power = Math.min(14, power);
         screenShake.t = 1;
     }
+
+    // ================== NOVO: FÍSICA XYZ — SALTO/BOUNCE VERTICAL REALISTA ==================
+    // Bolas de sinuca reais não são presas a um trilho 2D: quando batem forte (tabela ou outra
+    // bola), elas absorvem parte do impacto "pulando" alguns milímetros e quicando até assentar
+    // de novo no pano. Isso simula esse comportamento no eixo Z (posição real da malha 3D), com
+    // gravidade + amortecimento, dando peso físico real ao invés de um deslize puramente 2D.
+    const HOP_GRAVITY = 0.85;       // "Gravidade" que puxa a bola de volta ao pano
+    const HOP_DAMPING = 0.42;       // Quanto da energia do salto sobra a cada micro-quique (perde energia até assentar)
+    const HOP_TRIGGER_SPEED = 1.6;  // Impacto mínimo para gerar um salto perceptível
+
+    // ================== NOVO: CÂMERA LENTA CINEMATOGRÁFICA (JUICE) ==================
+    // Em momentos decisivos (bola 8 caindo, ou o bot acertando uma rota complexa no "modo poder"),
+    // o jogo desacelera brevemente a física — sem travar o frame-rate — pra dar peso dramático ao
+    // instante, como um replay em câmera lenta de uma jogada de sinuca profissional.
+    let slowMoFactor = 1;
+    function triggerSlowMo(strength) {
+        slowMoFactor = Math.min(slowMoFactor, strength);
+    }
     // ================== FIM NOVO MOTOR DE FÍSICA ==================
 
     // MODIFICAÇÃO: Variáveis de Inatividade para Troca de Turno
@@ -1374,6 +1400,9 @@
             this.updateMeshPosition();
             this.sunkTime = null; // Para manter a ordem no popover
             this.spinZ = 0; // NOVO: giro visível em torno do eixo vertical (efeito/inglês) - independente da rolagem
+            this.hopZ = 0;    // NOVO: altura real (eixo Z) da bola sobre o pano — usada pro salto físico em impactos fortes
+            this.hopVel = 0;  // NOVO: velocidade vertical do salto (afetada pela "gravidade" HOP_GRAVITY)
+            this.wobble = 0;  // NOVO: leve instabilidade rotacional pós-impacto, pra bola não parecer "sobre trilhos"
             // Pequena variação de atrito própria de cada bola (determinística, baseada no número), pra
             // elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
             // Agora é um multiplicador da DESACELERAÇÃO constante (0.94–1.06), não mais da velocidade.
@@ -1442,8 +1471,13 @@
                 if (impactSpeed > 0.6) {
                     playCushionThud(Math.min(impactSpeed, 12));
                     this.squash = Math.min(0.35, impactSpeed * 0.03); // squash/stretch visual no impacto
-                    spawnRailSpark(this.x, this.y, getTheme().primary);
+                    if (impactSpeed > 1.4) spawnRailSpark(this.x, this.y, getTheme().primary); // AJUSTADO 2x: só bate forte gera faísca
                     if (impactSpeed > 6) triggerScreenShake(impactSpeed * 0.5);
+                    // NOVO: impacto forte na tabela faz a bola saltar levemente no eixo Z (peso físico real)
+                    if (impactSpeed > HOP_TRIGGER_SPEED) {
+                        this.hopVel = Math.max(this.hopVel, Math.min(2.4, impactSpeed * 0.11));
+                        this.wobble = Math.min(0.09, impactSpeed * 0.008);
+                    }
                 }
             }
 
@@ -1458,6 +1492,9 @@
                     gameState.pocketedThisTurn.push(this);
                     playPocketSound();
                     triggerScreenShake(6);
+                    // NOVO: momento decisivo (bola 8) ou jogada calculada no "modo poder" do bot -> câmera lenta
+                    if (this.isEight) triggerSlowMo(0.28);
+                    else if (gameState.turn === 2 && botState.powerMode) triggerSlowMo(0.5);
                 }
             });
 
@@ -1470,6 +1507,18 @@
                 if (!arr) { arr = []; trailPositions.set(this.number, arr); }
                 arr.push({x: this.x, y: this.y, life: 1});
                 if (arr.length > 5) arr.shift();
+            }
+
+            // NOVO: integra o salto vertical (eixo Z) — gravidade + quiques sucessivos até assentar no pano
+            if (this.hopZ > 0.001 || Math.abs(this.hopVel) > 0.001) {
+                this.hopVel -= HOP_GRAVITY * dtScale;
+                this.hopZ += this.hopVel * dtScale;
+                if (this.hopZ <= 0) {
+                    this.hopZ = 0;
+                    this.hopVel = Math.abs(this.hopVel) > 0.25 ? -this.hopVel * HOP_DAMPING : 0;
+                }
+            } else {
+                this.hopZ = 0; this.hopVel = 0;
             }
 
             this.updateMeshPosition();
@@ -1520,6 +1569,8 @@
         updateMeshPosition() {
             this.mesh.position.x = this.x - WIDTH / 2;
             this.mesh.position.y = -(this.y - HEIGHT / 2);
+            // NOVO: eixo Z real — altura da bola sobre o pano (salto físico em impactos fortes)
+            if (!this.falling) this.mesh.position.z = this.hopZ || 0;
         }
 
         updateRotation(dtScale = 1) {
@@ -1539,6 +1590,16 @@
                 const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), this.spinZ * dtScale);
                 this.mesh.quaternion.multiplyQuaternions(qz, this.mesh.quaternion);
                 this.spinZ *= Math.pow(0.985, dtScale);
+            }
+            // NOVO: micro-instabilidade rotacional (wobble) pós-impacto — a bola "treme" de leve nos 3
+            // eixos ao quicar, em vez de rolar perfeitamente lisa, dando uma sensação mais orgânica/real.
+            if (this.wobble > 0.0006) {
+                const wx = (Math.random() - 0.5) * this.wobble;
+                const wy = (Math.random() - 0.5) * this.wobble;
+                const wz = (Math.random() - 0.5) * this.wobble;
+                const qw = new THREE.Quaternion().setFromEuler(new THREE.Euler(wx, wy, wz));
+                this.mesh.quaternion.multiplyQuaternions(qw, this.mesh.quaternion);
+                this.wobble *= Math.pow(0.9, dtScale);
             }
         }
     }
@@ -1595,7 +1656,10 @@
         // NOVO: PODER DO JOGADOR — "Visão de Cálculo". Diferente da ULT (uso único, precisa carregar),
         // esse é um alternador (liga/desliga) que o próprio jogador controla quando quiser, mostrando
         // constantemente qual bola está mirando e uma previsão de onde a branca vai parar.
-        playerFocusActive: false
+        playerFocusActive: false,
+        // NOVO: liga/desliga TODOS os visuais de análise da IA sobre a mesa (varredura de rotas, modo
+        // foco, modo poder, previsão da ULT) — pra quem prefere uma mesa mais limpa/sem "spoilers".
+        showAiVisuals: true
     };
 
     // IA STATE
@@ -1621,7 +1685,12 @@
         chargeInterval: null,
         failsafeTimeout: null,
         ultReady: false,
-        focusMode: false // NOVO: MODO FOCUS — quando ativo, o bot desenha linhas de cálculo/triangulação na mesa
+        focusMode: false, // NOVO: MODO FOCUS — quando ativo, o bot desenha linhas de cálculo/triangulação na mesa
+        // ============ NOVO: SISTEMA DE ANÁLISE / "MODO PODER" DO BOT ============
+        powerMode: false,       // true quando o bot está usando um plano avançado (multi-tabela / alta complexidade)
+        confidence: 50,         // % de confiança calculada pra jogada escolhida (mostrado no HUD)
+        candidateRoutes: [],    // lista real das rotas (bola+caçapa) avaliadas nesta rodada de análise
+        scanRouteIndex: 0       // qual rota candidata está sendo exibida no momento durante a varredura
     };
 
     // TIMER DO JOGO
@@ -1698,6 +1767,7 @@
         botState.scanLines = [];
         botState.aimPower = 0;
         botState.focusMode = false;
+        botState.powerMode = false;
         const spinDotCancel = document.getElementById('bot-spin-dot');
         spinDotCancel.style.opacity = 0;
         spinDotCancel.classList.remove('choosing', 'locked');
@@ -1749,10 +1819,7 @@
             ctxFX.strokeStyle = 'white';
             ctxFX.lineWidth = 3;
             ctxFX.setLineDash([5, 5]);
-            ctxFX.shadowColor = 'white';
-            ctxFX.shadowBlur = 15;
             ctxFX.stroke();
-            ctxFX.shadowBlur = 0;
             ctxFX.setLineDash([]);
             
             // Texto "SUA VEZ"
@@ -1794,10 +1861,8 @@
             ctx2D.fillStyle = "#000"; 
             ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI*2); ctx2D.fill();
             
-            ctx2D.shadowColor = theme.primary; ctx2D.shadowBlur = 10;
-            ctx2D.strokeStyle = theme.primary; ctx2D.lineWidth = 2; 
+            ctx2D.strokeStyle = theme.primary; ctx2D.lineWidth = 2.5; 
             ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS-2, 0, Math.PI*2); ctx2D.stroke();
-            ctx2D.shadowBlur = 0;
         });
 
         // --- VISUALIZAÇÃO PLAYER ---
@@ -1816,7 +1881,7 @@
                     if (!isOwnType && !aimData.target.isEight) color = '#ff3333'; 
                 }
                 drawAimLines(cueBall, aimData, color, false);
-                drawUltPrediction(aimData);
+                if (gameState.showAiVisuals) drawUltPrediction(aimData);
                 if (gameState.playerFocusActive) drawPlayerFocusOverlay(aimData);
 
                 // BARRA DE FORÇA CIRCULAR
@@ -1833,10 +1898,7 @@
                 ctxFX.lineWidth = 4;
                 ctxFX.lineCap = 'round';
                 ctxFX.strokeStyle = pColor;
-                ctxFX.shadowColor = pColor;
-                ctxFX.shadowBlur = 15;
                 ctxFX.stroke();
-                ctxFX.shadowBlur = 0;
 
                 drawCueStick(cueBall.x, cueBall.y, gameState.angle, -20 - (gameState.power * 0.5), gameState.playerSpin);
                 
@@ -1860,12 +1922,10 @@
                  botState.aimPower = 0; 
             }
             
-            // Varredura Visual
+            // Varredura Visual — NOVO: sistema de análise real (mostra as rotas que o bot está testando)
             if (botState.phase === 'scanning' && botState.scanLines.length > 0) {
-                botState.scanLines.forEach(line => {
- 
-                });
-                
+                if (gameState.showAiVisuals) drawBotAnalysisScan();
+
                 if (botState.aimAngle) {
                      const aimData = calculateAimTrajectory(cueBall, botState.aimAngle);
                      drawAimLines(cueBall, aimData, '#ff3333', true);
@@ -1889,8 +1949,6 @@
                     ctxFX.lineWidth = 2; 
                     ctxFX.setLineDash([4, 4]); 
                     ctxFX.strokeStyle = '#ff3333';
-                    ctxFX.shadowColor = '#ff3333'; 
-                    ctxFX.shadowBlur = 10; 
                     ctxFX.stroke(); 
                     
                     // Linha da Tabela para o Buraco
@@ -1900,10 +1958,7 @@
                     ctxFX.lineWidth = 2; 
                     ctxFX.setLineDash([4, 4]); 
                     ctxFX.strokeStyle = '#ff3333';
-                    ctxFX.shadowColor = '#ff3333'; 
-                    ctxFX.shadowBlur = 10; 
                     ctxFX.stroke(); 
-                    ctxFX.shadowBlur = 0; 
                     ctxFX.setLineDash([]);
                 } else {
                    // MODO DIRETO
@@ -1912,7 +1967,7 @@
 
                 // NOVO: MODO FOCUS — só aparece depois que a mira/efeito já estão prontos (fases
                 // "aiming"/"shooting"), nunca durante a varredura de alvos.
-                if (botState.focusMode && (botState.phase === 'aiming' || botState.phase === 'shooting')) {
+                if (gameState.showAiVisuals && botState.focusMode && (botState.phase === 'aiming' || botState.phase === 'shooting')) {
                     drawBotFocusOverlay(aimData);
                 }
 
@@ -1922,6 +1977,22 @@
                 ctxFX.lineWidth = 4; ctxFX.strokeStyle = '#ff3333'; ctxFX.stroke();
 
                 drawCueStick(cueBall.x, cueBall.y, botState.aimAngle, -20 - (botState.aimPower * 0.5), gameState.botSpin);
+
+                // NOVO: selo "ROTA CONFIRMADA" com a confiança calculada, uma vez travada a mira
+                if (gameState.showAiVisuals && (botState.phase === 'aiming' || botState.phase === 'shooting')) {
+                    ctxFX.save();
+                    ctxFX.font = 'bold 8px Orbitron';
+                    ctxFX.textAlign = 'center';
+                    ctxFX.fillStyle = botState.powerMode ? '#ffb000' : '#ff5c33';
+                    ctxFX.fillText(`ROTA CONFIRMADA · ${botState.confidence}% CONFIANÇA`, cueBall.x, cueBall.y - BALL_RADIUS - 22);
+                    ctxFX.restore();
+                }
+            }
+
+            // NOVO: MODO PODER — varredura radar 360° na mesa inteira enquanto o bot "usa seu poder"
+            // pra testar todas as rotas possíveis, dando um visual mais dramático e imersivo.
+            if (gameState.showAiVisuals && botState.powerMode && botState.phase === 'scanning') {
+                drawBotPowerSweep();
             }
         }
 
@@ -1977,6 +2048,9 @@
         });
 
         // Partículas (faíscas, explosões e ondas de choque)
+        // AJUSTADO: removido o shadowBlur por partícula (era recalculado a cada partícula, a cada
+        // frame — com várias bolas colidindo ao mesmo tempo isso gerava os mini travamentos). O
+        // brilho agora vem só da cor viva do próprio efeito, sem o custo do blur.
         for(let i=particles.length-1; i>=0; i--) {
             let p = particles[i]; 
             if (p.ring) {
@@ -1986,9 +2060,8 @@
                 ctxFX.globalAlpha = p.life * 0.8;
                 ctxFX.strokeStyle = p.color;
                 ctxFX.lineWidth = 2.5;
-                ctxFX.shadowColor = p.color; ctxFX.shadowBlur = 12;
                 ctxFX.beginPath(); ctxFX.arc(p.x, p.y, r, 0, Math.PI*2); ctxFX.stroke();
-                ctxFX.shadowBlur = 0; ctxFX.globalAlpha = 1;
+                ctxFX.globalAlpha = 1;
                 continue;
             }
             p.x += p.vx; p.y += p.vy; 
@@ -1997,9 +2070,8 @@
             if(p.life<=0) { particles.splice(i,1); continue; }
             ctxFX.fillStyle = p.color; 
             ctxFX.globalAlpha = p.life;
-            ctxFX.shadowColor = p.color; ctxFX.shadowBlur = 6;
             ctxFX.beginPath(); ctxFX.arc(p.x, p.y, p.size, 0, Math.PI*2); ctxFX.fill(); 
-            ctxFX.shadowBlur = 0; ctxFX.globalAlpha = 1;
+            ctxFX.globalAlpha = 1;
         }
     }
 
@@ -2037,7 +2109,6 @@
         stickGradient.addColorStop(1, '#fff');
 
         ctxFX.fillStyle = stickGradient;
-        ctxFX.shadowColor = '#000'; ctxFX.shadowBlur = 5;
         ctxFX.beginPath();
         ctxFX.moveTo(-200, -4); 
         ctxFX.lineTo(0, -2);    
@@ -2050,9 +2121,7 @@
             ctxFX.beginPath();
             ctxFX.arc(0, 0, 2.6, 0, Math.PI * 2);
             ctxFX.fillStyle = '#29c9ff';
-            ctxFX.shadowColor = '#29c9ff'; ctxFX.shadowBlur = 8;
             ctxFX.fill();
-            ctxFX.shadowBlur = 0;
         }
 
         ctxFX.restore();
@@ -2064,6 +2133,94 @@
     // somando/considerando os ângulos da mesa), uma régua de distância sobre a linha de mira,
     // um HUD com ângulo/distância calculados, e um "scanner" nos cantos da bola alvo — tudo
     // mostrando visualmente onde a bola dele vai bater.
+    // ================== NOVO: SISTEMA DE ANÁLISE DO BOT (ROTAS + CONFIANÇA) ==================
+    // Enquanto o bot está na fase "scanning", ele mostra literalmente as rotas candidatas que está
+    // avaliando (bola alvo -> caçapa), coloridas pela confiança de cada uma (vermelho = arriscado,
+    // verde/dourado = alta chance), com a rota "em foco" no momento destacada e as demais soltas
+    // como um traço fraco de fundo (as que ele "descartou" ou ainda vai considerar).
+    function drawBotAnalysisScan() {
+        if (!botState.scanLines.length) return;
+        const activeIdx = Math.min(botState.currentScanTarget, botState.scanLines.length - 1);
+        ctxFX.save();
+
+        botState.scanLines.forEach((line, idx) => {
+            const isActive = idx === activeIdx;
+            const conf = typeof line.confidence === 'number' ? line.confidence : 30;
+            // Interpola cor: vermelho (baixa confiança) -> amarelo -> verde-ciano (alta confiança)
+            const hue = Math.max(0, Math.min(120, conf * 1.15));
+            const color = `hsl(${hue}, 90%, 58%)`;
+
+            ctxFX.globalAlpha = isActive ? 0.85 : 0.18;
+            ctxFX.strokeStyle = color;
+            ctxFX.lineWidth = isActive ? 2 : 1;
+            ctxFX.setLineDash(isActive ? [] : [3, 5]);
+            ctxFX.beginPath();
+            ctxFX.moveTo(cueBall.x, cueBall.y);
+            ctxFX.lineTo(line.tx, line.ty);
+            ctxFX.stroke();
+
+            if (line.pocket) {
+                ctxFX.beginPath();
+                ctxFX.moveTo(line.tx, line.ty);
+                ctxFX.lineTo(line.pocket.x, line.pocket.y);
+                ctxFX.stroke();
+            }
+            ctxFX.setLineDash([]);
+
+            // Marcador na bola sendo avaliada + % de confiança da rota
+            ctxFX.globalAlpha = isActive ? 1 : 0.35;
+            ctxFX.beginPath();
+            ctxFX.arc(line.tx, line.ty, BALL_RADIUS + (isActive ? 6 : 3), 0, Math.PI * 2);
+            ctxFX.stroke();
+            if (isActive) {
+                ctxFX.font = 'bold 8px Orbitron';
+                ctxFX.textAlign = 'center';
+                ctxFX.fillStyle = color;
+                ctxFX.fillText(`${conf}%`, line.tx, line.ty - BALL_RADIUS - 10);
+            }
+        });
+
+        ctxFX.globalAlpha = 1;
+        ctxFX.font = 'bold 9px Orbitron';
+        ctxFX.textAlign = 'center';
+        ctxFX.fillStyle = botState.powerMode ? '#ffb000' : '#00f3ff';
+        ctxFX.fillText(
+            `${botState.powerMode ? '⚡ ANALISANDO ROTAS' : 'ANALISANDO'} · ${activeIdx + 1}/${botState.scanLines.length}`,
+            cueBall.x, cueBall.y + BALL_RADIUS + 26
+        );
+        ctxFX.restore();
+    }
+
+    // Varredura radar dramática usada só no "modo poder": um feixe gira 360° em torno da bola branca
+    // enquanto o bot testa a mesa inteira, reforçando visualmente que ele está usando seu poder máximo.
+    function drawBotPowerSweep() {
+        const t = Date.now() * 0.004;
+        const sweepAngle = t % (Math.PI * 2);
+        const radius = Math.max(WIDTH, HEIGHT) * 0.55;
+
+        ctxFX.save();
+        const grad = ctxFX.createLinearGradient(
+            cueBall.x, cueBall.y,
+            cueBall.x + Math.cos(sweepAngle) * radius, cueBall.y + Math.sin(sweepAngle) * radius
+        );
+        grad.addColorStop(0, 'rgba(255,176,0,0.55)');
+        grad.addColorStop(1, 'rgba(255,176,0,0)');
+        ctxFX.strokeStyle = grad;
+        ctxFX.lineWidth = 3;
+        ctxFX.beginPath();
+        ctxFX.moveTo(cueBall.x, cueBall.y);
+        ctxFX.lineTo(cueBall.x + Math.cos(sweepAngle) * radius, cueBall.y + Math.sin(sweepAngle) * radius);
+        ctxFX.stroke();
+
+        ctxFX.beginPath();
+        ctxFX.arc(cueBall.x, cueBall.y, BALL_RADIUS + 30 + Math.sin(t * 3) * 4, 0, Math.PI * 2);
+        ctxFX.strokeStyle = 'rgba(255,176,0,0.35)';
+        ctxFX.lineWidth = 1.4;
+        ctxFX.stroke();
+        ctxFX.restore();
+    }
+    // ================== FIM SISTEMA DE ANÁLISE DO BOT ==================
+
     function drawBotFocusOverlay(aimData) {
         const focusColor = '#00f3ff';
         ctxFX.save();
@@ -2080,16 +2237,17 @@
         });
 
         // Régua de distância sobre a linha de mira (marcações perpendiculares)
+        // AJUSTADO: sem shadowBlur — antes cada marcação (podiam ser 20-30 por frame) pagava o
+        // custo de um blur individual, e isso era uma das maiores causas dos mini travamentos.
         const dx = aimData.endX - cueBall.x, dy = aimData.endY - cueBall.y;
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
             const ux = dx / dist, uy = dy / dist;
             const px = -uy, py = ux;
-            const step = 16;
-            const tickCount = Math.floor(dist / step);
+            const step = 26; // AJUSTADO: menos marcações por frame (menos chamadas de desenho)
+            const tickCount = Math.min(14, Math.floor(dist / step));
             ctxFX.strokeStyle = focusColor;
             ctxFX.lineWidth = 1;
-            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 4;
             for (let i = 1; i <= tickCount; i++) {
                 const tx = cueBall.x + ux * i * step, ty = cueBall.y + uy * i * step;
                 ctxFX.beginPath();
@@ -2097,7 +2255,6 @@
                 ctxFX.lineTo(tx + px * 4, ty + py * 4);
                 ctxFX.stroke();
             }
-            ctxFX.shadowBlur = 0;
 
             // HUD numérico: ângulo calculado + distância, "somando" a jogada
             const angleDeg = Math.round(((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360);
@@ -2105,9 +2262,7 @@
             ctxFX.font = 'bold 7.5px Orbitron';
             ctxFX.textAlign = 'center';
             ctxFX.fillStyle = focusColor;
-            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 6;
             ctxFX.fillText(`∠${angleDeg}° · ${Math.round(dist)}u · FOCUS`, midX, midY - 9 * py - 4);
-            ctxFX.shadowBlur = 0;
         }
 
         // Scanner nos cantos da bola alvo (estilo mira de câmera/HUD militar)
@@ -2116,7 +2271,6 @@
             const s = BALL_RADIUS * 2.6, arm = s * 0.55;
             ctxFX.strokeStyle = focusColor;
             ctxFX.lineWidth = 1.4;
-            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 5;
             [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sy]) => {
                 ctxFX.beginPath();
                 ctxFX.moveTo(cx + sx*s, cy + sy*(s - arm));
@@ -2124,7 +2278,6 @@
                 ctxFX.lineTo(cx + sx*(s - arm), cy + sy*s);
                 ctxFX.stroke();
             });
-            ctxFX.shadowBlur = 0;
 
             // Linha até a caçapa escolhida, se houver
             const pocket = botState.finalChoice && botState.finalChoice.pocket;
@@ -2152,10 +2305,7 @@
         ctxFX.lineWidth = 2; 
         ctxFX.setLineDash([4, 4]); 
         ctxFX.strokeStyle = color;
-        ctxFX.shadowColor = color; 
-        ctxFX.shadowBlur = isBot ? 5 : 10; 
         ctxFX.stroke(); 
-        ctxFX.shadowBlur = 0; 
         ctxFX.setLineDash([]);
         
         if (aimData.target) {
@@ -2197,8 +2347,6 @@
         ctxFX.save();
         ctxFX.globalAlpha = 0.72;
         ctxFX.strokeStyle = '#ffd34d';
-        ctxFX.shadowColor = '#ffd34d';
-        ctxFX.shadowBlur = 12;
         ctxFX.lineWidth = 2;
         ctxFX.setLineDash([3, 5]);
         ctxFX.beginPath();
@@ -2206,8 +2354,26 @@
         ctxFX.lineTo(endX, endY);
         ctxFX.stroke();
         ctxFX.setLineDash([]);
+
+        // NOVO: pulso animado "correndo" ao longo da linha de previsão, reforçando que é uma
+        // simulação viva/em tempo real, e não só uma seta estática.
+        const t = Date.now() * 0.0022;
+        const pulseT = t % 1;
+        const px = target.x + dx * length * pulseT;
+        const py = target.y + dy * length * pulseT;
+        ctxFX.globalAlpha = 1 - pulseT * 0.5;
+        ctxFX.fillStyle = '#fff3c4';
         ctxFX.beginPath();
-        ctxFX.arc(endX, endY, BALL_RADIUS * 0.8, 0, Math.PI * 2);
+        ctxFX.arc(px, py, 2.6, 0, Math.PI * 2);
+        ctxFX.fill();
+
+        // Círculo de destino com leve pulsação (respiração), pra marcar onde a branca deve parar
+        ctxFX.globalAlpha = 0.85;
+        const breathe = 1 + Math.sin(t * 3) * 0.08;
+        ctxFX.beginPath();
+        ctxFX.arc(endX, endY, BALL_RADIUS * 0.8 * breathe, 0, Math.PI * 2);
+        ctxFX.strokeStyle = '#ffd34d';
+        ctxFX.lineWidth = 1.5;
         ctxFX.stroke();
         ctxFX.fillStyle = '#ffd34d';
         ctxFX.font = 'bold 8px Orbitron';
@@ -2222,46 +2388,74 @@
     // acabar parando, recalculado constantemente a cada frame usando a MESMA física real do jogo
     // (decomposição de velocidade no impacto + a fórmula de desaceleração constante do atrito).
 
-    // Simula pra frente a trajetória da branca após o impacto usando exatamente as mesmas fórmulas
-    // de atrito e quicada nas tabelas do motor de física real (sem colidir com outras bolas — é só
-    // uma prévia). Retorna onde ela vai parar (e se cai numa caçapa nesse caminho).
-    function predictCueBallResting(startX, startY, angle, power) {
+    // Simula pra frente a trajetória da branca após o impacto usando EXATAMENTE as mesmas fórmulas
+    // do motor de física real (mesmo atrito por bola, mesmo efeito/spin com decaimento, mesma
+    // quicada com giro nas tabelas) — e agora também PARA a simulação se o caminho for cruzar outra
+    // bola, em vez de fingir que ela atravessa. Isso deixa a previsão bem mais fiel ao que realmente
+    // vai acontecer na mesa.
+    function predictCueBallResting(startX, startY, angle, power, spinStart, ignoreBall) {
         let x = startX, y = startY;
         let vx = Math.cos(angle) * power, vy = Math.sin(angle) * power;
+        let spin = { x: spinStart.x, y: spinStart.y };
+        // Usa o MESMO passo de tempo do motor de física real (1/PHYSICS_SUBSTEPS) — cálculo real e
+        // preciso, idêntico ao que a bola vai realmente fazer. A performance continua ok porque essa
+        // função só é chamada com throttle (ver drawPlayerFocusOverlay), não a cada frame.
         const dt = 1 / PHYSICS_SUBSTEPS;
-        let pocketed = false;
+        const seed = cueBall.frictionSeed; // usa o atrito REAL desta bola específica, não um valor genérico
+        let pocketed = false, blocked = false;
+
+        const others = balls.filter(b => b.active && b !== ignoreBall && b !== cueBall);
+        const pockets = getPockets(); // hoisted pra fora do loop (antes era recriado a cada iteração)
 
         for (let i = 0; i < 3000; i++) {
             const speed = Math.hypot(vx, vy);
             if (speed <= 0.05) break;
 
-            const decel = ROLL_DECEL * dt;
+            // Mesma fórmula de atrito real: desaceleração constante + modificador de efeito (giro)
+            let spinFrictionMod = Math.abs(spin.y) > 0.1 ? spin.y * 0.008 : 0;
+            const decel = Math.max(0.01, ROLL_DECEL * seed + spinFrictionMod) * dt;
             const newSpeed = Math.max(0, speed - decel);
             if (newSpeed <= 0) { vx = 0; vy = 0; break; }
             const sc = newSpeed / speed; vx *= sc; vy *= sc;
 
+            // O efeito também decai com o tempo, igual à bola real
+            spin.x *= Math.pow(SPIN_DECAY, dt);
+            spin.y *= Math.pow(SPIN_DECAY, dt);
+
             x += vx * dt; y += vy * dt;
 
-            if (x < TABLE_MARGIN + BALL_RADIUS) { x = TABLE_MARGIN + BALL_RADIUS; vx *= -RAIL_RESTITUTION; }
-            if (x > WIDTH - TABLE_MARGIN - BALL_RADIUS) { x = WIDTH - TABLE_MARGIN - BALL_RADIUS; vx *= -RAIL_RESTITUTION; }
-            if (y < TABLE_MARGIN + BALL_RADIUS) { y = TABLE_MARGIN + BALL_RADIUS; vy *= -RAIL_RESTITUTION; }
-            if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -RAIL_RESTITUTION; }
+            let hitWall = false;
+            if (x < TABLE_MARGIN + BALL_RADIUS) { x = TABLE_MARGIN + BALL_RADIUS; vx *= -RAIL_RESTITUTION; hitWall = true; }
+            if (x > WIDTH - TABLE_MARGIN - BALL_RADIUS) { x = WIDTH - TABLE_MARGIN - BALL_RADIUS; vx *= -RAIL_RESTITUTION; hitWall = true; }
+            if (y < TABLE_MARGIN + BALL_RADIUS) { y = TABLE_MARGIN + BALL_RADIUS; vy *= -RAIL_RESTITUTION; hitWall = true; }
+            if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -RAIL_RESTITUTION; hitWall = true; }
+            // Giro lateral desvia levemente a bola ao quicar na tabela, igual à física real
+            if (hitWall && Math.abs(vx) > 0.5) { vy += spin.x * 0.8; spin.x *= 0.5; }
 
-            for (const p of getPockets()) {
+            for (const p of pockets) {
                 if (Math.hypot(x - p.x, y - p.y) < POCKET_RADIUS) { pocketed = true; break; }
             }
             if (pocketed) break;
+
+            // NOVO: se o caminho previsto for cruzar outra bola, a previsão para exatamente ali —
+            // a bola não atravessa as outras na vida real, então a previsão também não deveria.
+            for (const b of others) {
+                if (Math.hypot(x - b.x, y - b.y) < BALL_RADIUS * 2) { blocked = true; break; }
+            }
+            if (blocked) break;
         }
-        return { x, y, pocketed };
+        return { x, y, pocketed, blocked };
     }
 
     // Calcula a direção/velocidade da branca DEPOIS do primeiro impacto, decompondo o vetor de
     // velocidade em componente normal (transferida pra bola alvo) e tangencial (que fica com a
-    // branca) — é exatamente a mesma lógica usada em checkCollisions(), então a previsão bate com
-    // o que realmente vai acontecer numa tacada "seca" (sem efeito).
+    // branca) — é exatamente a mesma lógica usada em checkCollisions(), incluindo a pequena redução
+    // do "efeito de arrasto" (THROW_EFFECT) que a tacada real também sofre, então a previsão bate
+    // com o que realmente vai acontecer.
     function computePlayerFocusPrediction(aimData) {
         let originX = aimData.endX, originY = aimData.endY;
         let dirAngle, speed;
+        const spinNow = { x: gameState.playerSpin.x, y: gameState.playerSpin.y };
 
         if (aimData.target) {
             const t = aimData.target;
@@ -2272,7 +2466,11 @@
             const vx = Math.cos(gameState.angle) * gameState.power;
             const vy = Math.sin(gameState.angle) * gameState.power;
             const vn = vx * ux + vy * uy;
-            const tx = vx - vn * ux, ty = vy - vn * uy;
+            let tx = vx - vn * ux, ty = vy - vn * uy;
+
+            // Mesma redução aplicada em checkCollisions() (THROW_EFFECT * 0.35 sobre o componente tangencial)
+            tx *= (1 - THROW_EFFECT * 0.35);
+            ty *= (1 - THROW_EFFECT * 0.35);
 
             speed = Math.hypot(tx, ty);
             dirAngle = speed > 0.001 ? Math.atan2(ty, tx) : 0;
@@ -2282,8 +2480,14 @@
         }
 
         if (speed < 0.4) return null;
-        return predictCueBallResting(originX, originY, dirAngle, speed);
+        return predictCueBallResting(originX, originY, dirAngle, speed, spinNow, aimData.target);
     }
+
+    // AJUSTADO (performance): a previsão não precisa ser recalculada em todo frame renderizado
+    // (60x/s) — recalcular só ~15x/s já fica visualmente instantâneo pra quem está mirando, e corta
+    // bastante o custo da simulação, ajudando a evitar os mini travamentos.
+    let _focusPredictionCache = null;
+    let _focusPredictionLastCalc = 0;
 
     function drawPlayerFocusOverlay(aimData) {
         const focusColor = getTheme().primary;
@@ -2295,15 +2499,19 @@
             ctxFX.save();
             ctxFX.strokeStyle = focusColor;
             ctxFX.lineWidth = 2;
-            ctxFX.shadowColor = focusColor; ctxFX.shadowBlur = 10;
             ctxFX.beginPath();
             ctxFX.arc(t.x, t.y, BALL_RADIUS * 1.7 * pulse, 0, Math.PI * 2);
             ctxFX.stroke();
             ctxFX.restore();
         }
 
-        // Previsão de onde a branca vai parar (atualizada a cada frame enquanto mira/carrega força)
-        const prediction = computePlayerFocusPrediction(aimData);
+        // Previsão de onde a branca vai parar (recalculada com throttle - ver nota acima)
+        const now = Date.now();
+        if (!_focusPredictionCache || now - _focusPredictionLastCalc > 66) {
+            _focusPredictionCache = computePlayerFocusPrediction(aimData);
+            _focusPredictionLastCalc = now;
+        }
+        const prediction = _focusPredictionCache;
         if (!prediction) return;
 
         ctxFX.save();
@@ -2316,19 +2524,18 @@
         ctxFX.stroke();
         ctxFX.setLineDash([]);
 
-        const markerColor = prediction.pocketed ? '#ff3333' : '#ffffff';
+        const markerColor = prediction.pocketed ? '#ff3333' : (prediction.blocked ? '#ffb000' : '#ffffff');
         ctxFX.beginPath();
         ctxFX.arc(prediction.x, prediction.y, BALL_RADIUS * 0.85, 0, Math.PI * 2);
         ctxFX.strokeStyle = markerColor;
         ctxFX.lineWidth = 1.5;
-        ctxFX.shadowColor = markerColor; ctxFX.shadowBlur = 8;
         ctxFX.stroke();
-        ctxFX.shadowBlur = 0;
 
+        const label = prediction.pocketed ? 'BRANCA CAI! ⚠' : (prediction.blocked ? 'BATE EM OUTRA BOLA' : 'BRANCA PARA AQUI');
         ctxFX.font = 'bold 7.5px Orbitron';
         ctxFX.textAlign = 'center';
         ctxFX.fillStyle = markerColor;
-        ctxFX.fillText(prediction.pocketed ? 'BRANCA CAI! ⚠' : 'BRANCA PARA AQUI', prediction.x, prediction.y - 14);
+        ctxFX.fillText(label, prediction.x, prediction.y - 14);
         ctxFX.restore();
     }
     // ================== FIM PODER DO JOGADOR ==================
@@ -2622,11 +2829,19 @@
                     if (impactSpeed > 0.4) {
                         playBallClick(impactSpeed);
                     }
-                    if (impactSpeed > 3) {
-                        spawnExplosion((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#fff', Math.min(2.2, impactSpeed/8));
+                    if (impactSpeed > 4.5) {
+                        spawnExplosion((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#fff', Math.min(1.1, impactSpeed/16));
                     }
                     if (impactSpeed > 9) {
                         triggerScreenShake(impactSpeed * 0.6);
+                    }
+                    // NOVO: tacadas fortes fazem as duas bolas saltarem levemente no eixo Z no instante do choque
+                    if (impactSpeed > HOP_TRIGGER_SPEED) {
+                        const hop = Math.min(2.6, impactSpeed * 0.1);
+                        b1.hopVel = Math.max(b1.hopVel, hop * 0.7);
+                        b2.hopVel = Math.max(b2.hopVel, hop);
+                        b1.wobble = Math.min(0.08, Math.max(b1.wobble||0, impactSpeed * 0.006));
+                        b2.wobble = Math.min(0.08, Math.max(b2.wobble||0, impactSpeed * 0.006));
                     }
                 }
             }
@@ -2675,6 +2890,11 @@
             addChatMessage('bot', [ 'Que feio. 🤦‍♂️', 'Nossa, essa doeu na minha RAM. 🤕', 'Sério que você fez isso? 🤨', 'Ai minha placa mãe... 😫', 'Vou fingir que não vi. 🙈', 'Assim fica difícil te defender. 😬', 'Melhora isso aí, humano. 👎', 'Decepção define. 😞', 'O que foi isso?! 😱', 'Apaga que dá tempo! 🧽', 'Meus sensores estão com vergonha por você. 😳', 'Lamentável. 🥀', 'Erro 404: Habilidade não encontrada. 🚫', 'Vixeee... 👀', 'Mandou muito mal. ❌', 'Esperava mais de você. 📉', 'Faltou processamento aí, hein? 🧠', 'Essa jogada foi triste. 😢', 'Eu faria melhor até desligado. 🔌', 'Precisamos rever essa estratégia. 📉' ][Math.floor(Math.random() * 20)]);
             cueBall.active = true; cueBall.mesh.visible = true; cueBall.mesh.scale.set(1,1,1);
             cueBall.x = WIDTH/4; cueBall.y = HEIGHT/2; cueBall.vx=0; cueBall.vy=0;
+            cueBall.mesh.position.z = 0; // CORREÇÃO DO BUG: garante que ela não fique "afundada" da queda anterior
+            cueBall.updateMeshPosition(); // CORREÇÃO DO BUG: sincroniza a malha 3D com a nova posição
+            // imediatamente — antes, isso só acontecia dentro do loop de física, que fica pausado
+            // logo após a falta, então a bola branca ficava "sumida" (parada no lugar antigo, na
+            // caçapa) até o jogador começar a arrastar pra reposicionar.
             gameState.ballInHand = true;
         }
 
@@ -2740,6 +2960,20 @@
                  gameState.p2Type = (gameState.p1Type==='solids') ? 'stripes' : 'solids';
                  updateTypeLabels();
                  showToast(`VOCÊ É ${gameState.p1Type === 'solids' ? 'LISAS' : 'LISTRADAS'}`);
+            }
+
+            // ============ NOVO: SISTEMA DE COMBO — feedback viciante pra múltiplas bolas na mesma tacada ============
+            // Encaçapar 2+ bolas do próprio grupo na mesma jogada é um evento raro e satisfatório —
+            // merece um destaque visual/sonoro maior, tipo um "combo" de jogo de ação, pra reforçar
+            // a sensação de recompensa e deixar o jogo mais viciante.
+            const comboCount = gameState.pocketedThisTurn.filter(b => !b.isCue && !b.isEight && (b.isSolid === (assignedType === 'solids'))).length;
+            if (comboCount >= 2) {
+                const comboMsg = comboCount >= 4 ? `LENDÁRIO! COMBO x${comboCount}! 🌟` : comboCount === 3 ? `INSANO! COMBO x${comboCount}! 🔥` : `COMBO x${comboCount}! 🔥`;
+                showToast(comboMsg, false, true);
+                spawnExplosion(cueBall.x, cueBall.y, comboCount >= 3 ? '#ffd34d' : getTheme().primary, Math.min(2, 0.8 + comboCount * 0.3));
+                spawnShockwave(cueBall.x, cueBall.y, '#ffd34d');
+                triggerScreenShake(6 + comboCount * 2);
+                triggerSlowMo(comboCount >= 3 ? 0.25 : 0.45);
             }
 
             if (sunkOwn) {
@@ -2971,6 +3205,16 @@
         });
         directCandidates.sort((c1, c2) => c1.score - c2.score);
 
+        // ============ NOVO: SISTEMA DE ANÁLISE — CONFIANÇA POR ROTA ============
+        // Cada rota candidata (bola + caçapa) ganha uma % de confiança baseada na distância e no
+        // ângulo de corte necessário: rotas curtas e "de frente" pra caçapa têm confiança alta;
+        // rotas longas e com corte fechado têm confiança baixa. Isso alimenta tanto o HUD de análise
+        // quanto a visualização de varredura (o bot literalmente testa essas rotas na tela).
+        directCandidates.forEach(c => {
+            c.confidence = Math.round(Math.max(8, Math.min(99, 97 - c.cutAngle * 42 - c.d * 0.11)));
+        });
+        botState.candidateRoutes = directCandidates.slice(0, 7);
+
         let bestDirectShot = null;
         if (directCandidates.length > 0) {
             // Quanto mais furioso, mais o bot "joga certo"; calmo, ele considera algumas opções a mais.
@@ -2989,7 +3233,8 @@
                 power: Math.min(chosen.d*0.35 + 10 + powerBoost, MAX_POWER - 5),
                 spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
                 spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
-                mode: 'direct'
+                mode: 'direct',
+                confidence: chosen.confidence
             };
         }
         
@@ -3008,7 +3253,8 @@
                             spinY: (Math.random()-0.5) * 1.5,
                             mode: 'bank',
                             pocket: pocket,
-                            wallPoint: bankShot.wallPoint
+                            wallPoint: bankShot.wallPoint,
+                            confidence: Math.round(38 + botState.angerLevel * 0.25) // tabela é sempre mais arriscada
                          };
                          break; 
                     }
@@ -3033,7 +3279,8 @@
                 power: MAX_POWER/2, 
                 spinX:0, 
                 spinY:0,
-                mode: 'direct'
+                mode: 'direct',
+                confidence: 22
             };
         }
 
@@ -3047,21 +3294,38 @@
             (botState.angerLevel >= 85 ? 1 : 0)
         );
         botState.timeBudget = Math.min(34, Math.max(14, 10 + botState.planComplexity * 4 + Math.round(botState.angerLevel / 35)));
+
+        // ============ NOVO: ATIVA O "MODO PODER" — sistema de análise avançada ============
+        // Quando o plano é complexo o suficiente (tabela dupla ou alta complexidade geral), o bot
+        // entra em "modo poder": faz uma varredura mais longa e visível testando várias rotas reais
+        // na mesa antes de travar na melhor, com um selo dedicado no HUD.
+        botState.powerMode = isMultiTable || botState.planComplexity >= 3;
+        botState.confidence = typeof finalChoice.confidence === 'number' ? finalChoice.confidence : 45;
+        botState.scanRouteIndex = 0;
+
         updateBotEmotionUI();
+        if (botState.powerMode) {
+            addChatMessage('bot', '⚡ MODO PODER ATIVADO: recalculando todas as rotas possíveis da mesa em tempo real...');
+        }
         addChatMessage('bot', isMultiTable
             ? 'Raiva no limite. Plano multifuncional: vou usar duas leituras de tabela.'
-            : `Plano ${botState.planType.toLowerCase()} calculado. Janela: ${botState.timeBudget}s.`);
+            : `Plano ${botState.planType.toLowerCase()} calculado. Janela: ${botState.timeBudget}s. Confiança: ${botState.confidence}%.`);
 
-        // --- Configuração da Varredura Visual ---
-        const anglesToScan = [];
-        targets.forEach(t => anglesToScan.push(Math.atan2(t.y - cueBall.y, t.x - cueBall.x)));
-        
-        for(let i=0; i<5; i++) {
-            let rBall = targets[Math.floor(Math.random() * targets.length)];
-            botState.scanLines.push({tx: rBall.x, ty: rBall.y});
-            botState.scanTargets.push({angle: Math.atan2(rBall.y - cueBall.y, rBall.x - cueBall.x)});
+        // --- Configuração da Varredura Visual: ANÁLISE REAL DE ROTAS ---
+        // Em vez de "fingir" que está pensando (miras aleatórias sem sentido), o bot agora varre
+        // literalmente as melhores rotas candidatas que ele calculou (bola + caçapa + confiança),
+        // desenhando cada uma na mesa antes de convergir pra escolha final. No "modo poder" a
+        // varredura é mais longa e cobre mais rotas, reforçando a sensação de cálculo avançado.
+        const routePool = botState.candidateRoutes.length > 0 ? botState.candidateRoutes : targets.map(t => ({
+            ball: t, pocket: getPockets()[0], aimAngle: Math.atan2(t.y - cueBall.y, t.x - cueBall.x), confidence: 30
+        }));
+        const scanCount = Math.min(routePool.length, botState.powerMode ? 7 : 4);
+        for (let i = 0; i < scanCount; i++) {
+            const r = routePool[i];
+            botState.scanLines.push({ tx: r.ball.x, ty: r.ball.y, pocket: r.pocket, confidence: r.confidence });
+            botState.scanTargets.push({ angle: r.aimAngle });
         }
-        
+
         botState.scanTargets.push({angle: finalChoice.angle});
         botState.currentScanTarget = 0;
         botState.aimAngle = botState.scanTargets[0].angle; 
@@ -3702,6 +3966,7 @@
         const timeEl = document.getElementById('bot-time-budget');
         const statusEl = document.getElementById('bot-status-mini');
         const ultEl = document.getElementById('ult-badge');
+        const powerEl = document.getElementById('bot-power-badge');
         const botEl = document.getElementById('p2-section');
 
         if (angerFill) {
@@ -3709,17 +3974,20 @@
             angerFill.style.filter = `saturate(${1 + level / 80})`;
         }
         if (angerLabel) angerLabel.innerText = `${level}% · ${label}`;
-        if (precisionEl) precisionEl.innerText = `${Math.min(100, precision)}%`;
+        // NOVO: durante análise/mira, o indicador de "mira" mostra a confiança REAL da rota escolhida
+        const isThinking = botState.phase === 'scanning' || botState.phase === 'aiming' || botState.phase === 'shooting';
+        if (precisionEl) precisionEl.innerText = isThinking ? `${botState.confidence}%` : `${Math.min(100, precision)}%`;
         if (complexityEl) complexityEl.innerText = botState.planComplexity > 1 ? `${botState.planComplexity}x` : '1x';
         if (timeEl) timeEl.innerText = `${Math.round(botState.timeBudget)}s`;
         if (statusEl) {
             statusEl.innerText = botState.phase === 'scanning'
-                ? `ANALISANDO · ${botState.planType}`
+                ? (botState.powerMode ? `⚡ MODO PODER · ANALISANDO ROTAS` : `ANALISANDO · ${botState.planType}`)
                 : (botState.phase === 'aiming' || botState.phase === 'shooting')
                     ? (botState.focusMode ? `MODO FOCUS · CALCULANDO TRAJETÓRIA` : `EXECUTANDO · ${botState.planType}`)
                     : `SISTEMA ${label}`;
         }
         if (ultEl) ultEl.classList.toggle('visible', gameState.playerUltReady);
+        if (powerEl) powerEl.classList.toggle('visible', botState.powerMode && isThinking);
         if (botEl) {
             botEl.classList.toggle('bot-angry', level > 40);
             botEl.classList.toggle('bot-raging', level >= 85);
@@ -3782,8 +4050,11 @@
         setTimeout(()=>el.classList.remove('show'), 1500);
     }
 
+    const MAX_PARTICLES = 90; // AJUSTADO: teto de partículas ativas, evita acúmulo em momentos caóticos (várias bolas batendo ao mesmo tempo)
+
     function spawnExplosion(x, y, color, intensity=1) {
-        const count = Math.round(8 + intensity * 6);
+        if (particles.length > MAX_PARTICLES) return;
+        const count = Math.round(3 + intensity * 2); // AJUSTADO 2x: metade das partículas de antes por explosão
         for(let i=0; i<count; i++) {
             const a = Math.random() * Math.PI * 2;
             const spd = (Math.random()*2.5 + 0.5) * intensity;
@@ -3800,8 +4071,11 @@
     }
 
     // NOVO: faísca de tabela - pequena centelha rente à borda quando a bola bate na tabela
+    // AJUSTADO: menos partículas por batida + respeita o teto global (bolas batendo várias vezes
+    // seguidas em sequência rápida era a principal causa dos mini travamentos)
     function spawnRailSpark(x, y, color) {
-        for(let i=0; i<4; i++) {
+        if (particles.length > MAX_PARTICLES) return;
+        for(let i=0; i<2; i++) {
             particles.push({
                 x, y,
                 vx:(Math.random()-0.5)*1.5,
@@ -3833,8 +4107,19 @@
     // vai parar depois da tacada, recalculada em tempo real a cada frame.
     function togglePlayerFocus() {
         gameState.playerFocusActive = !gameState.playerFocusActive;
+        _focusPredictionCache = null;
         document.getElementById('player-focus-btn').classList.toggle('active-toggle', gameState.playerFocusActive);
         showToast(gameState.playerFocusActive ? 'VISÃO DE CÁLCULO ATIVADA' : 'VISÃO DE CÁLCULO DESATIVADA', false);
+        resetInactivityTimer();
+    }
+
+    // NOVO: liga/desliga TODOS os visuais de análise da IA sobre a mesa de uma vez só (varredura de
+    // rotas do bot, modo foco, modo poder/radar e a previsão da ULT) — útil pra quem acha os
+    // overlays poluídos ou quer jogar numa mesa mais "limpa", sem perder nenhuma outra funcionalidade.
+    function toggleAiVisuals() {
+        gameState.showAiVisuals = !gameState.showAiVisuals;
+        document.getElementById('ai-visuals-btn').classList.toggle('active-toggle', gameState.showAiVisuals);
+        showToast(gameState.showAiVisuals ? 'VISUAIS DE IA: LIGADOS' : 'VISUAIS DE IA: DESLIGADOS', false);
         resetInactivityTimer();
     }
     
@@ -4062,13 +4347,17 @@
         requestAnimationFrame(animate);
 
         if (gameState.isMoving) {
+            // NOVO: câmera lenta cinematográfica — recupera suavemente de volta à velocidade normal
+            slowMoFactor += (1 - slowMoFactor) * 0.02;
             // NOVO: física em múltiplos sub-passos por frame -> colisões precisas, sem "atravessar" bolas em tacadas fortes
-            const dtScale = 1 / PHYSICS_SUBSTEPS;
+            const dtScale = (1 / PHYSICS_SUBSTEPS) * slowMoFactor;
             for (let s = 0; s < PHYSICS_SUBSTEPS; s++) {
                 balls.forEach(b => b.update(dtScale));
                 checkCollisions();
             }
             checkStop();
+        } else if (slowMoFactor < 1) {
+            slowMoFactor = 1;
         }
 
         botIdleTalk(); // ← nova linha: bot fala de vez em quando
