@@ -175,6 +175,26 @@
         .dot { width: 8px; height: 8px; background: #222; border-radius: 50%; border: 1px solid #444; transition: 0.3s; }
         .dot.active { background: var(--primary-color); border-color: #fff; box-shadow: 0 0 8px var(--primary-color); transform: scale(1.2); }
 
+        /* NOVO: BADGE DE SEQUÊNCIA (STREAK) — reforça o loop "viciante": mostra a sequência atual
+           de bolas encaçapadas seguidas e o recorde pessoal, salvo entre sessões. */
+        .streak-badge {
+            display: none;
+            align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 900; letter-spacing: .4px;
+            margin-top: 5px;
+            color: #ffb347;
+            text-shadow: 0 0 8px rgba(255,140,0,.7);
+            animation: streakPulse 0.9s ease-in-out infinite;
+        }
+        .streak-badge.visible { display: flex; }
+        .streak-badge.record { color: #ffd700; text-shadow: 0 0 10px #ffd700, 0 0 22px rgba(255,215,0,.8); animation: streakPulseHot 0.55s ease-in-out infinite; }
+        .streak-record-label {
+            font-size: 8.5px; color: #7c8a95; letter-spacing: .3px; margin-top: 2px; font-weight: 700;
+        }
+        .streak-record-label b { color: #ffd34d; }
+        @keyframes streakPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        @keyframes streakPulseHot { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.16) rotate(-2deg); } }
+
         /* MESA DE JOGO */
         .main-area {
             display: flex;
@@ -202,10 +222,18 @@
             background: #0b0b0b;
             border-radius: calc(35 / 680 * 100%);
             box-shadow: 
-                0 0 0 2px #222, 
+                0 0 0 2px var(--primary-color), 
+                0 0 40px 6px var(--primary-color),
                 0 20px 50px rgba(0,0,0,0.8), 
                 inset 0 0 60px rgba(0,0,0,0.9);
             overflow: hidden;
+            animation: tableNeonPulse 3.4s ease-in-out infinite;
+            transition: box-shadow .4s ease; /* suaviza a troca ao trocar de tema (cycleTheme) */
+        }
+        /* NOVO: pulso neon lento no contorno da mesa inteira — dá vida ao gabinete sem cansar a vista */
+        @keyframes tableNeonPulse {
+            0%, 100% { box-shadow: 0 0 0 2px var(--primary-color), 0 0 32px 4px var(--primary-color), 0 20px 50px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.9); }
+            50%      { box-shadow: 0 0 0 2px var(--primary-color), 0 0 58px 10px var(--primary-color), 0 20px 50px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.9); }
         }
 
         #game-inner {
@@ -213,8 +241,20 @@
             border-radius: calc(16 / 620 * 100%);
             overflow: hidden; background: #000; 
             border: 4px solid #1a1a1a;
-            box-shadow: inset 0 0 20px #000;
+            box-shadow: inset 0 0 20px #000, inset 0 0 30px -4px var(--primary-color);
+            transition: box-shadow .4s ease;
         }
+
+        /* ================== NOVO: MODO DESEMPENHO — EFEITOS DESLIGADOS ================== */
+        /* Uma classe única no <body> desliga as animações CSS mais custosas (pulsos neon
+           contínuos), pra rodar mais liso em celulares fracos ou pra quem prefere um visual
+           mais "parado". Efeitos de canvas (partículas, glow das caçapas/tabela) são
+           desligados via JS (variável EFFECTS_ENABLED), não CSS. */
+        body.fx-off #game-container { animation: none; box-shadow: 0 0 0 2px var(--primary-color), 0 0 18px 2px var(--primary-color), 0 20px 50px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.9); }
+        body.fx-off .streak-badge, body.fx-off .streak-badge.record { animation: none; }
+        body.fx-off .ult-badge { animation: none; }
+        body.fx-off #cancel-shot-btn.hover-armed { transform: translateX(-50%) translateY(0) scale(1); }
+        /* ================== FIM MODO DESEMPENHO ================== */
         
         canvas { position: absolute; top: 0; left: 0; }
         #input-layer { position: absolute; inset: 0; z-index: 100; cursor: crosshair; }
@@ -1136,6 +1176,29 @@
             box-shadow: 0 0 10px rgba(0,243,255,.7); cursor: pointer;
         }
 
+        /* NOVO: interruptor (toggle) para ligar/desligar os efeitos visuais — modo desempenho */
+        .setting-toggle-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 4px 0;
+        }
+        .setting-toggle-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+        .setting-toggle-text .sl-name { font-size: 11.5px; font-weight: 800; letter-spacing: .4px; color: #e8f6ff; }
+        .fx-switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; cursor: pointer; }
+        .fx-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+        .fx-switch-track {
+            position: absolute; inset: 0; border-radius: 99px;
+            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+            transition: background .2s ease, border-color .2s ease;
+        }
+        .fx-switch-thumb {
+            position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+            background: #cfd8dd; box-shadow: 0 2px 5px rgba(0,0,0,.4);
+            transition: transform .22s cubic-bezier(.34,1.56,.64,1), background .2s ease;
+        }
+        .fx-switch input:checked ~ .fx-switch-track { background: rgba(0,243,255,.28); border-color: var(--primary-color); }
+        .fx-switch input:checked ~ .fx-switch-thumb { transform: translateX(20px); background: linear-gradient(135deg, var(--primary-color), #8effff); box-shadow: 0 0 10px rgba(0,243,255,.7); }
+        .setting-divider { height: 1px; background: rgba(255,255,255,.08); margin: 2px 0 4px; }
+
         #settings-footer {
             flex-shrink: 0;
             display: flex; gap: 10px;
@@ -1161,11 +1224,40 @@
                 transform: translateY(100%);
                 width: 100vw;
                 max-height: 86vh;
+                max-height: 90dvh; /* NOVO: dvh ignora a barra de endereço do navegador, que fazia o painel "cortar" antes do fim em muitos celulares */
                 border-radius: 22px 22px 0 0;
                 border-bottom: none;
+                padding-bottom: env(safe-area-inset-bottom); /* NOVO: não deixa o rodapé colado atrás do gesto/home indicator do iPhone */
             }
             #settings-panel.visible { transform: translateY(0); }
             #settings-header { padding: 14px 16px 12px; }
+
+            /* NOVO: espaçamento mais compacto no mobile pra tudo caber sem precisar rolar tanto */
+            #settings-body { gap: 14px; padding: 12px 16px 4px; }
+            .setting-hint { font-size: 10px; }
+
+            /* NOVO: alvo de toque bem maior no slider — no desktop 18px é suficiente pro mouse, mas
+               no dedo é fácil errar o "pino" e a barra de força fica difícil de ajustar com precisão. */
+            .setting-slider { height: 8px; }
+            .setting-slider::-webkit-slider-thumb { width: 26px; height: 26px; }
+            .setting-slider::-moz-range-thumb { width: 24px; height: 24px; }
+        }
+
+        /* NOVO: em telas mobile bem baixas (paisagem, ex: celular deitado) o painel de configurações
+           precisa ser mais compacto ainda, senão o rodapé (botões) fica fora da área visível. */
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+            #settings-panel {
+                top: 50%; bottom: auto; left: 50%;
+                transform: translate(-50%, -46%) scale(.96);
+                width: clamp(280px, 60vw, 520px);
+                max-height: 92dvh; max-height: 92vh;
+                border-radius: 20px;
+            }
+            #settings-panel.visible { transform: translate(-50%, -50%) scale(1); }
+            #settings-header { padding: 10px 14px 8px; }
+            #settings-body { gap: 10px; padding: 10px 16px 4px; }
+            .setting-hint { display: none; } /* corta as descrições longas — sem espaço vertical sobrando na paisagem */
+            #settings-footer { padding: 10px 16px 14px; }
         }
         /* ================== FIM PAINEL DE CONFIGURAÇÕES ================== */
 
@@ -1264,6 +1356,8 @@
                     <span class="p-type" id="p1-type-label">--</span>
                     <div class="win-counter" id="p1-wins-display">VITÓRIAS: 0</div>
                     <div class="score-dots" id="p1-score"></div>
+                    <div class="streak-badge" id="streak-badge">🔥 SEQUÊNCIA x0</div>
+                    <div class="streak-record-label" id="streak-record-label">Recorde: <b id="streak-record-value">0</b></div>
                 </div>
                 <div class="chat-bubble" id="p1-bubble"></div>
             </div>
@@ -1441,6 +1535,22 @@
 
         <div id="settings-body">
             <div class="setting-group">
+                <div class="setting-toggle-row">
+                    <div class="setting-toggle-text">
+                        <span class="sl-name">🎆 Efeitos Visuais</span>
+                        <span class="setting-hint">Desliga partículas, tremor de tela, câmera lenta e brilhos neon. Deixa o jogo mais leve em celulares mais fracos.</span>
+                    </div>
+                    <label class="fx-switch">
+                        <input type="checkbox" id="toggle-effects" checked onchange="setEffectsEnabled(this.checked)">
+                        <span class="fx-switch-track"></span>
+                        <span class="fx-switch-thumb"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-divider"></div>
+
+            <div class="setting-group">
                 <div class="setting-label-row"><span class="sl-name">⚡ Força da Bola Branca</span><span class="sl-value" id="val-powerMultiplier">0.21</span></div>
                 <input type="range" class="setting-slider" id="slider-powerMultiplier" min="0.10" max="0.36" step="0.005" oninput="updatePhysicsSetting('powerMultiplier', this.value)">
                 <span class="setting-hint">Controla a velocidade máxima da tacada. Maior = tacadas mais fortes e rápidas.</span>
@@ -1494,6 +1604,61 @@
     // Contadores de Vitória
     let p1Wins = 0;
     let p2Wins = 0;
+
+    // ================== NOVO: RECORDE DE SEQUÊNCIA (STREAK) — loop viciante ==================
+    // Sequência = bolas do próprio grupo encaçapadas seguidas sem errar (usa o mesmo contador que
+    // já carrega a ULT). O recorde pessoal fica salvo entre sessões, criando uma meta pra bater
+    // toda vez que o jogador senta pra jogar.
+    let bestStreak = 0;
+    try { bestStreak = parseInt(localStorage.getItem('neonPoolBestStreak'), 10) || 0; } catch(e) {}
+    function updateStreakUI() {
+        const badge = document.getElementById('streak-badge');
+        const recordVal = document.getElementById('streak-record-value');
+        const streak = gameState.consecutivePlayerBalls || 0;
+
+        if (recordVal) recordVal.textContent = bestStreak;
+
+        if (!badge) return;
+        if (streak >= 2) {
+            const isNewRecord = streak >= bestStreak && bestStreak > 0;
+            badge.classList.add('visible');
+            badge.classList.toggle('record', isNewRecord);
+            badge.textContent = isNewRecord ? `👑 SEQUÊNCIA x${streak} · RECORDE!` : `🔥 SEQUÊNCIA x${streak}`;
+        } else {
+            badge.classList.remove('visible', 'record');
+        }
+
+        if (streak > bestStreak) {
+            bestStreak = streak;
+            try { localStorage.setItem('neonPoolBestStreak', String(bestStreak)); } catch(e) {}
+            if (recordVal) recordVal.textContent = bestStreak;
+            if (streak >= 3) { // só comemora recordes que já valem alguma coisa
+                showToast(`NOVO RECORDE! SEQUÊNCIA x${streak} 👑`, false, true);
+                spawnExplosion(cueBall.x, cueBall.y, '#ffd700', 1.6);
+                spawnShockwave(cueBall.x, cueBall.y, '#ffd700');
+                triggerScreenShake(10);
+            }
+        }
+    }
+    // ================== FIM RECORDE DE SEQUÊNCIA ==================
+
+    // ================== NOVO: LIGA/DESLIGA EFEITOS VISUAIS (MODO DESEMPENHO) ==================
+    // Um interruptor único que desliga partículas, tremor de tela, câmera lenta e os brilhos neon
+    // (shadowBlur no canvas, que é caro em celulares fracos) — pensado pra rodar liso em aparelhos
+    // mais fracos, ou pra quem simplesmente prefere um visual mais limpo/sem "flash".
+    let EFFECTS_ENABLED = true;
+    try {
+        const savedFx = localStorage.getItem('neonPoolEffectsEnabled');
+        if (savedFx !== null) EFFECTS_ENABLED = savedFx === '1';
+    } catch (e) {}
+    document.body.classList.toggle('fx-off', !EFFECTS_ENABLED); // aplica a preferência salva assim que a página carrega
+    function setEffectsEnabled(enabled) {
+        EFFECTS_ENABLED = !!enabled;
+        try { localStorage.setItem('neonPoolEffectsEnabled', EFFECTS_ENABLED ? '1' : '0'); } catch (e) {}
+        document.body.classList.toggle('fx-off', !EFFECTS_ENABLED);
+        _railCanvas = null; // reconstrói as tabelas sem/com o brilho neon
+    }
+    // ================== FIM LIGA/DESLIGA EFEITOS VISUAIS ==================
 
     // MODIFICAÇÃO: Diminuir a força máxima da tacada
     const MAX_DRAG_DISTANCE = 120; // Aumentei a distância que o usuário pode arrastar
@@ -1580,6 +1745,7 @@
         playThud(650, 0.06, vol, 'square');
     }
     function triggerScreenShake(power) {
+        if (!EFFECTS_ENABLED) return; // NOVO: respeita o modo "efeitos desligados"
         screenShake.power = Math.min(14, power);
         screenShake.t = 1;
     }
@@ -1599,6 +1765,7 @@
     // instante, como um replay em câmera lenta de uma jogada de sinuca profissional.
     let slowMoFactor = 1;
     function triggerSlowMo(strength) {
+        if (!EFFECTS_ENABLED) return; // NOVO: respeita o modo "efeitos desligados"
         slowMoFactor = Math.min(slowMoFactor, strength);
     }
     // ================== FIM NOVO MOTOR DE FÍSICA ==================
@@ -2232,11 +2399,10 @@
         cx.fill();
     }
 
-    // Desenha um segmento reto de tabela (bordô) em formato "cápsula": corpo retangular + tampas
-    // circulares arredondadas nas duas pontas. É a ponta arredondada encostando na caçapa que cria o
-    // visual de "pétala" característico do 8 Ball Pool. thickness é a espessura total da tabela;
-    // (outX,outY) é o vetor unitário que aponta pra FORA da mesa (longe do feltro).
-    function drawCushionSegment(cx, x1, y1, x2, y2, thickness, outX, outY) {
+    // Desenha um segmento reto de tabela em formato "cápsula": corpo escuro + friso NEON brilhante
+    // colado no feltro. thickness é a espessura total da tabela; (outX,outY) é o vetor unitário que
+    // aponta pra FORA da mesa (longe do feltro). `theme` define a cor do brilho neon da borda.
+    function drawCushionSegment(cx, x1, y1, x2, y2, thickness, outX, outY, theme) {
         const dx = x2 - x1, dy = y2 - y1;
         const len = Math.hypot(dx, dy);
         if (len < 1) return;
@@ -2248,18 +2414,17 @@
         // fora do feltro (nunca invade a área de jogo).
         const c1x = x1 + outX * r, c1y = y1 + outY * r;
         const c2x = x2 + outX * r, c2y = y2 + outY * r;
+        const neon = theme.primary;
 
         cx.save();
-        // NOVO: gradiente com 5 paradas (calibrado por amostragem de cor da referência, de dentro
-        // pra fora) — simula o perfil arredondado de um tarugo real: um friso vivo e saturado
-        // coladinho no feltro (o "lábio" pegando luz direta), depois um realce amplo mais suave
-        // (luz na curva do tarugo), um sulco de sombra, e por fim escurece na borda externa.
+        // NOVO VISUAL NEON: corpo da tabela escuro/quase preto (deixa o brilho neon se destacar em
+        // vez de competir com uma cor "de couro"), com um friso vivo colado exatamente no feltro.
         const grad = cx.createLinearGradient(c1x - outX * r, c1y - outY * r, c1x + outX * r, c1y + outY * r);
-        grad.addColorStop(0, '#95180b');    // friso vivo junto ao feltro
-        grad.addColorStop(0.22, '#994d4e'); // realce amplo (luz na curva do tarugo)
-        grad.addColorStop(0.5, '#5c2223');
-        grad.addColorStop(0.72, '#460304'); // sulco de sombra
-        grad.addColorStop(1, '#3d0a08');    // borda externa escura
+        grad.addColorStop(0, shadeColor(neon, -25));   // friso escurecido do próprio tom neon, junto ao feltro
+        grad.addColorStop(0.16, '#12151d');            // corpo escuro
+        grad.addColorStop(0.55, '#0a0c12');
+        grad.addColorStop(0.85, '#05060a');
+        grad.addColorStop(1, '#020204');                // borda externa quase preta
         cx.fillStyle = grad;
 
         // Corpo retangular da cápsula
@@ -2275,28 +2440,46 @@
         cx.beginPath(); cx.arc(c1x, c1y, r, 0, Math.PI * 2); cx.fill();
         cx.beginPath(); cx.arc(c2x, c2y, r, 0, Math.PI * 2); cx.fill();
 
-        // Friso claro (piping) bem fino colado exatamente na linha do feltro — detalhe clássico
-        cx.strokeStyle = 'rgba(230,190,140,0.5)';
-        cx.lineWidth = 1;
+        // NOVO: friso NEON brilhante (glow via shadowBlur) exatamente na linha do feltro — é essa
+        // linha luminosa contínua ao redor de toda a mesa que dá a "pegada neon" pedida. Desenhado
+        // 1x só (canvas cacheado), então mesmo com efeitos desligados o custo é irrelevante — mas
+        // ainda assim respeita a preferência visual do "modo desempenho" (fica uma linha sólida sem glow).
+        cx.save();
+        if (EFFECTS_ENABLED) {
+            cx.shadowColor = neon;
+            cx.shadowBlur = 9;
+        }
+        cx.strokeStyle = neon;
+        cx.lineWidth = 1.6;
         cx.beginPath();
         cx.moveTo(x1, y1);
         cx.lineTo(x2, y2);
         cx.stroke();
+        // segunda passada mais fina e mais brilhante por cima, pra um núcleo bem aceso
+        if (EFFECTS_ENABLED) cx.shadowBlur = 4;
+        cx.lineWidth = 0.8;
+        cx.strokeStyle = '#ffffff';
+        cx.globalAlpha = 0.55;
+        cx.stroke();
+        cx.restore();
+
         cx.restore();
     }
 
-    // Cache: as tabelas + diamantes não mudam de posição/forma entre frames (só o feltro muda com o
-    // tema), então são desenhadas 1x só num canvas separado e coladas (drawImage) a cada frame.
+    // Cache: as tabelas + diamantes não mudam de posição/forma entre frames, então são desenhadas 1x
+    // só num canvas separado e coladas (drawImage) a cada frame. Precisa ser reconstruído sempre que
+    // o tema mudar (cycleTheme invalida _railCanvas), já que a cor neon do friso depende do tema.
     let _railCanvas = null;
-    function buildRailCanvas() {
+    function buildRailCanvas(theme) {
         const c = document.createElement('canvas');
         c.width = WIDTH; c.height = HEIGHT;
         const cx = c.getContext('2d');
+        const neon = theme.primary;
 
-        // Base escura por trás de tudo (moldura externa da mesa)
+        // Base escura por trás de tudo (moldura externa da mesa) — leve tingimento neon no gradiente
         const outerGrad = cx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-        outerGrad.addColorStop(0, '#1d2842');
-        outerGrad.addColorStop(1, '#0d1220');
+        outerGrad.addColorStop(0, shadeColor(neon, -85));
+        outerGrad.addColorStop(1, '#050608');
         cx.fillStyle = outerGrad;
         roundRectPath(cx, 0, 0, WIDTH, HEIGHT, 16);
         cx.fill();
@@ -2307,18 +2490,20 @@
         const top = TABLE_MARGIN, bottom = HEIGHT - TABLE_MARGIN;
         const midX = WIDTH / 2;
 
-        // 6 segmentos de tabela (bordô), com pontas arredondadas encostando em cada caçapa —
-        // exatamente a "mordida" em pétala do visual de referência. (outX,outY) = direção pra fora.
-        drawCushionSegment(cx, left + gapC, top, midX - gapS, top, thickness, 0, -1);          // topo-esquerda
-        drawCushionSegment(cx, midX + gapS, top, right - gapC, top, thickness, 0, -1);          // topo-direita
-        drawCushionSegment(cx, left + gapC, bottom, midX - gapS, bottom, thickness, 0, 1);      // baixo-esquerda
-        drawCushionSegment(cx, midX + gapS, bottom, right - gapC, bottom, thickness, 0, 1);     // baixo-direita
-        drawCushionSegment(cx, left, top + gapC, left, bottom - gapC, thickness, -1, 0);        // esquerda
-        drawCushionSegment(cx, right, top + gapC, right, bottom - gapC, thickness, 1, 0);       // direita
+        // 6 segmentos de tabela com pontas arredondadas encostando em cada caçapa — a "mordida" em
+        // pétala do visual de referência, agora com friso neon. (outX,outY) = direção pra fora.
+        drawCushionSegment(cx, left + gapC, top, midX - gapS, top, thickness, 0, -1, theme);          // topo-esquerda
+        drawCushionSegment(cx, midX + gapS, top, right - gapC, top, thickness, 0, -1, theme);          // topo-direita
+        drawCushionSegment(cx, left + gapC, bottom, midX - gapS, bottom, thickness, 0, 1, theme);      // baixo-esquerda
+        drawCushionSegment(cx, midX + gapS, bottom, right - gapC, bottom, thickness, 0, 1, theme);     // baixo-direita
+        drawCushionSegment(cx, left, top + gapC, left, bottom - gapC, thickness, -1, 0, theme);        // esquerda
+        drawCushionSegment(cx, right, top + gapC, right, bottom - gapC, thickness, 1, 0, theme);       // direita
 
-        // Diamantes de mira — pontinhos claros centralizados na largura da tabela
+        // Diamantes de mira — agora brilhando na cor do tema, com glow neon
         cx.save();
-        cx.fillStyle = 'rgba(245,238,220,0.92)';
+        cx.fillStyle = '#ffffff';
+        cx.shadowColor = neon;
+        cx.shadowBlur = 7;
         const diamondY1 = top - CUSHION_WIDTH * 0.55;
         const diamondY2 = bottom + CUSHION_WIDTH * 0.55;
         const usableW = right - left;
@@ -2338,8 +2523,9 @@
         return c;
     }
 
-    // Feltro azul-claro estilo "mesa de app" — gradiente com leve luz vinda de cima e vinheta suave
-    // nas bordas, sem textura de tecido pesada (o visual de referência é mais flat/limpo).
+    // Feltro com "pegada neon": gradiente escuro do tema + grade luminosa sutil (eco do fundo da
+    // página) + brilho central mais forte simulando luz de spot vinda de cima, como uma mesa de
+    // sinuca num bar cyberpunk.
     function drawTableFelt(theme) {
         const w = WIDTH - TABLE_MARGIN * 2, h = HEIGHT - TABLE_MARGIN * 2;
         const grad = ctx2D.createRadialGradient(WIDTH / 2, HEIGHT * 0.35, 20, WIDTH / 2, HEIGHT / 2, WIDTH * 0.68);
@@ -2354,26 +2540,54 @@
         ctx2D.rect(TABLE_MARGIN, TABLE_MARGIN, w, h);
         ctx2D.clip();
 
-        // Vinheta bem suave nas bordas — só o suficiente pra dar profundidade sem escurecer o azul
+        // NOVO: grade neon bem sutil sobre o feltro — mesmo padrão de grid do fundo da página,
+        // reforçando a identidade visual "Neon Pool" também dentro da mesa de jogo.
+        ctx2D.strokeStyle = shadeColor(theme.primary, 10);
+        ctx2D.globalAlpha = 0.05;
+        ctx2D.lineWidth = 1;
+        const gridStep = 20;
+        ctx2D.beginPath();
+        for (let gx = TABLE_MARGIN; gx <= WIDTH - TABLE_MARGIN; gx += gridStep) { ctx2D.moveTo(gx, TABLE_MARGIN); ctx2D.lineTo(gx, HEIGHT - TABLE_MARGIN); }
+        for (let gy = TABLE_MARGIN; gy <= HEIGHT - TABLE_MARGIN; gy += gridStep) { ctx2D.moveTo(TABLE_MARGIN, gy); ctx2D.lineTo(WIDTH - TABLE_MARGIN, gy); }
+        ctx2D.stroke();
+        ctx2D.globalAlpha = 1;
+
+        // Vinheta suave nas bordas — dá profundidade sem escurecer demais o tom do feltro
         const vg = ctx2D.createRadialGradient(WIDTH / 2, HEIGHT / 2, Math.min(w, h) * 0.35, WIDTH / 2, HEIGHT / 2, WIDTH * 0.62);
         vg.addColorStop(0, 'rgba(0,0,0,0)');
-        vg.addColorStop(1, 'rgba(0,0,0,0.28)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.32)');
         ctx2D.fillStyle = vg;
         ctx2D.fillRect(TABLE_MARGIN, TABLE_MARGIN, w, h);
         ctx2D.restore();
+
+        // NOVO: brilho neon fino contornando a borda interna do feltro (onde a tabela encosta),
+        // reforçando o "aro de luz" ao redor de toda a área de jogo. shadowBlur é caro em canvas —
+        // pulado quando o "modo desempenho" (efeitos desligados) está ativo.
+        if (EFFECTS_ENABLED) {
+            ctx2D.save();
+            ctx2D.shadowColor = theme.primary;
+            ctx2D.shadowBlur = 12;
+            ctx2D.strokeStyle = theme.primary;
+            ctx2D.globalAlpha = 0.35;
+            ctx2D.lineWidth = 1.5;
+            ctx2D.strokeRect(TABLE_MARGIN + 1, TABLE_MARGIN + 1, w - 2, h - 2);
+            ctx2D.restore();
+        }
     }
 
     // Marcação central: uma linha vertical discreta dividindo a mesa ao meio, como no visual de
-    // referência (head string), + pequenos spots.
+    // referência (head string), + pequenos spots — agora com leve brilho neon.
     function drawTableMarkings() {
+        const theme = getTheme();
         ctx2D.save();
-        ctx2D.strokeStyle = 'rgba(255,255,255,0.14)';
+        ctx2D.strokeStyle = shadeColor(theme.primary, 20);
+        ctx2D.globalAlpha = 0.22;
         ctx2D.lineWidth = 1;
         ctx2D.beginPath();
         ctx2D.moveTo(WIDTH / 2, TABLE_MARGIN + 2);
         ctx2D.lineTo(WIDTH / 2, HEIGHT - TABLE_MARGIN - 2);
         ctx2D.stroke();
-        ctx2D.fillStyle = 'rgba(255,255,255,0.16)';
+        ctx2D.fillStyle = shadeColor(theme.primary, 30);
         [0.25, 0.72].forEach(f => {
             ctx2D.beginPath();
             ctx2D.arc(TABLE_MARGIN + (WIDTH - TABLE_MARGIN * 2) * f, HEIGHT / 2, 1.3, 0, Math.PI * 2);
@@ -2382,14 +2596,15 @@
         ctx2D.restore();
     }
 
-    // Caçapas estilo "8 Ball Pool" — raio VISUAL menor e proporcional à tabela (não mais o raio de
-    // física, que é propositalmente maior/mais generoso pra bola entrar com mais facilidade). Preto
-    // quase sólido com um leve degradê e um fio de luz na borda superior-esquerda, pra um toque 3D
-    // sutil sem perder o visual limpo/flat do jogo de referência.
+    // Caçapas com "pegada neon": vazio escuro clássico, mas agora com um aro luminoso pulsante na
+    // cor do tema — como se cada caçapa tivesse uma fita de LED por dentro, convidando a bola a cair.
     function drawPocketsRealistic(theme) {
+        // Pulso suave e lento (respiração), independente por caçapa pra não ficarem 100% sincronizadas
+        const t = Date.now() / 1000;
         getPockets().forEach((p, idx) => {
             const isSide = (idx === 1 || idx === 4);
             const r = isSide ? VIS_POCKET_SIDE : VIS_POCKET_CORNER;
+            const pulse = 0.55 + 0.45 * Math.sin(t * 1.6 + idx * 1.3);
 
             // Sombra suave de profundidade projetada no feltro ao redor
             const shadowGrad = ctx2D.createRadialGradient(p.x, p.y, r * 0.6, p.x, p.y, r * 1.6);
@@ -2397,6 +2612,27 @@
             shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
             ctx2D.fillStyle = shadowGrad;
             ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r * 1.6, 0, Math.PI * 2); ctx2D.fill();
+
+            // NOVO: aro neon pulsante ao redor da boca da caçapa — pulado no "modo desempenho"
+            // (shadowBlur recalculado com o pulso a cada frame, em 6 caçapas, pesa em celular fraco)
+            if (EFFECTS_ENABLED) {
+                ctx2D.save();
+                ctx2D.shadowColor = theme.primary;
+                ctx2D.shadowBlur = 6 + pulse * 6;
+                ctx2D.strokeStyle = theme.primary;
+                ctx2D.globalAlpha = 0.35 + pulse * 0.35;
+                ctx2D.lineWidth = 1.8;
+                ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r + 1.5, 0, Math.PI * 2); ctx2D.stroke();
+                ctx2D.restore();
+            } else {
+                // versão estática e barata (sem glow) — ainda dá uma pista visual da boca da caçapa
+                ctx2D.save();
+                ctx2D.strokeStyle = theme.primary;
+                ctx2D.globalAlpha = 0.4;
+                ctx2D.lineWidth = 1.2;
+                ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r + 1.5, 0, Math.PI * 2); ctx2D.stroke();
+                ctx2D.restore();
+            }
 
             // Corpo da caçapa — preto levemente amaciado por um degradê radial (não 100% chapado)
             const voidGrad = ctx2D.createRadialGradient(p.x - r * 0.25, p.y - r * 0.25, 1, p.x, p.y, r);
@@ -2428,7 +2664,7 @@
 
         // Desenhar Mesa (Feltro) — NOVO: tabelas bordô em cápsula (cacheadas) + diamantes + feltro
         // azul com luz direcional/vinheta + marcações clássicas + caçapas estilo "8 Ball Pool".
-        if (!_railCanvas) _railCanvas = buildRailCanvas();
+        if (!_railCanvas) _railCanvas = buildRailCanvas(theme);
         ctx2D.drawImage(_railCanvas, 0, 0);
         drawTableFelt(theme);
         drawTableMarkings();
@@ -2568,15 +2804,27 @@
         }
 
         // --- NOVO: ANIMAÇÃO DE TACADA (thrust do taco através da bola, com follow-through) ---
+        // Escalada pela FORÇA da tacada: quanto mais forte, mais o taco "estica" pra trás antes de
+        // estalar pra frente, atravessa mais fundo a bola, e o golpe todo acontece mais rápido —
+        // exatamente a sensação de uma tacada forte vs. uma cutucada leve.
         if (gameState.strikeAnim) {
             const sa = gameState.strikeAnim;
-            // t vai de 1 -> 0 rapidamente; usamos para "atravessar" o taco pela bola e depois recuar/sumir
+            const powerRatio = Math.min(1, (sa.power || 0) / getMaxPower()); // 0 (leve) -> 1 (força máxima)
             const punchProgress = 1 - sa.t; // 0 -> 1
-            const thrustOffset = -6 + punchProgress * 34; // começa perto e atravessa para frente da bola
+
+            // Fase 1 (0 -> 0.4 do progresso): o taco AINDA estica pra trás (elástico armando o golpe)
+            // Fase 2 (0.4 -> 1): estala pra frente, atravessando a bola, e o alongamento relaxa
+            const armPhase = Math.min(1, punchProgress / 0.4);
+            const punchPhase = Math.max(0, (punchProgress - 0.4) / 0.6);
+            const stretchAmount = Math.sin(armPhase * Math.PI) * (10 + powerRatio * 34) * (1 - punchPhase * 0.7);
+
+            const maxThrust = 20 + powerRatio * 48; // tacadas fortes atravessam bem mais a bola
+            const thrustOffset = -10 + easeOutCubic(punchPhase) * maxThrust;
+
             ctxFX.globalAlpha = Math.max(0, sa.t);
-            drawCueStick(cueBall.x, cueBall.y, sa.angle, thrustOffset, gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin);
+            drawCueStick(cueBall.x, cueBall.y, sa.angle, thrustOffset, gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin, stretchAmount);
             ctxFX.globalAlpha = 1;
-            sa.t -= 0.14;
+            sa.t -= 0.11 + powerRatio * 0.10; // tacadas fortes concluem o golpe mais rápido
             if (sa.t <= 0) gameState.strikeAnim = null;
         }
 
@@ -2657,11 +2905,16 @@
         return a + diff * t;
     }
 
+    // NOVO: easing usado na animação da tacada — o "estalo" pra frente desacelera suavemente no final
+    function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+    }
+
 
     // NOVO: o taco agora recebe o "efeito" (spin) atual e desenha uma leve inclinação + deslocamento
     // lateral da ponta quando há efeito aplicado — visualmente mostra uma tacada "fora de centro"
     // (mira meio torta), deixando claro pra quem está assistindo que existe efeito na jogada.
-    function drawCueStick(x, y, angle, offset, spin) {
+    function drawCueStick(x, y, angle, offset, spin, stretch = 0) {
         ctxFX.save();
         ctxFX.translate(x, y);
         ctxFX.rotate(angle);
@@ -2674,17 +2927,20 @@
         ctxFX.rotate(tiltAngle);
         ctxFX.translate(offset, lateralOffset);
 
-        const stickGradient = ctxFX.createLinearGradient(-200, 0, 0, 0);
+        // NOVO: `stretch` alonga a cauda do taco pra trás (efeito elástico) — usado na tacada, onde
+        // um golpe mais forte estica o taco visivelmente mais antes de "estalar" pra frente.
+        const tailX = -200 - stretch;
+        const stickGradient = ctxFX.createLinearGradient(tailX, 0, 0, 0);
         stickGradient.addColorStop(0, '#333');
         stickGradient.addColorStop(0.9, '#cfaa70'); 
         stickGradient.addColorStop(1, '#fff');
 
         ctxFX.fillStyle = stickGradient;
         ctxFX.beginPath();
-        ctxFX.moveTo(-200, -4); 
+        ctxFX.moveTo(tailX, -4); 
         ctxFX.lineTo(0, -2);    
         ctxFX.lineTo(0, 2);
-        ctxFX.lineTo(-200, 4);
+        ctxFX.lineTo(tailX, 4);
         ctxFX.fill();
 
         // Ponta do taco em destaque (couro), fica visualmente "presa" fora do centro quando há efeito
@@ -3199,6 +3455,14 @@
     }
 
     function handleInputMove(e) {
+        // NOVO: só intercepta o gesto se o jogo estiver de fato mirando/ajustando efeito/reposicionando
+        // a bola — do contrário (painel de configurações aberto, rolando a lista, arrastando um
+        // slider, etc.) deixamos o navegador tratar o toque normalmente. Sem essa checagem, o
+        // preventDefault() abaixo "roubava" TODO touchmove da página inteira, e no celular os sliders
+        // do painel de configurações ficavam impossíveis de arrastar e a lista não rolava — por isso
+        // "as configurações não apareciam todas e ficava ruim de ajustar".
+        if (!isSettingSpin && !gameState.isDragging) return;
+
         const event = e.touches ? e.touches[0] : e;
         e.preventDefault(); 
         const pos = getMousePos(event);
@@ -3382,7 +3646,8 @@
         cueBall.spinZ = shotSpin.x * 0.4 * (p / getMaxPower() + 0.4);
 
         // NOVO: taco "atravessa" a bola no instante da tacada (thrust) + puff de giz + som + squash na branca
-        gameState.strikeAnim = { angle: a, t: 1 };
+        // `power` fica salvo no strikeAnim pra escalar o alongamento/estalo do taco de acordo com a força
+        gameState.strikeAnim = { angle: a, t: 1, power: p };
         spawnExplosion(cueBall.x - Math.cos(a)*BALL_RADIUS, cueBall.y - Math.sin(a)*BALL_RADIUS, '#e8e8e8', 0.5);
         cueBall.squash = Math.min(0.32, p * 0.045);
         playStrikeSound(p);
@@ -4531,6 +4796,8 @@
             slider.value = value;
             label.textContent = value.toFixed(PHYSICS_SETTINGS_META[key].decimals);
         });
+        const fxToggle = document.getElementById('toggle-effects'); // NOVO: sincroniza o interruptor de efeitos
+        if (fxToggle) fxToggle.checked = EFFECTS_ENABLED;
     }
 
     function updatePhysicsSetting(key, rawValue) {
@@ -4740,6 +5007,8 @@
         updateDots('p1-score', gameState.p1Type);
         updateDots('p2-score', gameState.p2Type);
         
+        updateStreakUI(); // NOVO: mantém o badge de sequência/recorde sempre sincronizado
+
         // Atualiza a exibição de bolas encaçapadas se o menu estiver aberto
         if(sunkMenuOpen) updateSunkAnimationStack();
     }
@@ -4793,7 +5062,7 @@
     const MAX_PARTICLES = 90; // AJUSTADO: teto de partículas ativas, evita acúmulo em momentos caóticos (várias bolas batendo ao mesmo tempo)
 
     function spawnExplosion(x, y, color, intensity=1) {
-        if (particles.length > MAX_PARTICLES) return;
+        if (!EFFECTS_ENABLED || particles.length > MAX_PARTICLES) return; // NOVO: respeita o modo "efeitos desligados"
         const count = Math.round(3 + intensity * 2); // AJUSTADO 2x: metade das partículas de antes por explosão
         for(let i=0; i<count; i++) {
             const a = Math.random() * Math.PI * 2;
@@ -4814,7 +5083,7 @@
     // AJUSTADO: menos partículas por batida + respeita o teto global (bolas batendo várias vezes
     // seguidas em sequência rápida era a principal causa dos mini travamentos)
     function spawnRailSpark(x, y, color) {
-        if (particles.length > MAX_PARTICLES) return;
+        if (!EFFECTS_ENABLED || particles.length > MAX_PARTICLES) return; // NOVO: respeita o modo "efeitos desligados"
         for(let i=0; i<2; i++) {
             particles.push({
                 x, y,
@@ -4830,6 +5099,7 @@
 
     // NOVO: onda de choque circular ao encaçapar - dá "impacto" à animação de queda
     function spawnShockwave(x, y, color) {
+        if (!EFFECTS_ENABLED) return; // NOVO: respeita o modo "efeitos desligados"
         particles.push({ x, y, ring:true, life:1.0, color, size:2, grav:false });
     }
 
@@ -4891,6 +5161,7 @@
         const theme = getTheme();
         document.documentElement.style.setProperty('--primary-color', theme.primary);
         themeLight.color.setHex(theme.lightColor);
+        _railCanvas = null; // NOVO: invalida o cache das tabelas — o friso neon precisa ser redesenhado na nova cor
         updateHUD(); drawTable2D(); 
         resetInactivityTimer(); // Nova atividade
     }
