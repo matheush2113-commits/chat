@@ -2,7 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050505">
     <title>Neon Pool 3D - Ultimate AI & Power Ring</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
@@ -23,6 +27,9 @@
             height: 100%;
             overflow: hidden;
             touch-action: none; 
+            overscroll-behavior: none; /* NOVO: impede o "puxar para atualizar" e o efeito elástico de rolagem em mobile */
+            position: fixed; /* NOVO: trava o viewport no lugar — evita a barra de endereço do navegador mobile "pular" durante o toque */
+            width: 100%;
         }
 
         body {
@@ -47,8 +54,9 @@
             gap: 2vh;
             width: 100%;
             max-width: 1400px; 
-            padding: 1vh 2vw;
+            padding: max(1vh, env(safe-area-inset-top)) max(2vw, env(safe-area-inset-right)) max(1vh, env(safe-area-inset-bottom)) max(2vw, env(safe-area-inset-left));
             height: 100vh;
+            height: 100dvh; /* NOVO: usa a altura dinâmica de viewport — ignora a barra de endereço/toolbar que aparece/some em mobile */
             overflow: hidden;
         }
 
@@ -402,6 +410,49 @@
         .toast.bad { border-color: #ff3333; box-shadow: 0 0 20px #ff3333; text-shadow: 0 0 5px #ff3333; color: #ff3333; }
         .toast.taunt { border-color: #ffd700; box-shadow: 0 0 20px #ffd700; text-shadow: 0 0 5px #ffd700; color: #ffd700; }
 
+        /* ============ NOVO: CINEMÁTICA DE FIM DE JOGO (FATALITY -> VITÓRIA) ============ */
+        .go-overlay {
+            position: absolute; inset: 0; z-index: 400;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none; opacity: 0; transition: opacity .25s ease;
+            background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,.55) 100%);
+        }
+        .go-overlay.visible { opacity: 1; }
+        .go-fatality, .go-victory {
+            position: absolute; font-family: 'Orbitron', sans-serif; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 6px; opacity: 0; text-align: center;
+        }
+        .go-fatality {
+            font-size: 56px; color: #ff1a1a;
+            text-shadow: 0 0 18px #ff1a1a, 0 0 40px #7a0000, 3px 0 0 #00f3ff, -3px 0 0 #ff00c8;
+        }
+        .go-fatality.show { animation: goFatalityIn .9s cubic-bezier(.2,1.6,.4,1) forwards, goGlitch 1.1s steps(2) 0.15s 3; }
+        .go-victory {
+            font-size: 48px; color: #ffd34d;
+            text-shadow: 0 0 20px #ffd34d, 0 0 50px #ff8c00;
+        }
+        .go-victory.show { animation: goVictoryIn 1.1s cubic-bezier(.2,1,.3,1) forwards; }
+
+        @keyframes goFatalityIn {
+            0% { opacity: 0; transform: scale(3.4) rotate(-4deg); filter: blur(6px); }
+            55% { opacity: 1; transform: scale(0.94) rotate(1deg); filter: blur(0); }
+            75% { transform: scale(1.06) rotate(-0.5deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes goGlitch {
+            0%, 100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+            20% { clip-path: inset(10% 0 60% 0); transform: translateX(-6px); }
+            40% { clip-path: inset(70% 0 5% 0); transform: translateX(6px); }
+            60% { clip-path: inset(30% 0 40% 0); transform: translateX(-4px); }
+            80% { clip-path: inset(5% 0 80% 0); transform: translateX(4px); }
+        }
+        @keyframes goVictoryIn {
+            0% { opacity: 0; transform: scale(0.5) translateY(30px); }
+            60% { opacity: 1; transform: scale(1.08) translateY(0); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        /* ================== FIM CINEMÁTICA DE FIM DE JOGO ================== */
+
         .chat-bubble {
             position: absolute; top: 60px; 
             background: #fff; color: #000; padding: 6px 10px; 
@@ -443,25 +494,26 @@
 
             .side-controls {
                 flex-direction: row;
-                gap: 8vw;
+                flex-wrap: wrap;
+                gap: 2.5vw 3vw;
                 height: auto;
-                padding: 10px 0;
+                padding: 10px 8px;
                 width: 98vw;
                 max-width: 98vw;
             }
 
             .btn-neon {
-                width: 15vw;
-                height: 15vw;
-                max-width: 60px;
-                max-height: 60px;
+                width: 13vw;
+                height: 13vw;
+                max-width: 48px;
+                max-height: 48px;
             }
 
             .btn-neon svg {
-                width: 8vw;
-                height: 8vw;
-                max-width: 22px;
-                max-height: 22px;
+                width: 7vw;
+                height: 7vw;
+                max-width: 20px;
+                max-height: 20px;
             }
 
             #spin-popover {
@@ -636,22 +688,26 @@
                 width: auto;
                 max-width: 10vw;
                 height: 98vh;
-                padding: 15px 10px;
-                gap: 2vh;
+                padding: 10px 8px;
+                gap: 1.4vh;
+                overflow-y: auto;
+                scrollbar-width: none;
             }
+            .side-controls::-webkit-scrollbar { display: none; }
 
             .btn-neon {
                 width: 8vw;
                 height: 8vw;
-                max-width: 50px;
-                max-height: 50px;
+                max-width: 42px;
+                max-height: 42px;
+                flex-shrink: 0;
             }
 
             .btn-neon svg {
                 width: 4vw;
                 height: 4vw;
-                max-width: 20px;
-                max-height: 20px;
+                max-width: 18px;
+                max-height: 18px;
             }
 
             /* Popovers: posicionamento centralizado e mais distante do painel */
@@ -989,6 +1045,177 @@
             .chip { font-size: 10px; padding: 6px 11px; }
         }
         /* ================== FIM CHAT v2 ================== */
+
+        /* ================== PAINEL DE CONFIGURAÇÕES DE FÍSICA ================== */
+        #settings-overlay {
+            position: fixed; inset: 0; z-index: 290;
+            background: rgba(2,4,7,0.6);
+            backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+            opacity: 0; visibility: hidden;
+            transition: opacity .25s ease;
+        }
+        #settings-overlay.visible { opacity: 1; visibility: visible; }
+
+        #settings-panel {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -46%) scale(.96);
+            width: clamp(300px, 34vw, 440px);
+            max-height: 82vh;
+            background: linear-gradient(165deg, rgba(16,22,32,.94), rgba(6,9,14,.97));
+            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            border-radius: 26px;
+            border: 1px solid rgba(0,243,255,.28);
+            box-shadow: 0 30px 90px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.04) inset, 0 0 50px rgba(0,243,255,.1);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .3s cubic-bezier(.2,.9,.25,1), transform .3s cubic-bezier(.2,.9,.25,1);
+            overflow: hidden;
+        }
+        #settings-panel.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #settings-header {
+            position: relative;
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 18px 14px;
+            background: linear-gradient(120deg, rgba(0,243,255,.14), rgba(255,255,255,0) 60%);
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            flex-shrink: 0;
+        }
+        #settings-header svg.gear-icon { width: 22px; height: 22px; fill: var(--primary-color); flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(0,243,255,.5)); }
+        #settings-header-text { flex-grow: 1; min-width: 0; }
+        #settings-header-text .st-title { font-weight: 900; font-size: 13px; letter-spacing: .5px; color: #fff; }
+        #settings-header-text .st-subtitle { display:block; margin-top:3px; color:#93a6b4; font-size:10px; letter-spacing:.3px; }
+        .chat-close.settings-close { border:0; background: rgba(255,255,255,.06); color:#c4d0d8; cursor:pointer; width: 30px; height: 30px; border-radius: 50%; font-size:17px; line-height:1; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition: background .2s, transform .2s; }
+        .chat-close.settings-close:hover { background: rgba(255,80,80,.22); transform: rotate(90deg); }
+
+        #settings-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px 18px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,243,255,.4) transparent;
+        }
+        #settings-body::-webkit-scrollbar { width: 5px; }
+        #settings-body::-webkit-scrollbar-thumb { background: rgba(0,243,255,.35); border-radius: 10px; }
+
+        .setting-group { display: flex; flex-direction: column; gap: 6px; }
+        .setting-label-row { display: flex; justify-content: space-between; align-items: baseline; }
+        .setting-label-row .sl-name { font-size: 11.5px; font-weight: 800; letter-spacing: .4px; color: #e8f6ff; }
+        .setting-label-row .sl-value { font-size: 11.5px; font-weight: 900; color: var(--primary-color); font-variant-numeric: tabular-nums; }
+        .setting-hint { font-size: 9.5px; color: #7c8a95; letter-spacing: .2px; line-height: 1.4; }
+
+        .setting-slider {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 6px; border-radius: 99px;
+            background: linear-gradient(90deg, rgba(0,243,255,.35), rgba(0,243,255,.1));
+            outline: none; cursor: pointer;
+        }
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), #8effff);
+            box-shadow: 0 0 10px rgba(0,243,255,.7), 0 2px 6px rgba(0,0,0,.4);
+            cursor: pointer; border: 2px solid rgba(6,9,14,.9);
+            transition: transform .15s;
+        }
+        .setting-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .setting-slider::-moz-range-thumb {
+            width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(6,9,14,.9);
+            background: linear-gradient(135deg, var(--primary-color), #8effff);
+            box-shadow: 0 0 10px rgba(0,243,255,.7); cursor: pointer;
+        }
+
+        #settings-footer {
+            flex-shrink: 0;
+            display: flex; gap: 10px;
+            padding: 14px 18px 18px;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: rgba(0,0,0,.28);
+        }
+        .settings-btn {
+            flex: 1; padding: 11px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.06); color: #d8e8ee; font-family: inherit; font-size: 11px;
+            font-weight: 800; letter-spacing: .4px; cursor: pointer; transition: background .18s, transform .12s, border-color .18s;
+        }
+        .settings-btn:hover { background: rgba(255,255,255,.12); transform: translateY(-1px); }
+        .settings-btn:active { transform: scale(.96); }
+        .settings-btn.primary { background: linear-gradient(135deg, var(--primary-color), #8effff); color: #001217; border: none; box-shadow: 0 4px 16px rgba(0,243,255,.35); }
+        .settings-btn.primary:hover { box-shadow: 0 6px 20px rgba(0,243,255,.5); }
+        .settings-btn.danger { background: rgba(255,71,87,.12); color: #ff8a95; border-color: rgba(255,71,87,.3); }
+        .settings-btn.danger:hover { background: rgba(255,71,87,.22); }
+
+        @media (max-width: 768px) {
+            #settings-panel {
+                top: auto; bottom: 0; left: 0;
+                transform: translateY(100%);
+                width: 100vw;
+                max-height: 86vh;
+                border-radius: 22px 22px 0 0;
+                border-bottom: none;
+            }
+            #settings-panel.visible { transform: translateY(0); }
+            #settings-header { padding: 14px 16px 12px; }
+        }
+        /* ================== FIM PAINEL DE CONFIGURAÇÕES ================== */
+
+        /* ================== BOTÃO CANCELAR TACADA ================== */
+        #cancel-shot-btn {
+            position: absolute;
+            left: 50%; bottom: 4%;
+            transform: translateX(-50%) translateY(20px) scale(0.85);
+            display: flex; align-items: center; gap: 6px;
+            padding: 10px 18px 10px 14px;
+            border-radius: 99px;
+            border: 1.5px solid rgba(255,71,87,0.55);
+            background: rgba(20,6,8,0.88);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            color: #ff8a95;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: .5px;
+            box-shadow: 0 6px 22px rgba(0,0,0,.5), 0 0 16px rgba(255,71,87,.25);
+            cursor: pointer;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 155;
+            transition: opacity .18s ease, transform .18s ease, background .15s ease, border-color .15s ease;
+        }
+        #cancel-shot-btn svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+        #cancel-shot-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        #cancel-shot-btn.hover-armed {
+            background: rgba(255,71,87,0.28);
+            border-color: #ff4757;
+            color: #fff;
+            box-shadow: 0 6px 26px rgba(0,0,0,.55), 0 0 24px rgba(255,71,87,.55);
+            transform: translateX(-50%) translateY(0) scale(1.08);
+        }
+
+        @media (max-width: 768px) {
+            #cancel-shot-btn {
+                bottom: 2%;
+                padding: 13px 22px 13px 16px;
+                font-size: 13px;
+                border-width: 2px;
+            }
+            #cancel-shot-btn svg { width: 19px; height: 19px; }
+        }
+        /* ================== FIM BOTÃO CANCELAR TACADA ================== */
     </style>
 </head>
 <body>
@@ -1093,6 +1320,16 @@
                     </div>
                     <div id="ui-layer">
                         <div id="game-toast" class="toast"></div>
+                        <!-- NOVO: botão de CANCELAR TACADA — aparece durante a mira (arrastar), some ao soltar -->
+                        <button id="cancel-shot-btn" onclick="cancelShot()" aria-label="Cancelar tacada">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <span>Cancelar</span>
+                        </button>
+                        <!-- NOVO: cinemática de fim de jogo — sequência FATALITY -> VITÓRIA, estilo tela de finalização -->
+                        <div id="go-overlay" class="go-overlay">
+                            <div id="go-fatality-text" class="go-fatality">FATALITY</div>
+                            <div id="go-victory-text" class="go-victory">VITÓRIA</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1129,6 +1366,11 @@
 
                 <button class="btn-neon" onclick="toggleSunkMenu()">
                     <svg viewBox="0 0 24 24"><path d="M12 21l-12-18h24z"/></svg>
+                </button>
+
+                <!-- NOVO: PAINEL DE FÍSICA — configura força da tacada, desaceleração e colisões -->
+                <button class="btn-neon" id="physics-settings-btn" onclick="toggleSettingsPanel()" title="Configurar física: força, desaceleração e colisão">
+                    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.04,0.64,0.09,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
                 </button>
 
                 <div style="flex-grow:1;"></div>
@@ -1185,6 +1427,61 @@
         </div>
     </div>
 
+    <!-- PAINEL DE CONFIGURAÇÃO DE FÍSICA — força, desaceleração, colisões -->
+    <div id="settings-overlay" onclick="closeSettingsPanel()"></div>
+    <div id="settings-panel">
+        <div id="settings-header">
+            <svg class="gear-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.04,0.64,0.09,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+            <div id="settings-header-text">
+                <div class="st-title">FÍSICA DA MESA</div>
+                <span class="st-subtitle">Ajuste força, desaceleração e colisões em tempo real</span>
+            </div>
+            <button class="chat-close settings-close" onclick="closeSettingsPanel()">×</button>
+        </div>
+
+        <div id="settings-body">
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">⚡ Força da Bola Branca</span><span class="sl-value" id="val-powerMultiplier">0.21</span></div>
+                <input type="range" class="setting-slider" id="slider-powerMultiplier" min="0.10" max="0.36" step="0.005" oninput="updatePhysicsSetting('powerMultiplier', this.value)">
+                <span class="setting-hint">Controla a velocidade máxima da tacada. Maior = tacadas mais fortes e rápidas.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">🎱 Desaceleração / Atrito</span><span class="sl-value" id="val-rollDecel">0.062</span></div>
+                <input type="range" class="setting-slider" id="slider-rollDecel" min="0.015" max="0.16" step="0.001" oninput="updatePhysicsSetting('rollDecel', this.value)">
+                <span class="setting-hint">Freio da bola ao rolar no pano. Menor = bola desliza muito mais longe; maior = para rápido.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">💥 Elasticidade da Colisão</span><span class="sl-value" id="val-ballRestitution">0.985</span></div>
+                <input type="range" class="setting-slider" id="slider-ballRestitution" min="0.70" max="1.00" step="0.005" oninput="updatePhysicsSetting('ballRestitution', this.value)">
+                <span class="setting-hint">Restituição bola-bola no choque. 1.0 = colisão perfeitamente elástica (sem perda de energia).</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">🧱 Quique nas Tabelas</span><span class="sl-value" id="val-railRestitution">0.92</span></div>
+                <input type="range" class="setting-slider" id="slider-railRestitution" min="0.50" max="1.00" step="0.005" oninput="updatePhysicsSetting('railRestitution', this.value)">
+                <span class="setting-hint">Quanta velocidade a bola mantém ao bater nas bordas da mesa.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">🌀 Efeito de Arrasto (Spin)</span><span class="sl-value" id="val-throwEffect">0.045</span></div>
+                <input type="range" class="setting-slider" id="slider-throwEffect" min="0" max="0.15" step="0.002" oninput="updatePhysicsSetting('throwEffect', this.value)">
+                <span class="setting-hint">Quanto o efeito lateral (tacada com giro) desvia as bolas no impacto.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">🔄 Decaimento do Efeito</span><span class="sl-value" id="val-spinDecay">0.982</span></div>
+                <input type="range" class="setting-slider" id="slider-spinDecay" min="0.90" max="0.999" step="0.001" oninput="updatePhysicsSetting('spinDecay', this.value)">
+                <span class="setting-hint">Velocidade com que o giro (efeito) da bola branca se dissipa.</span>
+            </div>
+        </div>
+
+        <div id="settings-footer">
+            <button class="settings-btn danger" onclick="resetPhysicsSettings()">Restaurar Padrão</button>
+            <button class="settings-btn primary" onclick="closeSettingsPanel()">Aplicar e Fechar</button>
+        </div>
+    </div>
 
 <script>
     // CONFIGURAÇÃO GERAL
@@ -1200,8 +1497,6 @@
 
     // MODIFICAÇÃO: Diminuir a força máxima da tacada
     const MAX_DRAG_DISTANCE = 120; // Aumentei a distância que o usuário pode arrastar
-    const POWER_MULTIPLIER = 0.21; // AJUSTADO: mais velocidade nas tacadas (era 0.15)
-    const MAX_POWER = MAX_DRAG_DISTANCE * POWER_MULTIPLIER; 
 
     // ================== FÍSICA REFEITA DO ZERO — MODELO REALISTA ==================
     // ANTES: o atrito multiplicava a velocidade por uma porcentagem a cada frame (decaimento
@@ -1212,11 +1507,31 @@
     // chegar a exatamente zero — sem cauda residual, sem cortes artificiais de "velocidade
     // mínima" pra forçar a parada. É esse modelo que foi implementado agora.
     const PHYSICS_SUBSTEPS = 6;              // Sub-passos por frame -> evita "atravessar" bolas em tacadas fortes e mantém colisões precisas
-    const ROLL_DECEL = 0.062;                // Desaceleração CONSTANTE de rolagem (unidades/frame², não porcentagem). Quanto menor, mais longe a bola desliza.
-    const RAIL_RESTITUTION = 0.92;           // Restituição da tabela (bola perde ~8% da velocidade normal ao quicar - realista para borracha de sinuca)
-    const BALL_RESTITUTION = 0.985;          // Restituição bola-bola (quase perfeitamente elástico, como marfim/resina real)
-    const THROW_EFFECT = 0.045;              // "Efeito de arrasto" tangencial no impacto bola-bola (curva realista pós-taco)
-    const SPIN_DECAY = 0.982;                // Decaimento do efeito (spin) da bola branca ao longo do tempo
+
+    // ================== PAINEL DE CONFIGURAÇÃO DE FÍSICA (AJUSTÁVEL PELO USUÁRIO) ==================
+    // Todos os valores que antes eram `const` fixas agora vivem neste objeto, editável em tempo
+    // real pelo painel de configurações (engrenagem no HUD) e persistido no localStorage.
+    const PHYSICS_DEFAULTS = {
+        powerMultiplier: 0.21,   // Força da tacada: converte distância de arrasto -> velocidade da bola branca
+        rollDecel: 0.062,        // Desaceleração CONSTANTE de rolagem (unidades/frame²). Quanto menor, mais longe a bola desliza.
+        railRestitution: 0.92,   // Restituição da tabela (quique nas bordas)
+        ballRestitution: 0.985,  // Restituição bola-bola (elasticidade da colisão)
+        throwEffect: 0.045,      // "Efeito de arrasto" tangencial no impacto bola-bola (curva realista pós-taco)
+        spinDecay: 0.982         // Decaimento do efeito (spin) da bola branca ao longo do tempo
+    };
+    let PHYSICS_CONFIG = { ...PHYSICS_DEFAULTS };
+    (function loadPhysicsConfig() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('neonPoolPhysicsConfig'));
+            if (saved && typeof saved === 'object') {
+                PHYSICS_CONFIG = { ...PHYSICS_DEFAULTS, ...saved };
+            }
+        } catch (e) { /* ignora config inválida salva */ }
+    })();
+    function savePhysicsConfig() {
+        try { localStorage.setItem('neonPoolPhysicsConfig', JSON.stringify(PHYSICS_CONFIG)); } catch (e) {}
+    }
+    function getMaxPower() { return MAX_DRAG_DISTANCE * PHYSICS_CONFIG.powerMultiplier; }
     let screenShake = { x: 0, y: 0, t: 0, power: 0 }; // Sistema de tremor de câmera (juice)
     const trailPositions = new Map();        // Rastro (motion trail) das bolas em movimento rápido
 
@@ -1261,7 +1576,7 @@
         osc.start(); osc.stop(ac.currentTime + 0.3);
     }
     function playStrikeSound(power) {
-        const vol = Math.min(0.5, 0.15 + (power/MAX_POWER) * 0.35);
+        const vol = Math.min(0.5, 0.15 + (power/getMaxPower()) * 0.35);
         playThud(650, 0.06, vol, 'square');
     }
     function triggerScreenShake(power) {
@@ -1296,7 +1611,8 @@
 
     // TEMAS
     const THEMES = [
-        { primary: '#00f3ff', feltStart: '#081015', feltEnd: '#000000', lightColor: 0x00f3ff },
+        // NOVO: feltro azul claro estilo "mesa de app" (referência do usuário), no lugar do azul quase-preto anterior
+        { primary: '#00f3ff', feltStart: '#3fa9dd', feltEnd: '#12588a', lightColor: 0x00f3ff },
         { primary: '#39ff14', feltStart: '#051005', feltEnd: '#000500', lightColor: 0x39ff14 },
         { primary: '#ff0099', feltStart: '#051005', feltEnd: '#050005', lightColor: 0xff0099 },
         { primary: '#ffae00', feltStart: '#151005', feltEnd: '#050200', lightColor: 0xffae00 }
@@ -1317,7 +1633,10 @@
     const camera = new THREE.OrthographicCamera(WIDTH/-2, WIDTH/2, HEIGHT/2, HEIGHT/-2, 1, 1000);
     camera.position.z = 500;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    // OTIMIZAÇÃO MOBILE: em telas de toque/pequenas, a resolução efetiva (WIDTH/HEIGHT) já é baixa,
+    // então antialias custa caro (fill-rate) sem ganho visual perceptível. Desativa em mobile.
+    const IS_MOBILE_DEVICE = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent) || (window.innerWidth <= 820);
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !IS_MOBILE_DEVICE, powerPreference: 'high-performance' });
 
     renderer.domElement.id = "three-canvas";
     document.getElementById('game-inner').appendChild(renderer.domElement);
@@ -1403,6 +1722,14 @@
             this.hopZ = 0;    // NOVO: altura real (eixo Z) da bola sobre o pano — usada pro salto físico em impactos fortes
             this.hopVel = 0;  // NOVO: velocidade vertical do salto (afetada pela "gravidade" HOP_GRAVITY)
             this.wobble = 0;  // NOVO: leve instabilidade rotacional pós-impacto, pra bola não parecer "sobre trilhos"
+            // NOVO: marca quando essa bola bateu na tabela por último — usado pra detectar "tacada de
+            // tabela" quando ela cai na caçapa logo em seguida (combo tabela + encaçapada).
+            this.lastRailHitTime = 0;
+            // NOVO: marca qual bola (número) bateu nela por último e quando — usado pra detectar
+            // "combinada" (uma bola derruba a outra) quando ESTA bola cai logo depois de ser atingida
+            // por outra bola que não a branca.
+            this.strikerNumber = null;
+            this.strikerTime = 0;
             // Pequena variação de atrito própria de cada bola (determinística, baseada no número), pra
             // elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
             // Agora é um multiplicador da DESACELERAÇÃO constante (0.94–1.06), não mais da velocidade.
@@ -1436,7 +1763,7 @@
                 let spinFrictionMod = 0;
                 if (this.isCue && Math.abs(currentSpin.y) > 0.1) spinFrictionMod = currentSpin.y * 0.008;
 
-                const decel = Math.max(0.01, ROLL_DECEL * this.frictionSeed + spinFrictionMod) * dtScale;
+                const decel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * this.frictionSeed + spinFrictionMod) * dtScale;
                 const newSpeed = Math.max(0, speed - decel);
                 if (newSpeed <= 0) {
                     this.vx = 0; this.vy = 0;
@@ -1448,8 +1775,8 @@
 
             // Decaimento suave do próprio efeito ao longo do tempo (o spin "morre" enquanto a bola rola)
             if (this.isCue) {
-                currentSpin.x *= Math.pow(SPIN_DECAY, dtScale);
-                currentSpin.y *= Math.pow(SPIN_DECAY, dtScale);
+                currentSpin.x *= Math.pow(PHYSICS_CONFIG.spinDecay, dtScale);
+                currentSpin.y *= Math.pow(PHYSICS_CONFIG.spinDecay, dtScale);
             }
 
             const impactSpeed = speed;
@@ -1458,10 +1785,10 @@
             this.y += this.vy * dtScale;
 
             let hitWall = false;
-            if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
-            if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -RAIL_RESTITUTION; hitWall=true; }
-            if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -RAIL_RESTITUTION; hitWall=true; }
-            if (this.y > HEIGHT - TABLE_MARGIN - this.radius) { this.y = HEIGHT - TABLE_MARGIN - this.radius; this.vy *= -RAIL_RESTITUTION; hitWall=true; }
+            if (this.x < TABLE_MARGIN + this.radius) { this.x = TABLE_MARGIN + this.radius; this.vx *= -PHYSICS_CONFIG.railRestitution; hitWall=true; }
+            if (this.x > WIDTH - TABLE_MARGIN - this.radius) { this.x = WIDTH - TABLE_MARGIN - this.radius; this.vx *= -PHYSICS_CONFIG.railRestitution; hitWall=true; }
+            if (this.y < TABLE_MARGIN + this.radius) { this.y = TABLE_MARGIN + this.radius; this.vy *= -PHYSICS_CONFIG.railRestitution; hitWall=true; }
+            if (this.y > HEIGHT - TABLE_MARGIN - this.radius) { this.y = HEIGHT - TABLE_MARGIN - this.radius; this.vy *= -PHYSICS_CONFIG.railRestitution; hitWall=true; }
             
             if(hitWall) {
                 if(this.isCue) {
@@ -1478,6 +1805,9 @@
                         this.hopVel = Math.max(this.hopVel, Math.min(2.4, impactSpeed * 0.11));
                         this.wobble = Math.min(0.09, impactSpeed * 0.008);
                     }
+                    // NOVO: registra a batida na tabela pra detectar depois se essa bola caiu numa
+                    // caçapa logo em seguida — isso é literalmente uma "tacada de tabela" completa.
+                    if (impactSpeed > 1.2) this.lastRailHitTime = Date.now();
                 }
             }
 
@@ -1495,6 +1825,17 @@
                     // NOVO: momento decisivo (bola 8) ou jogada calculada no "modo poder" do bot -> câmera lenta
                     if (this.isEight) triggerSlowMo(0.28);
                     else if (gameState.turn === 2 && botState.powerMode) triggerSlowMo(0.5);
+
+                    // NOVO: TACADA DE TABELA — a bola bateu na lateral da mesa há pouco tempo e agora
+                    // caiu: isso é uma tacada de tabela completa, merece seu próprio destaque visual.
+                    if (this.lastRailHitTime && (Date.now() - this.lastRailHitTime) < 1800) {
+                        triggerBankComboAnim(this);
+                    }
+                    // NOVO: JOGADA COMBINADA — essa bola foi atingida por OUTRA bola de objeto (não a
+                    // branca) há pouco tempo e caiu: a outra bola literalmente "usou" essa pra encaçapar.
+                    if (!this.isCue && this.strikerNumber !== null && (Date.now() - this.strikerTime) < 1400) {
+                        triggerComboKillAnim(this, this.strikerNumber);
+                    }
                 }
             });
 
@@ -1843,27 +2184,257 @@
     // FIM MODIFICAÇÃO VISUAL
 
 
+    // ================== NOVO: REDESIGN "ESTILO 8 BALL POOL" (mistura 2D + 3D) ==================
+    // Referência pedida pelo usuário: feltro azul claro, tabelas bordô/vinho com as pontas
+    // arredondadas nas caçapas (aquele recorte em "pétala" clássico dos jogos de sinuca mobile),
+    // diamantes de mira brancos, linha central discreta. O visual é majoritariamente 2D/flat (como
+    // no app de referência), mas com gradientes e realces de luz que dão um leve volume 3D nas
+    // tabelas e caçapas — sem virar uma textura de madeira "foto-realista" como antes.
+    const CUSHION_WIDTH = 24;      // AJUSTADO 2x: tabela bem mais grossa — na referência a tabela ocupa quase toda a margem, sobra só uma borda fina escura
+    // NOVO: raio VISUAL das caçapas — independente do raio de FÍSICA (POCKET_RADIUS=24, que continua
+    // generoso pra facilitar a bola entrar). O raio de 24 desenhado literalmente ficava enorme e
+    // "flutuando" fora da mesa, sem se integrar à tabela — por isso a caçapa desenhada agora é bem
+    // menor e proporcional à espessura da tabela, como nas mesas reais/apps de referência.
+    const VIS_POCKET_CORNER = 13.5;
+    const VIS_POCKET_SIDE = 11;
+    const POCKET_GAP_CORNER = VIS_POCKET_CORNER + 3; // Abertura na tabela pras caçapas de canto
+    const POCKET_GAP_SIDE = VIS_POCKET_SIDE + 3;     // Abertura na tabela pras caçapas do meio
+
+    function roundRectPath(cx, x, y, w, h, r) {
+        cx.beginPath();
+        cx.moveTo(x + r, y);
+        cx.arcTo(x + w, y, x + w, y + h, r);
+        cx.arcTo(x + w, y + h, x, y + h, r);
+        cx.arcTo(x, y + h, x, y, r);
+        cx.arcTo(x, y, x + w, y, r);
+        cx.closePath();
+    }
+
+    function shadeColor(hex, percent) {
+        hex = hex.replace('#', '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        let r = parseInt(hex.substring(0, 2), 16) || 0;
+        let g = parseInt(hex.substring(2, 4), 16) || 0;
+        let b = parseInt(hex.substring(4, 6), 16) || 0;
+        r = Math.min(255, Math.max(0, r + Math.round(255 * percent / 100)));
+        g = Math.min(255, Math.max(0, g + Math.round(255 * percent / 100)));
+        b = Math.min(255, Math.max(0, b + Math.round(255 * percent / 100)));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    function drawDiamond(cx, x, y, r) {
+        cx.beginPath();
+        cx.moveTo(x, y - r);
+        cx.lineTo(x + r, y);
+        cx.lineTo(x, y + r);
+        cx.lineTo(x - r, y);
+        cx.closePath();
+        cx.fill();
+    }
+
+    // Desenha um segmento reto de tabela (bordô) em formato "cápsula": corpo retangular + tampas
+    // circulares arredondadas nas duas pontas. É a ponta arredondada encostando na caçapa que cria o
+    // visual de "pétala" característico do 8 Ball Pool. thickness é a espessura total da tabela;
+    // (outX,outY) é o vetor unitário que aponta pra FORA da mesa (longe do feltro).
+    function drawCushionSegment(cx, x1, y1, x2, y2, thickness, outX, outY) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len < 1) return;
+        const r = thickness / 2;
+        const ux = dx / len, uy = dy / len;
+        const px = -uy, py = ux; // perpendicular ao segmento (largura da cápsula)
+
+        // Desloca a linha central pra fora em meia espessura, assim a tabela inteira fica do lado de
+        // fora do feltro (nunca invade a área de jogo).
+        const c1x = x1 + outX * r, c1y = y1 + outY * r;
+        const c2x = x2 + outX * r, c2y = y2 + outY * r;
+
+        cx.save();
+        // NOVO: gradiente com 5 paradas (calibrado por amostragem de cor da referência, de dentro
+        // pra fora) — simula o perfil arredondado de um tarugo real: um friso vivo e saturado
+        // coladinho no feltro (o "lábio" pegando luz direta), depois um realce amplo mais suave
+        // (luz na curva do tarugo), um sulco de sombra, e por fim escurece na borda externa.
+        const grad = cx.createLinearGradient(c1x - outX * r, c1y - outY * r, c1x + outX * r, c1y + outY * r);
+        grad.addColorStop(0, '#95180b');    // friso vivo junto ao feltro
+        grad.addColorStop(0.22, '#994d4e'); // realce amplo (luz na curva do tarugo)
+        grad.addColorStop(0.5, '#5c2223');
+        grad.addColorStop(0.72, '#460304'); // sulco de sombra
+        grad.addColorStop(1, '#3d0a08');    // borda externa escura
+        cx.fillStyle = grad;
+
+        // Corpo retangular da cápsula
+        cx.beginPath();
+        cx.moveTo(c1x - px * r, c1y - py * r);
+        cx.lineTo(c2x - px * r, c2y - py * r);
+        cx.lineTo(c2x + px * r, c2y + py * r);
+        cx.lineTo(c1x + px * r, c1y + py * r);
+        cx.closePath();
+        cx.fill();
+
+        // Tampas circulares arredondadas nas duas pontas (mesmo preenchimento, sem costura visível)
+        cx.beginPath(); cx.arc(c1x, c1y, r, 0, Math.PI * 2); cx.fill();
+        cx.beginPath(); cx.arc(c2x, c2y, r, 0, Math.PI * 2); cx.fill();
+
+        // Friso claro (piping) bem fino colado exatamente na linha do feltro — detalhe clássico
+        cx.strokeStyle = 'rgba(230,190,140,0.5)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(x1, y1);
+        cx.lineTo(x2, y2);
+        cx.stroke();
+        cx.restore();
+    }
+
+    // Cache: as tabelas + diamantes não mudam de posição/forma entre frames (só o feltro muda com o
+    // tema), então são desenhadas 1x só num canvas separado e coladas (drawImage) a cada frame.
+    let _railCanvas = null;
+    function buildRailCanvas() {
+        const c = document.createElement('canvas');
+        c.width = WIDTH; c.height = HEIGHT;
+        const cx = c.getContext('2d');
+
+        // Base escura por trás de tudo (moldura externa da mesa)
+        const outerGrad = cx.createLinearGradient(0, 0, WIDTH, HEIGHT);
+        outerGrad.addColorStop(0, '#1d2842');
+        outerGrad.addColorStop(1, '#0d1220');
+        cx.fillStyle = outerGrad;
+        roundRectPath(cx, 0, 0, WIDTH, HEIGHT, 16);
+        cx.fill();
+
+        const gapC = POCKET_GAP_CORNER, gapS = POCKET_GAP_SIDE;
+        const thickness = CUSHION_WIDTH;
+        const left = TABLE_MARGIN, right = WIDTH - TABLE_MARGIN;
+        const top = TABLE_MARGIN, bottom = HEIGHT - TABLE_MARGIN;
+        const midX = WIDTH / 2;
+
+        // 6 segmentos de tabela (bordô), com pontas arredondadas encostando em cada caçapa —
+        // exatamente a "mordida" em pétala do visual de referência. (outX,outY) = direção pra fora.
+        drawCushionSegment(cx, left + gapC, top, midX - gapS, top, thickness, 0, -1);          // topo-esquerda
+        drawCushionSegment(cx, midX + gapS, top, right - gapC, top, thickness, 0, -1);          // topo-direita
+        drawCushionSegment(cx, left + gapC, bottom, midX - gapS, bottom, thickness, 0, 1);      // baixo-esquerda
+        drawCushionSegment(cx, midX + gapS, bottom, right - gapC, bottom, thickness, 0, 1);     // baixo-direita
+        drawCushionSegment(cx, left, top + gapC, left, bottom - gapC, thickness, -1, 0);        // esquerda
+        drawCushionSegment(cx, right, top + gapC, right, bottom - gapC, thickness, 1, 0);       // direita
+
+        // Diamantes de mira — pontinhos claros centralizados na largura da tabela
+        cx.save();
+        cx.fillStyle = 'rgba(245,238,220,0.92)';
+        const diamondY1 = top - CUSHION_WIDTH * 0.55;
+        const diamondY2 = bottom + CUSHION_WIDTH * 0.55;
+        const usableW = right - left;
+        [0.16, 0.33, 0.5, 0.67, 0.84].forEach(f => {
+            const dx = left + usableW * f;
+            [diamondY1, diamondY2].forEach(dy => drawDiamond(cx, dx, dy, 2.6));
+        });
+        const diamondX1 = left - CUSHION_WIDTH * 0.55;
+        const diamondX2 = right + CUSHION_WIDTH * 0.55;
+        const usableH = bottom - top;
+        [0.33, 0.67].forEach(f => {
+            const dy = top + usableH * f;
+            [diamondX1, diamondX2].forEach(dx => drawDiamond(cx, dx, dy, 2.6));
+        });
+        cx.restore();
+
+        return c;
+    }
+
+    // Feltro azul-claro estilo "mesa de app" — gradiente com leve luz vinda de cima e vinheta suave
+    // nas bordas, sem textura de tecido pesada (o visual de referência é mais flat/limpo).
+    function drawTableFelt(theme) {
+        const w = WIDTH - TABLE_MARGIN * 2, h = HEIGHT - TABLE_MARGIN * 2;
+        const grad = ctx2D.createRadialGradient(WIDTH / 2, HEIGHT * 0.35, 20, WIDTH / 2, HEIGHT / 2, WIDTH * 0.68);
+        grad.addColorStop(0, shadeColor(theme.feltStart, 12));
+        grad.addColorStop(0.55, theme.feltStart);
+        grad.addColorStop(1, theme.feltEnd);
+        ctx2D.fillStyle = grad;
+        ctx2D.fillRect(TABLE_MARGIN, TABLE_MARGIN, w, h);
+
+        ctx2D.save();
+        ctx2D.beginPath();
+        ctx2D.rect(TABLE_MARGIN, TABLE_MARGIN, w, h);
+        ctx2D.clip();
+
+        // Vinheta bem suave nas bordas — só o suficiente pra dar profundidade sem escurecer o azul
+        const vg = ctx2D.createRadialGradient(WIDTH / 2, HEIGHT / 2, Math.min(w, h) * 0.35, WIDTH / 2, HEIGHT / 2, WIDTH * 0.62);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.28)');
+        ctx2D.fillStyle = vg;
+        ctx2D.fillRect(TABLE_MARGIN, TABLE_MARGIN, w, h);
+        ctx2D.restore();
+    }
+
+    // Marcação central: uma linha vertical discreta dividindo a mesa ao meio, como no visual de
+    // referência (head string), + pequenos spots.
+    function drawTableMarkings() {
+        ctx2D.save();
+        ctx2D.strokeStyle = 'rgba(255,255,255,0.14)';
+        ctx2D.lineWidth = 1;
+        ctx2D.beginPath();
+        ctx2D.moveTo(WIDTH / 2, TABLE_MARGIN + 2);
+        ctx2D.lineTo(WIDTH / 2, HEIGHT - TABLE_MARGIN - 2);
+        ctx2D.stroke();
+        ctx2D.fillStyle = 'rgba(255,255,255,0.16)';
+        [0.25, 0.72].forEach(f => {
+            ctx2D.beginPath();
+            ctx2D.arc(TABLE_MARGIN + (WIDTH - TABLE_MARGIN * 2) * f, HEIGHT / 2, 1.3, 0, Math.PI * 2);
+            ctx2D.fill();
+        });
+        ctx2D.restore();
+    }
+
+    // Caçapas estilo "8 Ball Pool" — raio VISUAL menor e proporcional à tabela (não mais o raio de
+    // física, que é propositalmente maior/mais generoso pra bola entrar com mais facilidade). Preto
+    // quase sólido com um leve degradê e um fio de luz na borda superior-esquerda, pra um toque 3D
+    // sutil sem perder o visual limpo/flat do jogo de referência.
+    function drawPocketsRealistic(theme) {
+        getPockets().forEach((p, idx) => {
+            const isSide = (idx === 1 || idx === 4);
+            const r = isSide ? VIS_POCKET_SIDE : VIS_POCKET_CORNER;
+
+            // Sombra suave de profundidade projetada no feltro ao redor
+            const shadowGrad = ctx2D.createRadialGradient(p.x, p.y, r * 0.6, p.x, p.y, r * 1.6);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx2D.fillStyle = shadowGrad;
+            ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r * 1.6, 0, Math.PI * 2); ctx2D.fill();
+
+            // Corpo da caçapa — preto levemente amaciado por um degradê radial (não 100% chapado)
+            const voidGrad = ctx2D.createRadialGradient(p.x - r * 0.25, p.y - r * 0.25, 1, p.x, p.y, r);
+            voidGrad.addColorStop(0, '#1c1c1c');
+            voidGrad.addColorStop(0.5, '#080808');
+            voidGrad.addColorStop(1, '#000000');
+            ctx2D.fillStyle = voidGrad;
+            ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r, 0, Math.PI * 2); ctx2D.fill();
+
+            // Realce fino no quadrante superior-esquerdo — a "pincelada 3D" sobre o desenho flat
+            ctx2D.save();
+            ctx2D.beginPath(); ctx2D.arc(p.x, p.y, r, 0, Math.PI * 2); ctx2D.clip();
+            ctx2D.strokeStyle = 'rgba(255,255,255,0.14)';
+            ctx2D.lineWidth = 1.4;
+            ctx2D.beginPath();
+            ctx2D.arc(p.x, p.y, r - 1, Math.PI * 1.05, Math.PI * 1.7);
+            ctx2D.stroke();
+            ctx2D.restore();
+        });
+    }
+    // ================== FIM REDESIGN DA MESA ==================
+
+
     function drawTable2D() {
         ctx2D.clearRect(0, 0, WIDTH, HEIGHT); 
         ctxFX.clearRect(0, 0, WIDTH, HEIGHT);
         
         const theme = getTheme();
 
-        // Desenhar Mesa (Feltro)
-        const grad = ctx2D.createRadialGradient(WIDTH/2, HEIGHT/2, 50, WIDTH/2, HEIGHT/2, WIDTH*0.8);
-        grad.addColorStop(0, theme.feltStart); 
-        grad.addColorStop(1, theme.feltEnd);
-        ctx2D.fillStyle = grad; 
-        ctx2D.fillRect(TABLE_MARGIN, TABLE_MARGIN, WIDTH-TABLE_MARGIN*2, HEIGHT-TABLE_MARGIN*2);
+        // Desenhar Mesa (Feltro) — NOVO: tabelas bordô em cápsula (cacheadas) + diamantes + feltro
+        // azul com luz direcional/vinheta + marcações clássicas + caçapas estilo "8 Ball Pool".
+        if (!_railCanvas) _railCanvas = buildRailCanvas();
+        ctx2D.drawImage(_railCanvas, 0, 0);
+        drawTableFelt(theme);
+        drawTableMarkings();
 
         // Desenhar Caçapas
-        getPockets().forEach(p => {
-            ctx2D.fillStyle = "#000"; 
-            ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI*2); ctx2D.fill();
-            
-            ctx2D.strokeStyle = theme.primary; ctx2D.lineWidth = 2.5; 
-            ctx2D.beginPath(); ctx2D.arc(p.x, p.y, POCKET_RADIUS-2, 0, Math.PI*2); ctx2D.stroke();
-        });
+        drawPocketsRealistic(theme);
 
         // --- VISUALIZAÇÃO PLAYER ---
         if (gameState.turn === 1 && !gameState.isMoving && !gameState.ballInHand) {
@@ -1885,7 +2456,7 @@
                 if (gameState.playerFocusActive) drawPlayerFocusOverlay(aimData);
 
                 // BARRA DE FORÇA CIRCULAR
-                const powerPct = Math.min(gameState.power / MAX_POWER, 1);
+                const powerPct = Math.min(gameState.power / getMaxPower(), 1);
                 const startAngle = -Math.PI / 2;
                 const endAngle = startAngle + (Math.PI * 2 * powerPct);
                 
@@ -1971,7 +2542,7 @@
                     drawBotFocusOverlay(aimData);
                 }
 
-                const powerPct = Math.min(botState.aimPower / MAX_POWER, 1);
+                const powerPct = Math.min(botState.aimPower / getMaxPower(), 1);
                 ctxFX.beginPath();
                 ctxFX.arc(cueBall.x, cueBall.y, BALL_RADIUS + 12, -Math.PI/2, -Math.PI/2 + (Math.PI*2*powerPct));
                 ctxFX.lineWidth = 4; ctxFX.strokeStyle = '#ff3333'; ctxFX.stroke();
@@ -2413,22 +2984,22 @@
 
             // Mesma fórmula de atrito real: desaceleração constante + modificador de efeito (giro)
             let spinFrictionMod = Math.abs(spin.y) > 0.1 ? spin.y * 0.008 : 0;
-            const decel = Math.max(0.01, ROLL_DECEL * seed + spinFrictionMod) * dt;
+            const decel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * seed + spinFrictionMod) * dt;
             const newSpeed = Math.max(0, speed - decel);
             if (newSpeed <= 0) { vx = 0; vy = 0; break; }
             const sc = newSpeed / speed; vx *= sc; vy *= sc;
 
             // O efeito também decai com o tempo, igual à bola real
-            spin.x *= Math.pow(SPIN_DECAY, dt);
-            spin.y *= Math.pow(SPIN_DECAY, dt);
+            spin.x *= Math.pow(PHYSICS_CONFIG.spinDecay, dt);
+            spin.y *= Math.pow(PHYSICS_CONFIG.spinDecay, dt);
 
             x += vx * dt; y += vy * dt;
 
             let hitWall = false;
-            if (x < TABLE_MARGIN + BALL_RADIUS) { x = TABLE_MARGIN + BALL_RADIUS; vx *= -RAIL_RESTITUTION; hitWall = true; }
-            if (x > WIDTH - TABLE_MARGIN - BALL_RADIUS) { x = WIDTH - TABLE_MARGIN - BALL_RADIUS; vx *= -RAIL_RESTITUTION; hitWall = true; }
-            if (y < TABLE_MARGIN + BALL_RADIUS) { y = TABLE_MARGIN + BALL_RADIUS; vy *= -RAIL_RESTITUTION; hitWall = true; }
-            if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -RAIL_RESTITUTION; hitWall = true; }
+            if (x < TABLE_MARGIN + BALL_RADIUS) { x = TABLE_MARGIN + BALL_RADIUS; vx *= -PHYSICS_CONFIG.railRestitution; hitWall = true; }
+            if (x > WIDTH - TABLE_MARGIN - BALL_RADIUS) { x = WIDTH - TABLE_MARGIN - BALL_RADIUS; vx *= -PHYSICS_CONFIG.railRestitution; hitWall = true; }
+            if (y < TABLE_MARGIN + BALL_RADIUS) { y = TABLE_MARGIN + BALL_RADIUS; vy *= -PHYSICS_CONFIG.railRestitution; hitWall = true; }
+            if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -PHYSICS_CONFIG.railRestitution; hitWall = true; }
             // Giro lateral desvia levemente a bola ao quicar na tabela, igual à física real
             if (hitWall && Math.abs(vx) > 0.5) { vy += spin.x * 0.8; spin.x *= 0.5; }
 
@@ -2450,7 +3021,7 @@
     // Calcula a direção/velocidade da branca DEPOIS do primeiro impacto, decompondo o vetor de
     // velocidade em componente normal (transferida pra bola alvo) e tangencial (que fica com a
     // branca) — é exatamente a mesma lógica usada em checkCollisions(), incluindo a pequena redução
-    // do "efeito de arrasto" (THROW_EFFECT) que a tacada real também sofre, então a previsão bate
+    // do "efeito de arrasto" (PHYSICS_CONFIG.throwEffect) que a tacada real também sofre, então a previsão bate
     // com o que realmente vai acontecer.
     function computePlayerFocusPrediction(aimData) {
         let originX = aimData.endX, originY = aimData.endY;
@@ -2468,9 +3039,9 @@
             const vn = vx * ux + vy * uy;
             let tx = vx - vn * ux, ty = vy - vn * uy;
 
-            // Mesma redução aplicada em checkCollisions() (THROW_EFFECT * 0.35 sobre o componente tangencial)
-            tx *= (1 - THROW_EFFECT * 0.35);
-            ty *= (1 - THROW_EFFECT * 0.35);
+            // Mesma redução aplicada em checkCollisions() (PHYSICS_CONFIG.throwEffect * 0.35 sobre o componente tangencial)
+            tx *= (1 - PHYSICS_CONFIG.throwEffect * 0.35);
+            ty *= (1 - PHYSICS_CONFIG.throwEffect * 0.35);
 
             speed = Math.hypot(tx, ty);
             dirAngle = speed > 0.001 ? Math.atan2(ty, tx) : 0;
@@ -2623,6 +3194,7 @@
             gameState.dragCurrent = pos;
             gameState.power = 0; 
             lastActivityTime = Date.now(); // Reseta timer de inatividade ao começar a mirar
+            showCancelShotBtn(true); // NOVO: mostra o botão de cancelar assim que o jogador começa a mirar
         }
     }
 
@@ -2649,8 +3221,11 @@
             const dy = gameState.dragStart.y - pos.y; 
             
             gameState.angle = Math.atan2(dy, dx); 
-            gameState.power = Math.min(Math.hypot(dx, dy), MAX_DRAG_DISTANCE) * POWER_MULTIPLIER; 
+            gameState.power = Math.min(Math.hypot(dx, dy), MAX_DRAG_DISTANCE) * PHYSICS_CONFIG.powerMultiplier; 
             lastActivityTime = Date.now(); // Reseta timer de inatividade
+
+            // NOVO: destaca o botão de cancelar quando o dedo/cursor está sobre ele, para dar feedback claro
+            armCancelShotBtn(isPointOverCancelBtn(event.clientX, event.clientY));
         }
     }
     
@@ -2668,7 +3243,7 @@
             cueBall.x = targetX; 
             cueBall.y = targetY;
         } else {
-            navigator.vibrate(50);
+            if (navigator.vibrate) navigator.vibrate(50); // GUARD: nem todo navegador (ex: iOS Safari) suporta Vibration API
         }
         
         cueBall.vx = 0; cueBall.vy = 0;
@@ -2701,17 +3276,58 @@
             return; 
         }
 
-        if (gameState.power > 2) {
+        // NOVO: se o jogador soltar o dedo/mouse sobre o botão "Cancelar", aborta a tacada
+        // independentemente da força acumulada — dá controle total pra desistir de uma mira.
+        const releaseEvent = (e.changedTouches && e.changedTouches[0]) || e;
+        const releasedOverCancel = isPointOverCancelBtn(releaseEvent.clientX, releaseEvent.clientY);
+
+        if (!releasedOverCancel && gameState.power > 2) {
              gameState.botSpin = {x:0, y:0};
              shoot(gameState.angle, gameState.power);
         } else {
              gameState.power = 0;
+             if (releasedOverCancel) { showToast("TACADA CANCELADA", false); if (navigator.vibrate) navigator.vibrate(30); }
              lastActivityTime = Date.now(); // Reseta timer de inatividade se não atirou (para dar mais tempo para pensar/ajustar)
         }
+
+        showCancelShotBtn(false); // NOVO: esconde o botão de cancelar (tacada feita ou abortada)
         
         if(playerTauntMenuOpen) togglePlayerTauntMenu();
         if(spinMenuOpen) toggleSpinMenu(); 
     }
+
+    // ================== NOVO: CANCELAR TACADA ==================
+    let cancelShotBtnVisible = false;
+    function showCancelShotBtn(visible) {
+        cancelShotBtnVisible = visible;
+        const btn = document.getElementById('cancel-shot-btn');
+        if (btn) { btn.classList.toggle('visible', visible); if (!visible) btn.classList.remove('hover-armed'); }
+    }
+    function armCancelShotBtn(armed) {
+        const btn = document.getElementById('cancel-shot-btn');
+        if (btn) btn.classList.toggle('hover-armed', !!armed);
+    }
+    function isPointOverCancelBtn(clientX, clientY) {
+        if (!cancelShotBtnVisible || clientX == null || clientY == null) return false;
+        const btn = document.getElementById('cancel-shot-btn');
+        if (!btn) return false;
+        const r = btn.getBoundingClientRect();
+        const pad = 10; // margem extra de toque pra facilitar em telas pequenas
+        return clientX >= r.left - pad && clientX <= r.right + pad && clientY >= r.top - pad && clientY <= r.bottom + pad;
+    }
+    // Cancela a tacada em andamento (chamado pelo clique/toque direto no botão, ou por tecla Esc)
+    function cancelShot() {
+        if (!gameState.isDragging && gameState.power === 0) return;
+        gameState.isDragging = false;
+        gameState.power = 0;
+        showCancelShotBtn(false);
+        showToast("TACADA CANCELADA", false);
+        if (navigator.vibrate) navigator.vibrate(30);
+        lastActivityTime = Date.now();
+        if(playerTauntMenuOpen) togglePlayerTauntMenu();
+        if(spinMenuOpen) toggleSpinMenu();
+    }
+    // ================== FIM CANCELAR TACADA ==================
     
     // MODIFICAÇÃO: Resetar o indicador de inatividade quando houver atividade de toque/mouse
     function resetInactivityTimer() {
@@ -2728,6 +3344,11 @@
     window.addEventListener('touchmove', handleInputMove, {passive:false});
     window.addEventListener('mouseup', handleInputEnd);
     window.addEventListener('touchend', handleInputEnd); 
+    // NOVO: touchcancel (ex: notificação do sistema interrompe o toque) também precisa abortar a tacada,
+    // senão gameState.isDragging fica travado em true e o jogo para de responder a novos toques.
+    window.addEventListener('touchcancel', cancelShot);
+    // NOVO: tecla Esc cancela a mira/tacada no desktop
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') cancelShot(); });
     
     // MODIFICAÇÃO: Adicionar listeners globais de atividade para o timer
     window.addEventListener('mousemove', resetInactivityTimer);
@@ -2758,14 +3379,14 @@
 
         // NOVO: o efeito lateral (inglês) vira giro vertical REAL e visível na bola branca
         const shotSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
-        cueBall.spinZ = shotSpin.x * 0.4 * (p / MAX_POWER + 0.4);
+        cueBall.spinZ = shotSpin.x * 0.4 * (p / getMaxPower() + 0.4);
 
         // NOVO: taco "atravessa" a bola no instante da tacada (thrust) + puff de giz + som + squash na branca
         gameState.strikeAnim = { angle: a, t: 1 };
         spawnExplosion(cueBall.x - Math.cos(a)*BALL_RADIUS, cueBall.y - Math.sin(a)*BALL_RADIUS, '#e8e8e8', 0.5);
         cueBall.squash = Math.min(0.32, p * 0.045);
         playStrikeSound(p);
-        if (p > MAX_POWER * 0.65) triggerScreenShake(p * 1.6);
+        if (p > getMaxPower() * 0.65) triggerScreenShake(p * 1.6);
     }
 
     function checkCollisions() {
@@ -2794,14 +3415,14 @@
                     const impactSpeed = Math.abs(v1.x - v2.x);
 
                     // Troca de componente normal (massas iguais) com restituição quase perfeita = sinuca "acirrada" de verdade
-                    let f1 = {x: v2.x * BALL_RESTITUTION, y: v1.y}; 
-                    let f2 = {x: v1.x * BALL_RESTITUTION, y: v2.y};
+                    let f1 = {x: v2.x * PHYSICS_CONFIG.ballRestitution, y: v1.y}; 
+                    let f2 = {x: v1.x * PHYSICS_CONFIG.ballRestitution, y: v2.y};
 
                     // EFEITO DE ARRASTO (throw effect): o atrito de contato entre as bolas "puxa" um pouco a
                     // trajetória lateral, gerando aquela curva sutil e realista após o impacto
                     const relTangential = v1.y - v2.y;
-                    f2.y += relTangential * THROW_EFFECT;
-                    f1.y -= relTangential * THROW_EFFECT * 0.35;
+                    f2.y += relTangential * PHYSICS_CONFIG.throwEffect;
+                    f1.y -= relTangential * PHYSICS_CONFIG.throwEffect * 0.35;
                     
                     let vf1 = rotate(f1, angle);
                     let vf2 = rotate(f2, angle);
@@ -2843,6 +3464,12 @@
                         b1.wobble = Math.min(0.08, Math.max(b1.wobble||0, impactSpeed * 0.006));
                         b2.wobble = Math.min(0.08, Math.max(b2.wobble||0, impactSpeed * 0.006));
                     }
+                    // NOVO: registra quem bateu em quem — só entre bolas de OBJETO (não a branca), pra
+                    // detectar quando uma bola "usa" a outra e a manda pra caçapa (jogada combinada).
+                    if (impactSpeed > 0.8) {
+                        if (!b1.isCue) { b2.strikerNumber = b1.number; b2.strikerTime = Date.now(); }
+                        if (!b2.isCue) { b1.strikerNumber = b2.number; b1.strikerTime = Date.now(); }
+                    }
                 }
             }
         }
@@ -2863,6 +3490,40 @@
         gameState.gameOver = true;
         stopTimer();
         showInactivityWarning(false);
+
+        // ============ NOVO: CINEMÁTICA DE FIM DE JOGO ============
+        // Sequência estilo "finalização": primeiro um "FATALITY" dramático e glitchado (~1.1s),
+        // depois a tela de vitória do lado que venceu, com burst de partículas por toda a mesa e
+        // câmera lenta pra dar peso ao momento — reforça a sensação de conquista/climax do jogo.
+        triggerScreenShake(14);
+        triggerSlowMo(0.12);
+        for (let i = 0; i < 10; i++) {
+            spawnExplosion(WIDTH * Math.random(), HEIGHT * Math.random(), winnerId === 1 ? '#00f3ff' : '#ff8c00', 1.3);
+        }
+
+        const overlay = document.getElementById('go-overlay');
+        const fatalityEl = document.getElementById('go-fatality-text');
+        const victoryEl = document.getElementById('go-victory-text');
+        if (overlay && fatalityEl && victoryEl) {
+            overlay.classList.add('visible');
+            fatalityEl.classList.add('show');
+            setTimeout(() => {
+                fatalityEl.classList.remove('show');
+                victoryEl.innerText = winnerId === 1 ? 'VOCÊ VENCEU!' : 'BOT VENCEU!';
+                victoryEl.style.color = winnerId === 1 ? '#00f3ff' : '#ff8c00';
+                victoryEl.style.textShadow = winnerId === 1 ? '0 0 20px #00f3ff, 0 0 50px #0088ff' : '0 0 20px #ff8c00, 0 0 50px #ff2d00';
+                victoryEl.classList.add('show');
+                for (let i = 0; i < 8; i++) {
+                    spawnExplosion(WIDTH * Math.random(), HEIGHT * Math.random(), winnerId === 1 ? '#00f3ff' : '#ff8c00', 1.1);
+                }
+                triggerScreenShake(8);
+            }, 1150);
+            setTimeout(() => {
+                overlay.classList.remove('visible');
+                fatalityEl.classList.remove('show');
+                victoryEl.classList.remove('show');
+            }, 3850);
+        }
         
         if(winnerId === 1) {
             showToast("VITÓRIA!", false);
@@ -2877,7 +3538,7 @@
         
         setTimeout(() => {
             initGame();
-        }, 4000);
+        }, 4200);
     }
 
     function handleTurnEnd() {
@@ -3111,7 +3772,7 @@
             const finalAngle = Math.atan2(aimPointY - cueBall.y, aimPointX - cueBall.x);
             const powerNeeded = Math.hypot(aimPointX - cueBall.x, aimPointY - cueBall.y) * 0.4 + 20;
 
-            if (powerNeeded < MAX_POWER && !checkObstruction(cueBall, {x:aimPointX, y:aimPointY})) {
+            if (powerNeeded < getMaxPower() && !checkObstruction(cueBall, {x:aimPointX, y:aimPointY})) {
                  return { 
                     angle: finalAngle, 
                     power: powerNeeded, 
@@ -3230,7 +3891,7 @@
                 ball: chosen.ball,
                 pocket: chosen.pocket,
                 angle: chosen.aimAngle + error,
-                power: Math.min(chosen.d*0.35 + 10 + powerBoost, MAX_POWER - 5),
+                power: Math.min(chosen.d*0.35 + 10 + powerBoost, getMaxPower() - 5),
                 spinX: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
                 spinY: botState.angerLevel > 50 ? (Math.random()-0.5) * 1.3 : (Math.random()-0.5) * 0.6,
                 mode: 'direct',
@@ -3276,7 +3937,7 @@
             finalChoice = { 
                 ball: t, 
                 angle: Math.atan2(t.y-cueBall.y, t.x-cueBall.x), 
-                power: MAX_POWER/2, 
+                power: getMaxPower()/2, 
                 spinX:0, 
                 spinY:0,
                 mode: 'direct',
@@ -3851,6 +4512,62 @@
     }
 
 
+    // ================== PAINEL DE CONFIGURAÇÕES DE FÍSICA — FUNÇÕES ==================
+    const PHYSICS_SETTINGS_META = {
+        powerMultiplier:  { decimals: 3 },
+        rollDecel:        { decimals: 3 },
+        ballRestitution:  { decimals: 3 },
+        railRestitution:  { decimals: 3 },
+        throwEffect:      { decimals: 3 },
+        spinDecay:        { decimals: 3 }
+    };
+
+    function refreshSettingsUI() {
+        Object.keys(PHYSICS_SETTINGS_META).forEach(key => {
+            const slider = document.getElementById('slider-' + key);
+            const label = document.getElementById('val-' + key);
+            if (!slider || !label) return;
+            const value = PHYSICS_CONFIG[key];
+            slider.value = value;
+            label.textContent = value.toFixed(PHYSICS_SETTINGS_META[key].decimals);
+        });
+    }
+
+    function updatePhysicsSetting(key, rawValue) {
+        const value = parseFloat(rawValue);
+        if (isNaN(value)) return;
+        PHYSICS_CONFIG[key] = value;
+        const label = document.getElementById('val-' + key);
+        if (label) label.textContent = value.toFixed((PHYSICS_SETTINGS_META[key] || {decimals:3}).decimals);
+        savePhysicsConfig();
+    }
+
+    function resetPhysicsSettings() {
+        PHYSICS_CONFIG = { ...PHYSICS_DEFAULTS };
+        savePhysicsConfig();
+        refreshSettingsUI();
+    }
+
+    let settingsPanelOpen = false;
+    function toggleSettingsPanel() {
+        settingsPanelOpen = !settingsPanelOpen;
+        openOrCloseSettings(settingsPanelOpen);
+    }
+    function closeSettingsPanel() {
+        settingsPanelOpen = false;
+        openOrCloseSettings(false);
+    }
+    function openOrCloseSettings(open) {
+        const panel = document.getElementById('settings-panel');
+        const overlay = document.getElementById('settings-overlay');
+        if (open) refreshSettingsUI();
+        panel.classList.toggle('visible', open);
+        overlay.classList.toggle('visible', open);
+    }
+    // Preenche os sliders com os valores atuais (salvos ou padrão) assim que a página carrega
+    refreshSettingsUI();
+    // ================== FIM PAINEL DE CONFIGURAÇÕES DE FÍSICA ==================
+
     // ================== CHAT v2 — FUNÇÕES DO NOVO PAINEL ==================
     // Redesenhado do zero: overlay + painel central/bottom-sheet, cabeçalho com avatar
     // dinâmico, chips de resposta rápida roláveis (em vez de <select>) e um campo de
@@ -4050,6 +4767,29 @@
         setTimeout(()=>el.classList.remove('show'), 1500);
     }
 
+    // ============ NOVO: ANIMAÇÃO DE TACADA COMBINADA (TABELA) ============
+    // Disparada sempre que uma bola bate na lateral da mesa e cai na caçapa logo em seguida —
+    // ou seja, o jogador (ou o bot) fez uma tacada de tabela de verdade, e não só um encaixe direto.
+    function triggerBankComboAnim(ball) {
+        showToast('TACADA DE TABELA! 🎯', false, true);
+        spawnExplosion(ball.pocketTarget.x, ball.pocketTarget.y, '#00f3ff', 1.1);
+        spawnShockwave(ball.pocketTarget.x, ball.pocketTarget.y, '#00f3ff');
+        triggerScreenShake(9);
+        triggerSlowMo(0.4);
+    }
+
+    // ============ NOVO: ANIMAÇÃO DE JOGADA COMBINADA ("BOLA MATA BOLA") ============
+    // Disparada quando uma bola de objeto é atingida por OUTRA bola de objeto (nunca a branca) e cai
+    // na caçapa pouco depois — uma combinação/carambola de verdade, onde uma bola "elimina" a outra.
+    function triggerComboKillAnim(ball, strikerNumber) {
+        showToast(`BOLA ${strikerNumber} ELIMINOU A BOLA ${ball.number}! 💀`, false, true);
+        spawnExplosion(ball.pocketTarget.x, ball.pocketTarget.y, '#ff3333', 1.3);
+        spawnShockwave(ball.pocketTarget.x, ball.pocketTarget.y, '#ff3333');
+        triggerScreenShake(11);
+        triggerSlowMo(0.3);
+    }
+    // ================== FIM ANIMAÇÕES DE JOGADAS COMBINADAS ==================
+
     const MAX_PARTICLES = 90; // AJUSTADO: teto de partículas ativas, evita acúmulo em momentos caóticos (várias bolas batendo ao mesmo tempo)
 
     function spawnExplosion(x, y, color, intensity=1) {
@@ -4228,6 +4968,14 @@
     function initGame() {
         stopTimer();
         cancelBotPlan();
+        // NOVO: garante que a cinemática de fim de jogo não fique "presa" na tela se o jogo for
+        // reiniciado manualmente enquanto ela ainda está rodando.
+        const goOverlay = document.getElementById('go-overlay');
+        if (goOverlay) {
+            goOverlay.classList.remove('visible');
+            document.getElementById('go-fatality-text').classList.remove('show');
+            document.getElementById('go-victory-text').classList.remove('show');
+        }
         balls.forEach(b => scene.remove(b.mesh));
         balls = [];
         
@@ -4315,7 +5063,10 @@
         const inner = document.getElementById('game-inner');
         const displayWidth = inner.clientWidth;
         const displayHeight = inner.clientHeight;
-        const dpr = window.devicePixelRatio || 1;
+        // OTIMIZAÇÃO MOBILE: devicePixelRatio sem limite (3x, 4x em muitos Androids) faz o WebGL e os
+        // canvases 2D renderizarem MUITO mais pixels do que a tela consegue mostrar com nitidez extra
+        // perceptível, custando FPS caro em celulares. Limitamos a 2x — nítido o suficiente, bem mais leve.
+        const dpr = Math.min(window.devicePixelRatio || 1, IS_MOBILE_DEVICE ? 2 : 2.5);
 
         // Three.js
         renderer.setSize(displayWidth, displayHeight);
