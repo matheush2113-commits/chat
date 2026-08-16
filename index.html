@@ -1557,9 +1557,15 @@
             </div>
 
             <div class="setting-group">
-                <div class="setting-label-row"><span class="sl-name">🎱 Desaceleração / Atrito</span><span class="sl-value" id="val-rollDecel">0.062</span></div>
+                <div class="setting-label-row"><span class="sl-name">🎱 Desaceleração / Atrito (rolagem livre)</span><span class="sl-value" id="val-rollDecel">0.062</span></div>
                 <input type="range" class="setting-slider" id="slider-rollDecel" min="0.015" max="0.16" step="0.001" oninput="updatePhysicsSetting('rollDecel', this.value)">
-                <span class="setting-hint">Freio da bola ao rolar no pano. Menor = bola desliza muito mais longe; maior = para rápido.</span>
+                <span class="setting-hint">Freio da bola depois que ela já está "rolando de verdade". Menor = bola desliza muito mais longe; maior = para rápido.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">🛞 Atrito de Deslizamento (skid inicial)</span><span class="sl-value" id="val-slideFrictionMultiplier">3.20</span></div>
+                <input type="range" class="setting-slider" id="slider-slideFrictionMultiplier" min="1.0" max="6.0" step="0.1" oninput="updatePhysicsSetting('slideFrictionMultiplier', this.value)">
+                <span class="setting-hint">Física real: toda bola sai DESLIZANDO (não rolando) e só depois "pega" no pano. Este valor controla o quanto ela freia bruscamente nesse instante inicial antes de passar a rolar livre. 1.0 = desliga o efeito.</span>
             </div>
 
             <div class="setting-group">
@@ -1578,6 +1584,12 @@
                 <div class="setting-label-row"><span class="sl-name">🌀 Efeito de Arrasto (Spin)</span><span class="sl-value" id="val-throwEffect">0.045</span></div>
                 <input type="range" class="setting-slider" id="slider-throwEffect" min="0" max="0.15" step="0.002" oninput="updatePhysicsSetting('throwEffect', this.value)">
                 <span class="setting-hint">Quanto o efeito lateral (tacada com giro) desvia as bolas no impacto.</span>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label-row"><span class="sl-name">↩️ Efeito Segue / Volta (Follow/Draw)</span><span class="sl-value" id="val-followDrawStrength">0.160</span></div>
+                <input type="range" class="setting-slider" id="slider-followDrawStrength" min="0" max="0.35" step="0.005" oninput="updatePhysicsSetting('followDrawStrength', this.value)">
+                <span class="setting-hint">Força com que a BRANCA continua seguindo em frente (efeito por cima) ou volta pra trás (efeito por baixo) depois de bater numa bola — igual a uma tacada de sinuca de verdade.</span>
             </div>
 
             <div class="setting-group">
@@ -1678,11 +1690,19 @@
     // real pelo painel de configurações (engrenagem no HUD) e persistido no localStorage.
     const PHYSICS_DEFAULTS = {
         powerMultiplier: 0.21,   // Força da tacada: converte distância de arrasto -> velocidade da bola branca
-        rollDecel: 0.062,        // Desaceleração CONSTANTE de rolagem (unidades/frame²). Quanto menor, mais longe a bola desliza.
+        rollDecel: 0.062,        // Desaceleração CONSTANTE de ROLAGEM NATURAL (unidades/frame²) — a fase "de cruzeiro", depois do skid inicial.
+        slideFrictionMultiplier: 3.2, // NOVO: física real de deslizar->rolar. Logo após a tacada (ou um choque), a bola
+                                       // ainda não está "rolando de verdade" — ela desliza (skid) com atrito bem mais
+                                       // alto (esse multiplicador vezes o atrito de rolagem normal) até o giro "pegar"
+                                       // no pano, só então passa a rolar livre com o atrito baixo de sempre. É essa
+                                       // freada inicial + rolagem longa depois que dá a sensação de bola de verdade.
         railRestitution: 0.92,   // Restituição da tabela (quique nas bordas)
         ballRestitution: 0.985,  // Restituição bola-bola (elasticidade da colisão)
         throwEffect: 0.045,      // "Efeito de arrasto" tangencial no impacto bola-bola (curva realista pós-taco)
-        spinDecay: 0.982         // Decaimento do efeito (spin) da bola branca ao longo do tempo
+        spinDecay: 0.982,        // Decaimento do efeito (spin) da bola branca ao longo do tempo
+        followDrawStrength: 0.16 // NOVO: força do efeito SEGUE (topspin) / VOLTA (backspin) na PRÓPRIA bola branca
+                                  // depois que ela bate numa bola de objeto — antes esse efeito ia parar (errado)
+                                  // na bola atingida; agora fica com a branca, como na sinuca de verdade.
     };
     let PHYSICS_CONFIG = { ...PHYSICS_DEFAULTS };
     (function loadPhysicsConfig() {
@@ -1697,6 +1717,10 @@
         try { localStorage.setItem('neonPoolPhysicsConfig', JSON.stringify(PHYSICS_CONFIG)); } catch (e) {}
     }
     function getMaxPower() { return MAX_DRAG_DISTANCE * PHYSICS_CONFIG.powerMultiplier; }
+    // NOVO: distância aproximada (em unidades do jogo) que uma bola percorre "deslizando" (skid) antes
+    // de o giro pegar de vez no pano e ela passar a ROLAR livremente. Baseado no raio da bola — o
+    // mesmo valor pra todas, só a INTENSIDADE do atrito nessa fase é que muda (slideFrictionMultiplier).
+    const SLIDE_TRANSITION_DISTANCE = 62;
     let screenShake = { x: 0, y: 0, t: 0, power: 0 }; // Sistema de tremor de câmera (juice)
     const trailPositions = new Map();        // Rastro (motion trail) das bolas em movimento rápido
 
@@ -1901,6 +1925,11 @@
             // elas pararem de forma independente/orgânica em vez de tudo travar no mesmo instante.
             // Agora é um multiplicador da DESACELERAÇÃO constante (0.94–1.06), não mais da velocidade.
             this.frictionSeed = 1 + (((number * 0.6180339887) % 1) - 0.5) * 0.12;
+            // NOVO: FÍSICA REAL DE DESLIZAR->ROLAR. 0 = rolando livre (atrito baixo normal), 1 = acabou
+            // de ser lançada/atingida e ainda está deslizando/derrapando (atrito bem mais alto, até o
+            // giro "pegar" no pano). Toda bola de sinuca real nasce deslizando e só DEPOIS passa a
+            // rolar — é essa transição que dá a sensação de peso/realismo que faltava.
+            this.slidePhase = 0;
         }
 
         update(dtScale = 1) {
@@ -1917,12 +1946,13 @@
                  currentSpin = gameState.turn === 1 ? gameState.playerSpin : gameState.botSpin;
             }
 
-            // ================== FÍSICA REALISTA DE ATRITO (desaceleração constante) ==================
-            // Em vez de multiplicar a velocidade por uma porcentagem (exponencial, nunca chega a zero de
-            // verdade), aplicamos uma força de atrito CONSTANTE que reduz a velocidade em uma quantidade
-            // fixa a cada instante — exatamente como o atrito de rolagem funciona na vida real. O
-            // resultado: a bola perde velocidade de forma linear e suave, e para EXATAMENTE em zero,
-            // sem cortes artificiais nem "cauda" de movimento residual.
+            // ================== FÍSICA REALISTA: DESLIZAR (SKID) -> ROLAR LIVRE ==================
+            // Uma bola de sinuca de verdade NUNCA nasce "rolando" — ela sai deslizando (o giro ainda não
+            // bateu com a velocidade de translação) e sofre um atrito bem mais forte nesse instante
+            // inicial, até o giro "pegar" no pano e ela passar a rolar livre, com atrito bem mais baixo,
+            // percorrendo o resto do caminho em linha reta e suave. Isso substitui o atrito único de
+            // antes (que já era linear/realista, mas igual do início ao fim) por essas DUAS fases —
+            // a assinatura física real de uma tacada de sinuca.
             const speed = Math.hypot(this.vx, this.vy);
             if (speed > 0) {
                 // Efeito (topspin/backspin) influencia levemente a força de atrito - mais realista:
@@ -1930,7 +1960,10 @@
                 let spinFrictionMod = 0;
                 if (this.isCue && Math.abs(currentSpin.y) > 0.1) spinFrictionMod = currentSpin.y * 0.008;
 
-                const decel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * this.frictionSeed + spinFrictionMod) * dtScale;
+                const rollDecel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * this.frictionSeed + spinFrictionMod);
+                const slideDecel = rollDecel * PHYSICS_CONFIG.slideFrictionMultiplier;
+                // Interpola entre o atrito de deslizar (alto) e o de rolar (baixo) conforme slidePhase some
+                const decel = Math.max(0.01, lerp(rollDecel, slideDecel, this.slidePhase)) * dtScale;
                 const newSpeed = Math.max(0, speed - decel);
                 if (newSpeed <= 0) {
                     this.vx = 0; this.vy = 0;
@@ -1938,7 +1971,16 @@
                     const scale = newSpeed / speed;
                     this.vx *= scale; this.vy *= scale;
                 }
+                // O giro "pega" no pano conforme a bola percorre distância — desliza cada vez menos até
+                // zerar (rolagem natural). Escala pela velocidade: bola rápida gasta a fase de skid mais
+                // rápido em distância percorrida, exatamente como na física real.
+                if (this.slidePhase > 0) {
+                    this.slidePhase = Math.max(0, this.slidePhase - (newSpeed * dtScale) / SLIDE_TRANSITION_DISTANCE);
+                }
+            } else {
+                this.slidePhase = 0; // parou de vez — reseta, a próxima tacada/impacto começa deslizando de novo
             }
+            // ================== FIM FÍSICA DESLIZAR->ROLAR ==================
 
             // Decaimento suave do próprio efeito ao longo do tempo (o spin "morre" enquanto a bola rola)
             if (this.isCue) {
@@ -1975,6 +2017,9 @@
                     // NOVO: registra a batida na tabela pra detectar depois se essa bola caiu numa
                     // caçapa logo em seguida — isso é literalmente uma "tacada de tabela" completa.
                     if (impactSpeed > 1.2) this.lastRailHitTime = Date.now();
+                    // NOVO: a tabela também perturba o estado de rolagem — uma batida forte faz a bola
+                    // "re-derrapar" um pouco antes de assentar de novo na rolagem livre, igual na mesa real.
+                    if (impactSpeed > 1.5) this.slidePhase = Math.max(this.slidePhase, Math.min(0.65, impactSpeed * 0.05));
                 }
             }
 
@@ -3224,6 +3269,7 @@
         let x = startX, y = startY;
         let vx = Math.cos(angle) * power, vy = Math.sin(angle) * power;
         let spin = { x: spinStart.x, y: spinStart.y };
+        let slidePhase = 1; // NOVO: a previsão também começa deslizando, igual à bola real ao sair da tacada
         // Usa o MESMO passo de tempo do motor de física real (1/PHYSICS_SUBSTEPS) — cálculo real e
         // preciso, idêntico ao que a bola vai realmente fazer. A performance continua ok porque essa
         // função só é chamada com throttle (ver drawPlayerFocusOverlay), não a cada frame.
@@ -3238,12 +3284,15 @@
             const speed = Math.hypot(vx, vy);
             if (speed <= 0.05) break;
 
-            // Mesma fórmula de atrito real: desaceleração constante + modificador de efeito (giro)
+            // Mesma fórmula de atrito real: duas fases (deslizar->rolar) + modificador de efeito (giro)
             let spinFrictionMod = Math.abs(spin.y) > 0.1 ? spin.y * 0.008 : 0;
-            const decel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * seed + spinFrictionMod) * dt;
+            const rollDecel = Math.max(0.01, PHYSICS_CONFIG.rollDecel * seed + spinFrictionMod);
+            const slideDecel = rollDecel * PHYSICS_CONFIG.slideFrictionMultiplier;
+            const decel = Math.max(0.01, lerp(rollDecel, slideDecel, slidePhase)) * dt;
             const newSpeed = Math.max(0, speed - decel);
             if (newSpeed <= 0) { vx = 0; vy = 0; break; }
             const sc = newSpeed / speed; vx *= sc; vy *= sc;
+            if (slidePhase > 0) slidePhase = Math.max(0, slidePhase - (newSpeed * dt) / SLIDE_TRANSITION_DISTANCE);
 
             // O efeito também decai com o tempo, igual à bola real
             spin.x *= Math.pow(PHYSICS_CONFIG.spinDecay, dt);
@@ -3258,6 +3307,7 @@
             if (y > HEIGHT - TABLE_MARGIN - BALL_RADIUS) { y = HEIGHT - TABLE_MARGIN - BALL_RADIUS; vy *= -PHYSICS_CONFIG.railRestitution; hitWall = true; }
             // Giro lateral desvia levemente a bola ao quicar na tabela, igual à física real
             if (hitWall && Math.abs(vx) > 0.5) { vy += spin.x * 0.8; spin.x *= 0.5; }
+            if (hitWall && newSpeed > 1.5) slidePhase = Math.max(slidePhase, Math.min(0.65, newSpeed * 0.05)); // re-derrapa na tabela, igual à bola real
 
             for (const p of pockets) {
                 if (Math.hypot(x - p.x, y - p.y) < POCKET_RADIUS) { pocketed = true; break; }
@@ -3636,6 +3686,7 @@
         }
         cueBall.vx = Math.cos(a) * p; 
         cueBall.vy = Math.sin(a) * p;
+        cueBall.slidePhase = 1; // NOVO: toda tacada começa DESLIZANDO — o giro ainda não pegou no pano
         gameState.isMoving = true; 
         gameState.power = 0;
         cancelBotPlan();
@@ -3675,6 +3726,10 @@
                     
                     let v1 = rotate({x:b1.vx, y:b1.vy}, -angle);
                     let v2 = rotate({x:b2.vx, y:b2.vy}, -angle);
+                    // NOVO: guarda a velocidade (mundo) de cada bola ANTES do impacto — usada logo abaixo
+                    // pra aplicar o efeito segue/volta na direção real de deslocamento da branca.
+                    const origV1 = { x: b1.vx, y: b1.vy };
+                    const origV2 = { x: b2.vx, y: b2.vy };
 
                     // Velocidade de impacto (na direção normal) - usada para som, partículas e efeito de arrasto
                     const impactSpeed = Math.abs(v1.x - v2.x);
@@ -3695,17 +3750,20 @@
                     b1.vx = vf1.x; b1.vy = vf1.y; 
                     b2.vx = vf2.x; b2.vy = vf2.y;
 
+                    // NOVO: efeito segue/volta fica com a bola que tinha o giro (função definida mais abaixo)
                     if(b1.isCue) { 
-                        b2.vx += currentSpin.x * 0.5; 
-                        b2.vy += currentSpin.y * 0.5; 
+                        applyFollowDrawKick(b1, b2, origV1, currentSpin);
                         b2.spinZ = (b2.spinZ||0) + b1.spinZ * 0.3; // transfere um pouco do giro visível no impacto
                         b1.spinZ *= 0.5;
                     } else if (b2.isCue) {
-                         b1.vx += currentSpin.x * 0.5; 
-                         b1.vy += currentSpin.y * 0.5;
-                         b1.spinZ = (b1.spinZ||0) + b2.spinZ * 0.3;
-                         b2.spinZ *= 0.5;
+                        applyFollowDrawKick(b2, b1, origV2, currentSpin);
+                        b1.spinZ = (b1.spinZ||0) + b2.spinZ * 0.3;
+                        b2.spinZ *= 0.5;
                     }
+
+                    // NOVO: qualquer bola recém-atingida sai deslizando (nunca rolando) — reforça a física
+                    // deslizar->rolar também nos choques bola-bola, não só na tacada inicial.
+                    if (impactSpeed > 0.3) { b1.slidePhase = 1; b2.slidePhase = 1; }
 
                     // Squash/stretch de impacto para dar peso físico à colisão
                     const squashAmt = Math.min(0.3, impactSpeed * 0.025);
@@ -3740,6 +3798,33 @@
         }
     }
     function rotate(v, a) { return { x: v.x*Math.cos(a) - v.y*Math.sin(a), y: v.x*Math.sin(a) + v.y*Math.cos(a) }; }
+
+    // ================== FÍSICA REAL: SEGUE (FOLLOW) / VOLTA (DRAW) NA PRÓPRIA BRANCA ==================
+    // ANTES: o efeito (spin) da tacada era jogado quase inteiro na bola de OBJETO, o que é fisicamente
+    // ERRADO — na sinuca real o contato bola-bola é praticamente sem atrito, então o giro continua
+    // sendo "problema" da bola BRANCA depois do choque, não da bola que ela bateu. É esse giro
+    // remanescente que faz a branca "seguir" pra frente (efeito por cima/topspin) ou "voltar" pra trás
+    // (efeito por baixo/backspin) depois de acertar o alvo. O impulso do efeito fica com a bola que
+    // TINHA o giro (quase sempre a branca), na direção real que ela vinha percorrendo antes da pancada
+    // — só um resíduo bem pequeno ainda "vaza" pra bola atingida (o contato nunca é 100% sem atrito).
+    function applyFollowDrawKick(cueRef, otherRef, origVel, currentSpin) {
+        const origSpeed = Math.hypot(origVel.x, origVel.y);
+        if (origSpeed < 0.05) return;
+        const dirX = origVel.x / origSpeed, dirY = origVel.y / origSpeed;
+        const perpX = -dirY, perpY = dirX;
+        // y>0 = backspin (VOLTA): impulso negativo, puxa a branca de volta pela direção de onde veio.
+        // y<0 = topspin (SEGUE): impulso positivo, empurra a branca pra continuar seguindo em frente.
+        const followDrawImpulse = -currentSpin.y * origSpeed * PHYSICS_CONFIG.followDrawStrength;
+        // Efeito lateral (inglês) também curva um pouco a saída da branca pós-impacto
+        const sideImpulse = currentSpin.x * origSpeed * PHYSICS_CONFIG.followDrawStrength * 0.45;
+        cueRef.vx += dirX * followDrawImpulse + perpX * sideImpulse;
+        cueRef.vy += dirY * followDrawImpulse + perpY * sideImpulse;
+        cueRef.slidePhase = 1; // o giro que acabou de agir faz a branca voltar a "deslizar" um instante
+        // Resíduo pequeno de contato (bem mais sutil que o modelo antigo) — imperfeição real do choque
+        otherRef.vx += currentSpin.x * 0.08;
+        otherRef.vy += currentSpin.y * 0.08;
+    }
+    // ================== FIM FÍSICA SEGUE/VOLTA ==================
 
     function checkStop() {
         let moving = false;
@@ -4779,12 +4864,14 @@
 
     // ================== PAINEL DE CONFIGURAÇÕES DE FÍSICA — FUNÇÕES ==================
     const PHYSICS_SETTINGS_META = {
-        powerMultiplier:  { decimals: 3 },
-        rollDecel:        { decimals: 3 },
-        ballRestitution:  { decimals: 3 },
-        railRestitution:  { decimals: 3 },
-        throwEffect:      { decimals: 3 },
-        spinDecay:        { decimals: 3 }
+        powerMultiplier:       { decimals: 3 },
+        rollDecel:             { decimals: 3 },
+        slideFrictionMultiplier: { decimals: 2 },
+        ballRestitution:       { decimals: 3 },
+        railRestitution:       { decimals: 3 },
+        throwEffect:           { decimals: 3 },
+        followDrawStrength:    { decimals: 3 },
+        spinDecay:             { decimals: 3 }
     };
 
     function refreshSettingsUI() {
