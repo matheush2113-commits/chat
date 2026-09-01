@@ -5,25 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diamante Legacy</title>
     
-    <!-- IMPORTANDO FONTES PROFISSIONAIS DO GOOGLE FONTS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* VARIÁVEIS DE TEMA CSS E FONTES */
         :root {
             --bg-color: #000000;
             --ui-bg: rgba(26, 26, 26, 0.7);
             --text-color: #ffffff;
             --btn-hover: #444444;
-            
-            /* Novas fontes profissionais */
             --font-heading: 'Montserrat', sans-serif;
             --font-body: 'Inter', sans-serif;
         }
 
-        /* CLASSE QUE ATIVA O TEMA CLARO */
         body.light-theme {
             --bg-color: #e0e0e0;
             --ui-bg: rgba(255, 255, 255, 0.7);
@@ -39,7 +34,6 @@
             transition: background-color 0.3s ease;
         }
 
-        /* BARRA DE NAVEGAÇÃO */
         #navbar {
             position: absolute;
             top: 25px;
@@ -73,7 +67,6 @@
             position: relative;
         }
 
-        /* Efeito profissional de hover nos botões (sublinhado animado) */
         .nav-btn::after {
             content: '';
             position: absolute;
@@ -94,7 +87,6 @@
             color: #b3b3b3;
         }
 
-        /* MODAL DE AJUDA */
         #ajuda-modal {
             display: none;
             position: absolute;
@@ -153,10 +145,6 @@
             transform: translateY(-2px);
             opacity: 0.9;
         }
-        
-        .fechar-modal:active {
-            transform: translateY(0);
-        }
     </style>
     <script type="importmap">
         {
@@ -168,14 +156,12 @@
     </script>
 </head>
 <body>
-    <!-- INTERFACE 2D POR CIMA DO 3D -->
     <div id="navbar">
         <button class="nav-btn" id="btn-inicio">Início</button>
         <button class="nav-btn" id="btn-ajuda">Ajuda</button>
         <button class="nav-btn" id="btn-tema">Tema Claro</button>
     </div>
 
-    <!-- CAIXA DE AJUDA -->
     <div id="ajuda-modal">
         <h2>Diamante Legacy</h2>
         <p>Aguarde o personagem apertar o botão. A câmera fará um movimento cinematográfico e a animação mudará para <i>Angry</i>.</p>
@@ -183,15 +169,11 @@
         <button class="fechar-modal" id="btn-fechar">Entendi</button>
     </div>
 
-    <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-        // ==========================================
-        // 0. LÓGICA DA INTERFACE DE USUÁRIO (UI)
-        // ==========================================
         const btnTema = document.getElementById('btn-tema');
         const btnAjuda = document.getElementById('btn-ajuda');
         const btnInicio = document.getElementById('btn-inicio');
@@ -203,15 +185,12 @@
         btnFechar.addEventListener('click', () => modalAjuda.style.display = 'none');
         btnInicio.addEventListener('click', () => location.reload());
 
-        // ==========================================
-        // 1. CENA E CÂMERA (Three.js)
-        // ==========================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
         scene.fog = new THREE.Fog(0x1a1a1a, 500, 3000); 
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 150, 800); 
+        camera.position.set(0, 160, 800); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -220,7 +199,8 @@
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 100, 0); 
+        // CORREÇÃO 1: Foca mais alto (Y=160). Antes estava em 100, mirando na barriga/pernas.
+        controls.target.set(0, 160, 0); 
         controls.enableDamping = true;
         controls.update();
 
@@ -233,7 +213,6 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // LÓGICA DO TEMA
         btnTema.addEventListener('click', () => {
             isLightMode = !isLightMode;
             document.body.classList.toggle('light-theme');
@@ -249,13 +228,13 @@
             }
         });
 
-        // ==========================================
-        // 2. CARREGAMENTO DO FBX
-        // ==========================================
         let mixer, acao1, acao2;
         let moverCamera = false;
         
-        const posicaoCameraAlvo = new THREE.Vector3(250, 130, 450);
+        // CORREÇÃO 2: Distância final do Zoom ajustada.
+        // Z subiu de 450 para 650 (bem menos zoom) e Y de 130 para 160 (não corta a cabeça).
+        const posicaoCameraAlvo = new THREE.Vector3(200, 160, 650);
+        
         const loader = new FBXLoader();
 
         loader.load('Button Pushing.fbx', (personagem) => {
@@ -295,9 +274,6 @@
             });
         });
 
-        // ==========================================
-        // 3. LOOP DE RENDERIZAÇÃO
-        // ==========================================
         const clock = new THREE.Clock();
 
         function animate() {
