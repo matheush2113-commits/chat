@@ -1,302 +1,334 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diamante Legacy</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --bg-color: #000000;
-            --ui-bg: rgba(26, 26, 26, 0.7);
-            --text-color: #ffffff;
-            --btn-hover: #444444;
-            --font-heading: 'Montserrat', sans-serif;
-            --font-body: 'Inter', sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diamante Legacy - GTA RP</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Variáveis de Tema */
+    :root {
+      --bg-dark: #121212;
+      --bg-light: #f8f9fa;
+      --text-dark: #ffffff;
+      --text-light: #1a1a1a;
+      --accent: #00d2ff; /* Azul Diamante */
+    }
 
-        body.light-theme {
-            --bg-color: #e0e0e0;
-            --ui-bg: rgba(255, 255, 255, 0.7);
-            --text-color: #1a1a1a;
-            --btn-hover: #cccccc;
-        }
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Montserrat', sans-serif;
+      transition: background-color 0.4s ease;
+    }
 
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: var(--bg-color); 
-            font-family: var(--font-body);
-            transition: background-color 0.3s ease;
-        }
+    body.dark-mode {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
 
-        #navbar {
-            position: absolute;
-            top: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            background: var(--ui-bg);
-            padding: 12px 30px;
-            border-radius: 40px;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            z-index: 10;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
+    body.light-mode {
+      background-color: var(--bg-light);
+      color: var(--text-light);
+    }
 
-        .nav-btn {
-            background: transparent;
-            color: var(--text-color);
-            border: none;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-family: var(--font-heading);
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s ease;
-            position: relative;
-        }
+    /* Container do Canvas (Fica no fundo) */
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
 
-        .nav-btn::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: 0;
-            left: 50%;
-            background-color: var(--text-color);
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
+    /* Interface (Fica por cima do 3D) */
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none; /* Deixa o mouse passar para o 3D */
+      display: flex;
+      flex-direction: column;
+      padding: 40px;
+      box-sizing: border-box;
+    }
 
-        .nav-btn:hover::after {
-            width: 80%;
-        }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: auto; /* Reativa o clique apenas no header */
+    }
 
-        .nav-btn:hover {
-            color: #b3b3b3;
-        }
+    .logo-container h1 {
+      margin: 0;
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      text-transform: uppercase;
+      text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
 
-        #ajuda-modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--ui-bg);
-            color: var(--text-color);
-            padding: 40px;
-            border-radius: 20px;
-            z-index: 20;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            max-width: 450px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+    .logo-container span {
+      color: var(--accent);
+      display: block;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      margin-top: -5px;
+    }
 
-        #ajuda-modal h2 { 
-            margin-top: 0; 
-            font-family: var(--font-heading);
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 15px;
-        }
-        
-        #ajuda-modal p {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #d1d1d1;
-            margin-bottom: 25px;
-        }
+    /* Botão de Tema com Glassmorphism */
+    .theme-btn {
+      background: rgba(150, 150, 150, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(150, 150, 150, 0.2);
+      color: inherit;
+      padding: 12px 24px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-        body.light-theme #ajuda-modal p {
-            color: #444444;
-        }
-        
-        .fechar-modal {
-            padding: 12px 30px;
-            cursor: pointer;
-            background: var(--text-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 30px;
-            font-family: var(--font-heading);
-            font-weight: 700;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-        }
-        
-        .fechar-modal:hover { 
-            transform: translateY(-2px);
-            opacity: 0.9;
-        }
-    </style>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
+    .theme-btn:hover {
+      background: rgba(150, 150, 150, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Texto de Carregamento */
+    #loading-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      z-index: 20;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
-<body>
-    <div id="navbar">
-        <button class="nav-btn" id="btn-inicio">Início</button>
-        <button class="nav-btn" id="btn-ajuda">Ajuda</button>
-        <button class="nav-btn" id="btn-tema">Tema Claro</button>
-    </div>
+<body class="dark-mode">
 
-    <div id="ajuda-modal">
-        <h2>Diamante Legacy</h2>
-        <p>Aguarde o personagem apertar o botão. A câmera fará um movimento cinematográfico e a animação mudará para <i>Angry</i>.</p>
-        <p>Utilize o botão esquerdo do mouse para girar a câmera e o scroll para ajustar o zoom manualmente.</p>
-        <button class="fechar-modal" id="btn-fechar">Entendi</button>
-    </div>
+  <div id="ui-layer">
+    <header>
+      <div class="logo-container">
+        <h1>Diamante Legacy</h1>
+        <span>GTA RP</span>
+      </div>
+      <button class="theme-btn" id="theme-toggle">☀️ Modo Claro</button>
+    </header>
+  </div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+  <div id="loading-text">Carregando Personagem... 0%</div>
 
-        const btnTema = document.getElementById('btn-tema');
-        const btnAjuda = document.getElementById('btn-ajuda');
-        const btnInicio = document.getElementById('btn-inicio');
-        const modalAjuda = document.getElementById('ajuda-modal');
-        const btnFechar = document.getElementById('btn-fechar');
-        let isLightMode = false;
+  <div id="canvas-container"></div>
 
-        btnAjuda.addEventListener('click', () => modalAjuda.style.display = 'block');
-        btnFechar.addEventListener('click', () => modalAjuda.style.display = 'none');
-        btnInicio.addEventListener('click', () => location.reload());
+  <script type="module">
+    import * as THREE from 'three';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a);
-        scene.fog = new THREE.Fog(0x1a1a1a, 500, 3000); 
+    // ==========================================
+    // 1. Configuração do Tema
+    // ==========================================
+    let isDark = true;
+    const body = document.body;
+    const themeBtn = document.getElementById('theme-toggle');
+    const scene = new THREE.Scene();
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(0, 160, 800); 
+    themeBtn.addEventListener('click', () => {
+      isDark = !isDark;
+      if (isDark) {
+        body.classList.remove('light-mode');
+        body.classList.add('dark-mode');
+        themeBtn.textContent = '☀️ Modo Claro';
+        ambientLight.intensity = 1.0; 
+      } else {
+        body.classList.remove('dark-mode');
+        body.classList.add('light-mode');
+        themeBtn.textContent = '🌙 Modo Escuro';
+        ambientLight.intensity = 2.0; 
+      }
+    });
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
+    // ==========================================
+    // 2. Câmera e Renderizador
+    // ==========================================
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000);
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        const controls = new OrbitControls(camera, renderer.domElement);
-        // CORREÇÃO 1: Foca mais alto (Y=160). Antes estava em 100, mirando na barriga/pernas.
-        controls.target.set(0, 160, 0); 
-        controls.enableDamping = true;
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; 
+    controls.dampingFactor = 0.05;
+
+    // ==========================================
+    // 3. Iluminação
+    // ==========================================
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    dirLight.position.set(200, 300, 200);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.top = 200;
+    dirLight.shadow.camera.bottom = -200;
+    dirLight.shadow.camera.left = -200;
+    dirLight.shadow.camera.right = 200;
+    scene.add(dirLight);
+
+    // ==========================================
+    // 4. Carregamento e Lógica de Animações
+    // ==========================================
+    let mixer, acao1, acao2;
+    let moverCamera = false;
+    let posicaoCameraAlvo = new THREE.Vector3(); // Destino cinemático calculado depois
+    
+    const loader = new FBXLoader();
+    const loadingText = document.getElementById('loading-text');
+
+    // Carrega o personagem e a 1ª animação (Button Pushing)
+    loader.load(
+      'Button Pushing.fbx', 
+      (object) => {
+        object.scale.setScalar(0.8);
+
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.frustumCulled = false; // Impede que o modelo suma da tela
+          }
+        });
+        scene.add(object);
+
+        // --- ENQUADRAMENTO INTELIGENTE ---
+        const box = new THREE.Box3().setFromObject(object);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        // Mira a câmera no peito/rosto do personagem (center.y)
+        controls.target.copy(center);
+        
+        // Posição inicial da câmera
+        const distanciaIdeal = size.y * 2.2; 
+        camera.position.set(center.x, center.y + (size.y * 0.1), distanciaIdeal);
+        
+        // Calcula a posição final da Câmera Cinemática (quando apertar o botão)
+        // Move levemente para a direita (x), centraliza no rosto/peito (y) e dá um zoom confortável (z)
+        posicaoCameraAlvo.set(
+            center.x + (size.x * 0.7), 
+            center.y + (size.y * 0.2), 
+            size.y * 1.5
+        );
+
+        camera.lookAt(center);
         controls.update();
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
-        hemiLight.position.set(0, 200, 0);
-        scene.add(hemiLight);
+        // --- SISTEMA DE ANIMAÇÕES ---
+        mixer = new THREE.AnimationMixer(object);
+        
+        if (object.animations && object.animations.length > 0) {
+          acao1 = mixer.clipAction(object.animations[0]);
+          acao1.setLoop(THREE.LoopOnce);
+          acao1.clampWhenFinished = true;
+          acao1.play();
+        }
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        dirLight.position.set(100, 200, 100);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
-
-        btnTema.addEventListener('click', () => {
-            isLightMode = !isLightMode;
-            document.body.classList.toggle('light-theme');
-            
-            if (isLightMode) {
-                btnTema.textContent = 'Tema Escuro';
-                scene.background.setHex(0xe0e0e0);
-                scene.fog.color.setHex(0xe0e0e0);
-            } else {
-                btnTema.textContent = 'Tema Claro';
-                scene.background.setHex(0x1a1a1a);
-                scene.fog.color.setHex(0x1a1a1a);
+        // Carrega a 2ª animação (Angry)
+        loader.load('Angry.fbx', (animObject) => {
+            if (animObject.animations && animObject.animations.length > 0) {
+                acao2 = mixer.clipAction(animObject.animations[0]);
+                acao2.setLoop(THREE.LoopRepeat);
             }
-        });
 
-        let mixer, acao1, acao2;
-        let moverCamera = false;
-        
-        // CORREÇÃO 2: Distância final do Zoom ajustada.
-        // Z subiu de 450 para 650 (bem menos zoom) e Y de 130 para 160 (não corta a cabeça).
-        const posicaoCameraAlvo = new THREE.Vector3(200, 160, 650);
-        
-        const loader = new FBXLoader();
-
-        loader.load('Button Pushing.fbx', (personagem) => {
-            personagem.scale.set(1, 1, 1); 
-            
-            personagem.traverse(function (child) {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                    child.frustumCulled = false; 
+            // Quando a animação 1 (apertar botão) acabar:
+            mixer.addEventListener('finished', (evento) => {
+                if (evento.action === acao1 && acao2) {
+                    acao2.reset();
+                    acao2.play();
+                    acao1.crossFadeTo(acao2, 0.5, false); // Transição suave
+                    moverCamera = true; // Inicia movimento da câmera
                 }
             });
-            scene.add(personagem);
-
-            mixer = new THREE.AnimationMixer(personagem);
-            
-            acao1 = mixer.clipAction(personagem.animations[0]);
-            acao1.setLoop(THREE.LoopOnce);
-            acao1.clampWhenFinished = true;
-            
-            loader.load('Angry.fbx', (animacaoFBX) => {
-                
-                acao2 = mixer.clipAction(animacaoFBX.animations[0]);
-                acao2.setLoop(THREE.LoopRepeat); 
-
-                acao1.play();
-
-                mixer.addEventListener('finished', (evento) => {
-                    if (evento.action === acao1) {
-                        acao2.reset();
-                        acao2.play();
-                        
-                        acao1.crossFadeTo(acao2, 0.5, false);
-                        moverCamera = true;
-                    }
-                });
-            });
         });
 
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-            
-            if (mixer) mixer.update(delta);
-
-            if (moverCamera) {
-                camera.position.lerp(posicaoCameraAlvo, 1.5 * delta);
-            }
-            
-            controls.update();
-            renderer.render(scene, camera);
+        // Oculta texto de carregamento
+        loadingText.style.opacity = '0';
+      },
+      (xhr) => {
+        // Atualiza barra de progresso
+        if(xhr.total > 0) {
+            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+            loadingText.innerText = `Carregando Personagem... ${percent}%`;
         }
-        
-        animate();
+      },
+      (error) => {
+        console.error('Erro ao carregar o arquivo FBX:', error);
+        loadingText.innerText = 'Erro ao carregar modelo.';
+        loadingText.style.color = '#ff4444';
+      }
+    );
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+    // ==========================================
+    // 5. Responsividade
+    // ==========================================
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ==========================================
+    // 6. Loop de Renderização
+    // ==========================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      
+      if (mixer) mixer.update(delta);
+
+      // Movimento suave da câmera para o alvo
+      if (moverCamera) {
+          camera.position.lerp(posicaoCameraAlvo, 1.5 * delta);
+      }
+
+      controls.update(); 
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
 </body>
 </html>
