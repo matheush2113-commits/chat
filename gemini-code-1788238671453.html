@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Personagem 3D</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #1a1a1a;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // 1. Configuração da Cena, Câmera e Renderizador
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x222222);
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      1,
+      2000
+    );
+    camera.position.set(0, 100, 300);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // 2. Controles de Câmera (OrbitControls para girar e dar zoom com o mouse)
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 100, 0);
+    controls.update();
+
+    // 3. Iluminação
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+    dirLight.position.set(100, 200, 100);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // 4. Carregamento do arquivo FBX e Animação
+    let mixer;
+    const loader = new FBXLoader();
+
+    loader.load(
+      'Button Pushing.fbx', // Nome do seu arquivo FBX
+      (object) => {
+        // Ajustar a escala caso o modelo fique muito grande ou pequeno
+        object.scale.setScalar(0.8);
+
+        // Se houver animação (como a de apertar o botão), ativa o mixer
+        if (object.animations && object.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(object);
+          const action = mixer.clipAction(object.animations[0]);
+          action.play();
+        }
+
+        // Habilitar sombras
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        scene.add(object);
+        console.log('Personagem carregado com sucesso!');
+      },
+      (xhr) => {
+        console.log((xhr.loaded / xhr.total * 100) + '% carregado');
+      },
+      (error) => {
+        console.error('Erro ao carregar o arquivo FBX:', error);
+      }
+    );
+
+    // 5. Ajustar quando a janela mudar de tamanho
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // 6. Loop de Animação e Renderização
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      if (mixer) mixer.update(delta); // Atualiza os frames da animação
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
