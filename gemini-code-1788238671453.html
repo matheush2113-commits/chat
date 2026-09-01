@@ -1,300 +1,191 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diamante Legacy - GTA RP</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-  
-  <style>
-    /* Variáveis de Tema */
-    :root {
-      --bg-dark: #121212;
-      --bg-light: #f8f9fa;
-      --text-dark: #ffffff;
-      --text-light: #1a1a1a;
-      --accent: #00d2ff; /* Azul Diamante */
-    }
-
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: 'Montserrat', sans-serif;
-      transition: background-color 0.4s ease;
-    }
-
-    body.dark-mode {
-      background-color: var(--bg-dark);
-      color: var(--text-dark);
-    }
-
-    body.light-mode {
-      background-color: var(--bg-light);
-      color: var(--text-light);
-    }
-
-    /* Container do Canvas (Fica no fundo) */
-    #canvas-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 1;
-    }
-
-    /* Interface (Fica por cima do 3D) */
-    #ui-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10;
-      pointer-events: none; /* Deixa o mouse passar para o 3D */
-      display: flex;
-      flex-direction: column;
-      padding: 40px;
-      box-sizing: border-box;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      pointer-events: auto; /* Reativa o clique apenas no header */
-    }
-
-    .logo-container h1 {
-      margin: 0;
-      font-size: 2.8rem;
-      font-weight: 900;
-      letter-spacing: -1px;
-      text-transform: uppercase;
-      text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    }
-
-    .logo-container span {
-      color: var(--accent);
-      display: block;
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 6px;
-      margin-top: -5px;
-    }
-
-    /* Botão de Tema com Glassmorphism */
-    .theme-btn {
-      background: rgba(150, 150, 150, 0.1);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(150, 150, 150, 0.2);
-      color: inherit;
-      padding: 12px 24px;
-      border-radius: 30px;
-      cursor: pointer;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .theme-btn:hover {
-      background: rgba(150, 150, 150, 0.2);
-      transform: translateY(-2px);
-    }
-
-    /* Texto de Carregamento */
-    #loading-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--accent);
-      z-index: 20;
-      pointer-events: none;
-      transition: opacity 0.5s ease;
-    }
-  </style>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
-</head>
-<body class="dark-mode">
-
-  <div id="ui-layer">
-    <header>
-      <div class="logo-container">
-        <h1>Diamante Legacy</h1>
-        <span>GTA RP</span>
-      </div>
-      <button class="theme-btn" id="theme-toggle">☀️ Modo Claro</button>
-    </header>
-  </div>
-
-  <div id="loading-text">Carregando Personagem... 0%</div>
-
-  <div id="canvas-container"></div>
-
-  <script type="module">
-    import * as THREE from 'three';
-    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-    // ==========================================
-    // 1. Configuração do Tema (Claro / Escuro)
-    // ==========================================
-    let isDark = true;
-    const body = document.body;
-    const themeBtn = document.getElementById('theme-toggle');
-
-    // Inicializa a cena com fundo transparente para o CSS controlar a cor
-    const scene = new THREE.Scene();
-
-    themeBtn.addEventListener('click', () => {
-      isDark = !isDark;
-      if (isDark) {
-        body.classList.remove('light-mode');
-        body.classList.add('dark-mode');
-        themeBtn.textContent = '☀️ Modo Claro';
-        ambientLight.intensity = 1.0; 
-      } else {
-        body.classList.remove('dark-mode');
-        body.classList.add('light-mode');
-        themeBtn.textContent = '🌙 Modo Escuro';
-        ambientLight.intensity = 2.0; // Aumenta a luz no tema claro para compensar
-      }
-    });
-
-    // ==========================================
-    // 2. Câmera e Renderizador (Correção de Cortes)
-    // ==========================================
-    // near = 0.01 (Resolve sumir ao dar zoom) 
-    // far = 10000 (Resolve sumir ao afastar)
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 10000);
-    
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true permite fundo do CSS
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Deixa o movimento do mouse mais suave
-    controls.dampingFactor = 0.05;
-
-    // ==========================================
-    // 3. Iluminação Refinada
-    // ==========================================
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-    scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(200, 300, 200);
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.top = 200;
-    dirLight.shadow.camera.bottom = -200;
-    dirLight.shadow.camera.left = -200;
-    dirLight.shadow.camera.right = 200;
-    scene.add(dirLight);
-
-    // ==========================================
-    // 4. Carregamento do FBX com Enquadramento Inteligente
-    // ==========================================
-    let mixer;
-    const loader = new FBXLoader();
-    const loadingText = document.getElementById('loading-text');
-
-    loader.load(
-      'Button Pushing.fbx', // Nome do seu arquivo
-      (object) => {
-        object.scale.setScalar(0.8);
-
-        if (object.animations && object.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(object);
-          const action = mixer.clipAction(object.animations[0]);
-          action.play();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transição de Animações - Three.js</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #1a1a1a; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
+        #info { 
+            position: absolute; 
+            top: 20px; 
+            width: 100%; 
+            text-align: center; 
+            color: #ffffff; 
+            pointer-events: none; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        #instructions {
+            position: absolute; 
+            bottom: 20px; 
+            width: 100%; 
+            text-align: center; 
+            color: #aaaaaa; 
+            font-size: 14px;
+            pointer-events: none; 
+        }
+    </style>
+    <!-- Importando o Three.js via CDN com Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="info">
+        <h2>Demonstração: Transição de Animações no Three.js</h2>
+        <p>Aguarde o cubo terminar de "pular" (Animação 1) para ele começar a "girar" (Animação 2) com transição suave.</p>
+    </div>
+    <div id="instructions">Você pode usar o mouse para girar a câmera (OrbitControls)</div>
 
-        object.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        // Se for usar FBX depois, você importaria assim:
+        // import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-        scene.add(object);
+        // ==========================================
+        // 1. CONFIGURAÇÃO BÁSICA DA CENA
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x2a2a2a);
+        scene.fog = new THREE.Fog(0x2a2a2a, 10, 50);
 
-        // --- MÁGICA DO ENQUADRAMENTO (Resolve a câmera no pé e muito colada) ---
-        
-        // 1. Calcula o "Volume" e o Centro exato do personagem
-        const box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        
-        // 2. Coloca o alvo dos controles exatamente no meio do corpo
-        controls.target.copy(center);
-        
-        // 3. Posiciona a câmera em uma distância perfeita baseada na altura do modelo
-        const distanciaIdeal = size.y * 2.2; 
-        camera.position.set(center.x, center.y + (size.y * 0.1), distanciaIdeal);
-        
-        // Atualiza a câmera
-        camera.lookAt(center);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+        camera.position.set(0, 5, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1, 0);
         controls.update();
 
-        // Esconde o texto de loading
-        loadingText.style.opacity = '0';
-      },
-      (xhr) => {
-        // Atualiza o progresso visual na tela
-        const percent = Math.round((xhr.loaded / xhr.total) * 100);
-        loadingText.innerText = `Carregando Personagem... ${percent}%`;
-      },
-      (error) => {
-        console.error('Erro ao carregar o arquivo FBX:', error);
-        loadingText.innerText = 'Erro ao carregar modelo.';
-        loadingText.style.color = '#ff4444';
-      }
-    );
+        // ==========================================
+        // 2. ILUMINAÇÃO E AMBIENTE
+        // ==========================================
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
 
-    // ==========================================
-    // 5. Responsividade
-    // ==========================================
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(-3, 10, -10);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 10;
+        dirLight.shadow.camera.bottom = -10;
+        dirLight.shadow.camera.left = -10;
+        dirLight.shadow.camera.right = 10;
+        dirLight.shadow.camera.near = 0.1;
+        dirLight.shadow.camera.far = 40;
+        scene.add(dirLight);
 
-    // ==========================================
-    // 6. Loop de Renderização
-    // ==========================================
-    const clock = new THREE.Clock();
+        // Chão e Grade
+        const mesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(100, 100), 
+            new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
+        );
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
 
-    function animate() {
-      requestAnimationFrame(animate);
+        const grid = new THREE.GridHelper(100, 40, 0x000000, 0x000000);
+        grid.material.opacity = 0.2;
+        grid.material.transparent = true;
+        scene.add(grid);
 
-      const delta = clock.getDelta();
-      if (mixer) mixer.update(delta);
+        // ==========================================
+        // 3. OBJETO E ANIMAÇÕES (MOCK PARA DEMONSTRAÇÃO)
+        // ==========================================
+        // Para usar seus arquivos FBX do Mixamo, você substituiria esta parte pelo FBXLoader.
+        
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.2 });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.y = 1;
+        cube.castShadow = true;
+        scene.add(cube);
 
-      controls.update(); // Necessário para o damping (suavidade) funcionar
-      renderer.render(scene, camera);
-    }
+        const mixer = new THREE.AnimationMixer(cube);
 
-    animate();
-  </script>
+        // ANIMAÇÃO 1: Um pulo (Vai tocar apenas uma vez)
+        const positionKF = new THREE.VectorKeyframeTrack('.position', 
+            [0, 1, 2], // Tempos (0s, 1s, 2s)
+            [0, 1, 0,  0, 6, 0,  0, 1, 0] // Posições XYZ
+        );
+        const animacaoPulo = new THREE.AnimationClip('Pulo', 2, [positionKF]);
+
+        // ANIMAÇÃO 2: Rotação (Vai tocar em loop depois do pulo)
+        const xAxis = new THREE.Vector3(0, 1, 0);
+        const q1 = new THREE.Quaternion().setFromAxisAngle(xAxis, 0);
+        const q2 = new THREE.Quaternion().setFromAxisAngle(xAxis, Math.PI);
+        const q3 = new THREE.Quaternion().setFromAxisAngle(xAxis, Math.PI * 2);
+        const quaternionKF = new THREE.QuaternionKeyframeTrack('.quaternion', 
+            [0, 1, 2], 
+            [q1.x, q1.y, q1.z, q1.w, q2.x, q2.y, q2.z, q2.w, q3.x, q3.y, q3.z, q3.w]
+        );
+        const animacaoGiro = new THREE.AnimationClip('Giro', 2, [quaternionKF]);
+
+        // Criando as Actions
+        const acao1 = mixer.clipAction(animacaoPulo);
+        const acao2 = mixer.clipAction(animacaoGiro);
+
+        // ==========================================
+        // 4. LÓGICA DE TRANSIÇÃO (A MÁGICA ACONTECE AQUI)
+        // ==========================================
+        
+        // Configura a Animação 1 para não repetir e parar no final
+        acao1.setLoop(THREE.LoopOnce);
+        acao1.clampWhenFinished = true;
+        acao1.play(); // Inicia a primeira animação
+
+        // Escuta o evento 'finished' do mixer
+        mixer.addEventListener('finished', function (evento) {
+            // Verifica se a animação que terminou foi a Ação 1
+            if (evento.action === acao1) {
+                
+                acao2.reset(); 
+                acao2.setLoop(THREE.LoopRepeat); // Esta ficará em loop
+                acao2.play();
+                
+                // Faz o CrossFade (Transição) de 0.5 segundos da Ação 1 para a Ação 2
+                acao1.crossFadeTo(acao2, 0.5, false);
+            }
+        });
+
+        // ==========================================
+        // 5. LOOP DE RENDERIZAÇÃO
+        // ==========================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Tratamento de redimensionamento da janela
+        window.addEventListener('resize', onWindowResize);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
 </body>
 </html>
