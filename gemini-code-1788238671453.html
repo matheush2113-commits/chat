@@ -4,8 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diamante Legacy</title>
+    
+    <!-- IMPORTANDO FONTES PROFISSIONAIS DO GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
+        /* VARIÁVEIS DE TEMA CSS E FONTES */
+        :root {
+            --bg-color: #000000;
+            --ui-bg: rgba(26, 26, 26, 0.7);
+            --text-color: #ffffff;
+            --btn-hover: #444444;
+            
+            /* Novas fontes profissionais */
+            --font-heading: 'Montserrat', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        /* CLASSE QUE ATIVA O TEMA CLARO */
+        body.light-theme {
+            --bg-color: #e0e0e0;
+            --ui-bg: rgba(255, 255, 255, 0.7);
+            --text-color: #1a1a1a;
+            --btn-hover: #cccccc;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: var(--bg-color); 
+            font-family: var(--font-body);
+            transition: background-color 0.3s ease;
+        }
+
+        /* BARRA DE NAVEGAÇÃO */
+        #navbar {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            background: var(--ui-bg);
+            padding: 12px 30px;
+            border-radius: 40px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--text-color);
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: var(--font-heading);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        /* Efeito profissional de hover nos botões (sublinhado animado) */
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            background-color: var(--text-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .nav-btn:hover::after {
+            width: 80%;
+        }
+
+        .nav-btn:hover {
+            color: #b3b3b3;
+        }
+
+        /* MODAL DE AJUDA */
+        #ajuda-modal {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--ui-bg);
+            color: var(--text-color);
+            padding: 40px;
+            border-radius: 20px;
+            z-index: 20;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            max-width: 450px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #ajuda-modal h2 { 
+            margin-top: 0; 
+            font-family: var(--font-heading);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 15px;
+        }
+        
+        #ajuda-modal p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #d1d1d1;
+            margin-bottom: 25px;
+        }
+
+        body.light-theme #ajuda-modal p {
+            color: #444444;
+        }
+        
+        .fechar-modal {
+            padding: 12px 30px;
+            cursor: pointer;
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 30px;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        
+        .fechar-modal:hover { 
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        
+        .fechar-modal:active {
+            transform: translateY(0);
+        }
     </style>
     <script type="importmap">
         {
@@ -17,34 +168,62 @@
     </script>
 </head>
 <body>
+    <!-- INTERFACE 2D POR CIMA DO 3D -->
+    <div id="navbar">
+        <button class="nav-btn" id="btn-inicio">Início</button>
+        <button class="nav-btn" id="btn-ajuda">Ajuda</button>
+        <button class="nav-btn" id="btn-tema">Tema Claro</button>
+    </div>
+
+    <!-- CAIXA DE AJUDA -->
+    <div id="ajuda-modal">
+        <h2>Diamante Legacy</h2>
+        <p>Aguarde o personagem apertar o botão. A câmera fará um movimento cinematográfico e a animação mudará para <i>Angry</i>.</p>
+        <p>Utilize o botão esquerdo do mouse para girar a câmera e o scroll para ajustar o zoom manualmente.</p>
+        <button class="fechar-modal" id="btn-fechar">Entendi</button>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL -->
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
         // ==========================================
-        // 1. CENA E CÂMERA (Escala real para Mixamo)
+        // 0. LÓGICA DA INTERFACE DE USUÁRIO (UI)
+        // ==========================================
+        const btnTema = document.getElementById('btn-tema');
+        const btnAjuda = document.getElementById('btn-ajuda');
+        const btnInicio = document.getElementById('btn-inicio');
+        const modalAjuda = document.getElementById('ajuda-modal');
+        const btnFechar = document.getElementById('btn-fechar');
+        let isLightMode = false;
+
+        btnAjuda.addEventListener('click', () => modalAjuda.style.display = 'block');
+        btnFechar.addEventListener('click', () => modalAjuda.style.display = 'none');
+        btnInicio.addEventListener('click', () => location.reload());
+
+        // ==========================================
+        // 1. CENA E CÂMERA (Three.js)
         // ==========================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
-        scene.fog = new THREE.Fog(0x1a1a1a, 200, 1000);
+        scene.fog = new THREE.Fog(0x1a1a1a, 500, 3000); 
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-        // Câmera inicial de frente para o personagem (Z = 400, Y = 100 altura do peito)
-        camera.position.set(0, 100, 400); 
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.set(0, 150, 800); 
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 100, 0); // Foca no centro do personagem
+        controls.target.set(0, 100, 0); 
         controls.enableDamping = true;
         controls.update();
 
-        // LUZES
         const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
         hemiLight.position.set(0, 200, 0);
         scene.add(hemiLight);
@@ -54,56 +233,62 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
+        // LÓGICA DO TEMA
+        btnTema.addEventListener('click', () => {
+            isLightMode = !isLightMode;
+            document.body.classList.toggle('light-theme');
+            
+            if (isLightMode) {
+                btnTema.textContent = 'Tema Escuro';
+                scene.background.setHex(0xe0e0e0);
+                scene.fog.color.setHex(0xe0e0e0);
+            } else {
+                btnTema.textContent = 'Tema Claro';
+                scene.background.setHex(0x1a1a1a);
+                scene.fog.color.setHex(0x1a1a1a);
+            }
+        });
+
         // ==========================================
-        // 2. CARREGAMENTO DO FBX (DIAMANTE LEGACY)
+        // 2. CARREGAMENTO DO FBX
         // ==========================================
         let mixer, acao1, acao2;
         let moverCamera = false;
         
-        // Posição final da câmera: X=150 (Direita), Y=120 (Levemente mais alto), Z=200 (Zoom perto do rosto/peito)
-        const posicaoCameraAlvo = new THREE.Vector3(150, 120, 200);
-
+        const posicaoCameraAlvo = new THREE.Vector3(250, 130, 450);
         const loader = new FBXLoader();
 
-        // 1. Carrega o modelo principal com a primeira animação (ex: Idle ou Início)
         loader.load('Button Pushing.fbx', (personagem) => {
-            personagem.scale.set(1, 1, 1); // Mixamo geralmente já vem na escala certa, mas pode ajustar aqui
+            personagem.scale.set(1, 1, 1); 
             
-            // Adiciona sombras
             personagem.traverse(function (child) {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    child.frustumCulled = false; 
                 }
             });
             scene.add(personagem);
 
             mixer = new THREE.AnimationMixer(personagem);
             
-            // Pega a primeira animação do arquivo principal
             acao1 = mixer.clipAction(personagem.animations[0]);
-            acao1.setLoop(THREE.LoopOnce); // Toca só uma vez
+            acao1.setLoop(THREE.LoopOnce);
             acao1.clampWhenFinished = true;
             
-            // 2. Carrega o arquivo FBX que contém SÓ a segunda animação (o texto que você tentou mesclar)
             loader.load('Angry.fbx', (animacaoFBX) => {
                 
                 acao2 = mixer.clipAction(animacaoFBX.animations[0]);
-                acao2.setLoop(THREE.LoopRepeat); // Essa fica em loop
+                acao2.setLoop(THREE.LoopRepeat); 
 
-                // Inicia a primeira animação
                 acao1.play();
 
-                // Lógica de transição ao terminar a primeira animação
                 mixer.addEventListener('finished', (evento) => {
                     if (evento.action === acao1) {
                         acao2.reset();
                         acao2.play();
                         
-                        // Crossfade de 0.5 segundos para a nova animação
                         acao1.crossFadeTo(acao2, 0.5, false);
-
-                        // GATILHO DA CÂMERA: Inicia o Zoom e arrasta para a direita
                         moverCamera = true;
                     }
                 });
@@ -111,7 +296,7 @@
         });
 
         // ==========================================
-        // 3. LOOP DE RENDERIZAÇÃO E CÂMERA
+        // 3. LOOP DE RENDERIZAÇÃO
         // ==========================================
         const clock = new THREE.Clock();
 
@@ -121,9 +306,7 @@
             
             if (mixer) mixer.update(delta);
 
-            // Transição cinematográfica da câmera
             if (moverCamera) {
-                // Interpola a câmera atual para a posição alvo suavemente (velocidade 1.5)
                 camera.position.lerp(posicaoCameraAlvo, 1.5 * delta);
             }
             
@@ -133,7 +316,6 @@
         
         animate();
 
-        // Ajusta a tela quando redimensionar o navegador
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
