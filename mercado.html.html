@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER_EXTRACTOR v4.09 // MOVIE PROP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fontes Google: Orbitron & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            green: '#00ff66',
+                            red: '#ff0055',
+                            blue: '#00e5ff',
+                            bg: '#050811'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --primary-color: #00ff66;
+            --primary-glow: rgba(0, 255, 102, 0.4);
+            --primary-bg-glow: rgba(0, 255, 102, 0.08);
+            --border-color: rgba(0, 255, 102, 0.3);
+        }
+
+        .theme-red {
+            --primary-color: #ff0055;
+            --primary-glow: rgba(255, 0, 85, 0.5);
+            --primary-bg-glow: rgba(255, 0, 85, 0.1);
+            --border-color: rgba(255, 0, 85, 0.4);
+        }
+
+        .theme-blue {
+            --primary-color: #00e5ff;
+            --primary-glow: rgba(0, 229, 255, 0.5);
+            --primary-bg-glow: rgba(0, 229, 255, 0.1);
+            --border-color: rgba(0, 229, 255, 0.4);
+        }
+
+        body {
+            background-color: #03050a;
+            color: var(--primary-color);
+            font-family: 'Fira Code', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Scanline Overlay Effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+        }
+
+        /* CRT Screen Flicker & Vignette */
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 51;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+        }
+
+        /* Neon Panels */
+        .cyber-panel {
+            background: rgba(5, 10, 20, 0.75);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 15px var(--primary-bg-glow), inset 0 0 15px var(--primary-bg-glow);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .cyber-panel:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 25px var(--primary-glow);
+        }
+
+        /* Glow Text */
+        .text-glow {
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        .text-glow-lg {
+            text-shadow: 0 0 15px var(--primary-color);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        /* Glitch Animation */
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        .glitch-active {
+            animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+        }
+
+        /* Pulse Alert */
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .pulse-alert {
+            animation: alertPulse 0.8s infinite;
+        }
+
+        /* Canvas Matrix */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            opacity: 0.35;
+        }
+
+        .dynamic-color {
+            color: var(--primary-color);
+        }
+
+        .dynamic-border {
+            border-color: var(--primary-color);
+        }
+
+        .dynamic-bg {
+            background-color: var(--primary-color);
+        }
+
+        /* Clip path tech corners */
+        .tech-corner {
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 12px) 0, 
+                100% 12px, 
+                100% 100%, 
+                12px 100%, 
+                0 calc(100% - 12px)
+            );
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative overflow-hidden flex flex-col justify-between">
+
+    <!-- Effects Layers -->
+    <div class="scanlines"></div>
+    <div class="crt-overlay"></div>
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- TOP HEADER / STATUS BAR -->
+    <header class="relative z-10 w-full px-6 py-3 border-b border-[var(--border-color)] bg-black/60 backdrop-blur-md flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <div class="w-3 h-3 rounded-full dynamic-bg animate-ping"></div>
+            <h1 class="font-orbitron font-black text-xl tracking-widest text-glow flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i>
+                NEXUS_TOKEN_EXTRACTOR // v9.4
+            </h1>
+            <span class="text-xs px-2 py-0.5 border dynamic-border rounded bg-black/40 font-mono tracking-wider text-glow uppercase" id="modeBadge">
+                STATUS: LIVE_EXTRACTION
+            </span>
+        </div>
+
+        <!-- Director Control Panel Bar -->
+        <div class="flex items-center gap-3 bg-black/80 p-1.5 rounded-lg border border-white/10 shadow-lg">
+            <span class="text-xs text-gray-400 font-sans font-bold px-2 flex items-center gap-1">
+                <i class="fa-solid fa-clapperboard text-yellow-400"></i> CONTROLES DO DIREITOR:
+            </span>
+
+            <!-- Play/Pause -->
+            <button onclick="toggleAction()" id="btnAction" class="px-3 py-1 text-xs font-bold font-orbitron bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500/40 rounded transition flex items-center gap-1.5">
+                <i class="fa-solid fa-pause" id="iconAction"></i>
+                <span id="lblAction">PAUSAR</span>
+            </button>
+
+            <!-- Trigger Lock / Target Found -->
+            <button onclick="triggerTargetLock()" class="px-3 py-1 text-xs font-bold font-orbitron bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/40 rounded transition flex items-center gap-1.5">
+                <i class="fa-solid fa-crosshairs"></i>
+                <span>TRAVAR ALVO</span>
+            </button>
+
+            <!-- System Breach Alert -->
+            <button onclick="triggerAlert()" class="px-3 py-1 text-xs font-bold font-orbitron bg-rose-500/20 text-rose-400 border border-rose-500/50 hover:bg-rose-500/40 rounded transition flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>ALERTA DE INVASÃO</span>
+            </button>
+
+            <div class="h-4 w-[1px] bg-white/20"></div>
+
+            <!-- Theme Switcher -->
+            <div class="flex gap-1">
+                <button onclick="setTheme('green')" title="Verde Matrix" class="w-6 h-6 rounded bg-emerald-500 border border-white/20 hover:scale-110 transition"></button>
+                <button onclick="setTheme('red')" title="Vermelho Alerta" class="w-6 h-6 rounded bg-rose-600 border border-white/20 hover:scale-110 transition"></button>
+                <button onclick="setTheme('blue')" title="Azul Cyber" class="w-6 h-6 rounded bg-cyan-400 border border-white/20 hover:scale-110 transition"></button>
+            </div>
+
+            <!-- Audio Toggle -->
+            <button onclick="toggleAudio()" id="btnAudio" class="p-1.5 text-gray-400 hover:text-white transition" title="Alternar Efeitos Sonoros">
+                <i class="fa-solid fa-volume-xmark" id="iconAudio"></i>
+            </button>
+
+            <!-- Fullscreen -->
+            <button onclick="toggleFullscreen()" class="p-1.5 text-gray-400 hover:text-white transition" title="Tela Cheia (F11)">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="relative z-10 flex-1 p-4 grid grid-cols-12 gap-4 overflow-hidden">
+
+        <!-- LEFT COLUMN: IP Tracker & Target Intelligence (3 Cols) -->
+        <div class="col-span-3 flex flex-col gap-4">
+            
+            <!-- IP Interceptor & Target Lock Panel -->
+            <div class="cyber-panel p-4 rounded-lg tech-corner flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-3 border-b border-[var(--border-color)] pb-2">
+                    <span class="font-orbitron text-xs font-bold tracking-wider text-glow flex items-center gap-2">
+                        <i class="fa-solid fa-network-wired"></i> RASTREADOR DE IP EM TEMPO REAL
+                    </span>
+                    <span class="text-[10px] bg-red-950/80 text-red-400 border border-red-500/40 px-1.5 py-0.5 rounded animate-pulse">
+                        LIVE SNIFFER
+                    </span>
+                </div>
+
+                <!-- Current Target Card -->
+                <div class="bg-black/60 border border-[var(--border-color)] p-3 rounded mb-3">
+                    <div class="text-[10px] text-gray-400 mb-1">ALVO ATUAL INTERCEPTADO:</div>
+                    <div id="targetIP" class="text-xl font-bold font-mono text-glow tracking-widest text-center py-1">
+                        192.168.1.104
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2 text-[11px] font-mono border-t border-white/10 pt-2 text-gray-300">
+                        <div>PORTA: <span id="targetPort" class="dynamic-color font-bold">8080</span></div>
+                        <div>LATÊNCIA: <span id="targetPing" class="dynamic-color font-bold">12ms</span></div>
+                        <div>PROVEDOR: <span class="text-gray-400">CYBER_NET</span></div>
+                        <div>PROTOCOLO: <span class="text-gray-400">WSS/TLS1.3</span></div>
+                    </div>
+                </div>
+
+                <!-- Geo Coordinates Simulated -->
+                <div class="bg-black/40 border border-white/5 p-2 rounded mb-3 text-[11px]">
+                    <div class="flex justify-between text-gray-400 mb-1">
+                        <span>COORDENADAS GPS:</span>
+                        <span id="geoCoords" class="dynamic-color font-bold">-23.5505, -46.6333</span>
+                    </div>
+                    <div class="flex justify-between text-gray-400">
+                        <span>LOCALIZAÇÃO:</span>
+                        <span id="geoLoc" class="text-white font-bold">SÃO PAULO, BR [NODE_09]</span>
+                    </div>
+                </div>
+
+                <!-- Live Stream IP Interceptions List -->
+                <div class="flex-1 flex flex-col min-h-0">
+                    <div class="text-[10px] text-gray-400 mb-1 flex justify-between">
+                        <span>VARREDURA DE SUB-REDES:</span>
+                        <span class="text-glow">CAPTURA ATIVA</span>
+                    </div>
+                    <div id="ipList" class="flex-1 overflow-y-auto space-y-1 pr-1 text-[11px] font-mono">
+                        <!-- Dynamic IPs will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Payload Gauge & Progress -->
+            <div class="cyber-panel p-4 rounded-lg tech-corner h-48 flex flex-col justify-between">
+                <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2">
+                    <span class="font-orbitron text-xs font-bold text-glow flex items-center gap-2">
+                        <i class="fa-solid fa-microchip"></i> INJEÇÃO DE PAYLOAD
+                    </span>
+                    <span class="text-xs font-bold" id="percentText">68%</span>
+                </div>
+
+                <div class="my-2">
+                    <div class="w-full bg-black/80 h-4 rounded-full border border-[var(--border-color)] overflow-hidden p-0.5">
+                        <div id="progressBar" class="h-full dynamic-bg rounded-full transition-all duration-300 shadow-[0_0_12px_var(--primary-color)]" style="width: 68%;"></div>
+                    </div>
+                </div>
+
+                <!-- Animated Bars -->
+                <div class="grid grid-cols-8 gap-1 h-12 items-end bg-black/40 p-2 rounded border border-white/5">
+                    <div class="w-full dynamic-bg opacity-40 rounded-t h-1/2 animate-pulse"></div>
+                    <div class="w-full dynamic-bg opacity-80 rounded-t h-3/4 animate-pulse"></div>
+                    <div class="w-full dynamic-bg rounded-t h-full animate-pulse"></div>
+                    <div class="w-full dynamic-bg opacity-60 rounded-t h-2/3 animate-pulse"></div>
+                    <div class="w-full dynamic-bg opacity-90 rounded-t h-5/6 animate-pulse"></div>
+                    <div class="w-full dynamic-bg opacity-30 rounded-t h-1/3 animate-pulse"></div>
+                    <div class="w-full dynamic-bg opacity-75 rounded-t h-4/5 animate-pulse"></div>
+                    <div class="w-full dynamic-bg rounded-t h-full animate-pulse"></div>
+                </div>
+
+                <div class="text-[10px] text-gray-400 flex justify-between font-mono">
+                    <span>PACOTES: <span id="pkgCount" class="text-white">48,291</span></span>
+                    <span>TAXA: <span class="dynamic-color">1.2 GB/s</span></span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CENTER COLUMN: Fast Token Extraction Console (6 Cols) -->
+        <div class="col-span-6 flex flex-col gap-4">
+            
+            <!-- Token Capture Rapid Stream -->
+            <div class="cyber-panel p-4 rounded-lg tech-corner flex-1 flex flex-col relative overflow-hidden">
+                
+                <!-- Watermark / Overlay Banner for Drama -->
+                <div id="alertBanner" class="hidden absolute inset-x-0 top-12 bg-red-600/90 text-white font-orbitron font-black text-center py-2 text-lg tracking-widest z-20 border-y-2 border-red-300 glitch-active shadow-[0_0_30px_rgba(255,0,0,0.8)]">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i> CRITICAL BREACH DETECTED // BYPASSING FIREWALL
+                </div>
+
+                <div class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-key text-glow text-lg"></i>
+                        <span class="font-orbitron text-sm font-bold tracking-wider text-glow">
+                            CONSOLET DE CAPTURA DE TOKENS (HIGH-SPEED)
+                        </span>
+                    </div>
+                    <div class="text-xs font-mono">
+                        CAPTURA: <span id="tokenCounter" class="text-glow text-lg font-bold">1,849</span>
+                    </div>
+                </div>
+
+                <!-- Captured JWT Token Highlight Card -->
+                <div class="bg-black/80 border border-[var(--border-color)] p-3 rounded-lg mb-3 shadow-inner relative">
+                    <div class="text-[10px] text-gray-400 font-mono mb-1 flex justify-between">
+                        <span>ÚLTIMO TOKEN JWT DESCRIPTOGRAFADO:</span>
+                        <span class="text-emerald-400 font-bold">VALIDATED // SESSION_ACTIVE</span>
+                    </div>
+                    <div id="activeJWT" class="font-mono text-xs break-all text-white font-semibold bg-black/60 p-2 rounded border border-white/10 tracking-wider">
+                        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IktleUhhY2tlciIsImFkbWluIjp0cnVlLCJpYXQiOjE2MTYyMzk0MjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+                    </div>
+                </div>
+
+                <!-- Fast Terminal Code Stream -->
+                <div class="flex-1 bg-black/90 rounded border border-white/10 p-3 font-mono text-xs overflow-hidden flex flex-col justify-end relative">
+                    <div id="terminalStream" class="space-y-1 overflow-y-auto max-h-full pr-1">
+                        <!-- High speed lines injected here -->
+                    </div>
+                </div>
+
+                <!-- Command Status Footer -->
+                <div class="mt-3 grid grid-cols-3 gap-2 text-[11px] font-mono">
+                    <div class="bg-black/50 p-2 rounded border border-white/5">
+                        ALGORITMO: <span class="text-white font-bold">RSA-4096 / AES-GCM</span>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-white/5">
+                        HASH RATE: <span class="dynamic-color font-bold" id="hashRate">948.2 TH/s</span>
+                    </div>
+                    <div class="bg-black/50 p-2 rounded border border-white/5">
+                        CHAVES EXTRAÍDAS: <span class="text-white font-bold" id="keyCounter">14,209</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: System Monitor & Hex Vault (3 Cols) -->
+        <div class="col-span-3 flex flex-col gap-4">
+            
+            <!-- Live Hexadecimal Vault -->
+            <div class="cyber-panel p-4 rounded-lg tech-corner flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-3 border-b border-[var(--border-color)] pb-2">
+                    <span class="font-orbitron text-xs font-bold tracking-wider text-glow flex items-center gap-2">
+                        <i class="fa-solid fa-database"></i> MEMORY HEX DUMP
+                    </span>
+                    <span class="text-[10px] text-gray-400">RAM: 0x7FFF</span>
+                </div>
+
+                <div id="hexDump" class="flex-1 bg-black/80 p-2 rounded font-mono text-[10px] leading-relaxed text-gray-400 overflow-hidden border border-white/5">
+                    <!-- Dynamic Hex lines -->
+                </div>
+            </div>
+
+            <!-- Active Nodes & Security Bypass Status -->
+            <div class="cyber-panel p-4 rounded-lg tech-corner h-64 flex flex-col">
+                <div class="flex justify-between items-center mb-3 border-b border-[var(--border-color)] pb-2">
+                    <span class="font-orbitron text-xs font-bold tracking-wider text-glow flex items-center gap-2">
+                        <i class="fa-solid fa-server"></i> NÓS DE CONEXÃO
+                    </span>
+                    <span class="text-xs text-emerald-400 font-bold">8/8 ON</span>
+                </div>
+
+                <div class="flex-1 space-y-2 text-xs font-mono overflow-hidden">
+                    <div class="flex items-center justify-between p-1.5 bg-black/40 rounded border border-white/5">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            NODE_US_EAST
+                        </span>
+                        <span class="text-gray-400 text-[10px]">PROXY_ACTIVE</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-black/40 rounded border border-white/5">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            NODE_EU_CENTRAL
+                        </span>
+                        <span class="text-gray-400 text-[10px]">TUNNEL_ESTABLISHED</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-black/40 rounded border border-white/5">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            NODE_ASIA_TOKYO
+                        </span>
+                        <span class="text-gray-400 text-[10px]">ENCRYPTED</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 bg-black/40 rounded border border-white/5">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            NODE_LATAM_BR
+                        </span>
+                        <span class="text-gray-400 text-[10px]">BYPASS_FIREWALL</span>
+                    </div>
+                </div>
+
+                <!-- Security Clearance Box -->
+                <div class="mt-2 p-2 bg-black/60 border border-[var(--border-color)] rounded text-center">
+                    <div class="text-[10px] text-gray-400">NÍVEL DE AMEAÇA DO SISTEMA</div>
+                    <div id="threatLevel" class="font-orbitron font-bold text-sm tracking-widest dynamic-color mt-0.5">
+                        DEFCON 3 // ELEVADO
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER STATUS TICKER -->
+    <footer class="relative z-10 w-full bg-black/80 border-t border-[var(--border-color)] px-6 py-1.5 flex justify-between items-center text-xs font-mono">
+        <div class="flex items-center gap-6 text-gray-400">
+            <span>FPS: <span class="text-white" id="fpsCounter">60</span></span>
+            <span>MEM: <span class="text-white">64.2 MB</span></span>
+            <span>MODO DE GRAVAÇÃO: <span class="dynamic-color font-bold">ATIVO</span></span>
+        </div>
+        <div class="text-gray-400 overflow-hidden whitespace-nowrap max-w-xl">
+            <span class="inline-block animate-marquee">
+                >>> AVISO DE CENA: SISTEMA TOTALMENTE SIMULADO PARA GRAVAÇÃO CINEMATOGRÁFICA // NENHUM DADO REAL É COLETADO OU TRANSMITIDO <<<
+            </span>
+        </div>
+        <div class="text-gray-400">
+            SISTEMA: <span class="text-white">READY_FOR_ACTION</span>
+        </div>
+    </footer>
+
+    <!-- SCRIPT DE LÓGICA E ANIMAÇÕES -->
+    <script>
+        /* ===================================================================
+           1. MATRIX CANVAS DIGITAL RAIN EFFECT
+           =================================================================== */
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()*&^%~§±µþæð010101";
+        const fontSize = 14;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = Array(columns).fill(1);
+
+        let currentColor = '#00ff66';
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 8, 17, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = currentColor;
+            ctx.font = fontSize + 'px "Fira Code", monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        let matrixInterval = setInterval(drawMatrix, 33);
+
+        /* ===================================================================
+           2. AUDIO SYNTHESIZER (Web Audio API - No external files required)
+           =================================================================== */
+        let audioCtx = null;
+        let audioEnabled = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(freq = 800, type = 'sine', duration = 0.05, vol = 0.03) {
+            if (!audioEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        function toggleAudio() {
+            initAudio();
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('btnAudio');
+            const icon = document.getElementById('iconAudio');
+            if (audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-emerald-400';
+                playBeep(1200, 'square', 0.1, 0.05);
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-gray-400';
+            }
+        }
+
+        /* ===================================================================
+           3. SIMULATED DATA GENERATORS
+           =================================================================== */
+
+        // Random generator helpers
+        const getRandomArr = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        
+        function generateIP() {
+            const prefixes = ['192.168', '10.0', '172.16', '185.220', '45.13', '103.21'];
+            return `${getRandomArr(prefixes)}.${getRandomInt(1, 254)}.${getRandomInt(1, 254)}`;
+        }
+
+        function generateHex(length) {
+            let result = '';
+            const characters = '0123456789ABCDEF';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
+        }
+
+        function generateToken() {
+            const header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+            const payload = btoa(JSON.stringify({
+                id: getRandomInt(1000, 9999),
+                user: "target_node_" + getRandomInt(100, 999),
+                role: getRandomArr(['admin', 'root', 'operator', 'sys_auth']),
+                exp: Date.now() + 3600
+            })).replace(/=/g, '');
+            const sig = generateHex(32).toLowerCase();
+            return `${header}.${payload}.${sig}`;
+        }
+
+        const sampleCommands = [
+            "INTERCEPTING PACKET FROM ",
+            "DECRYPTING JWT BEARER TOKEN: ",
+            "BYPASSING OAUTH2 SLOW HANDSHAKE... ",
+            "EXTRACTING PRIVATE KEY RSA-4096... ",
+            "INJECTING MEMORY BUFFER OVERFLOW... ",
+            "SNIFFING SSL TRAFFIC ON PORT 443... ",
+            "CAPTURED SESSION TOKEN: ",
+            "SPOOFING MAC ADDRESS: ",
+            "HIJACKING COOKIE AUTH: ",
+            "DUMPING LSASS MEMORY... "
+        ];
+
+        /* ===================================================================
+           4. DYNAMIC DOM UPDATERS & HIGH-SPEED LOOPS
+           =================================================================== */
+
+        let isRunning = true;
+        let tokenCount = 1849;
+        let keyCount = 14209;
+        let pkgCount = 48291;
+
+        const terminalStream = document.getElementById('terminalStream');
+        const ipList = document.getElementById('ipList');
+        const hexDump = document.getElementById('hexDump');
+        const activeJWT = document.getElementById('activeJWT');
+
+        // Fast Terminal Code Generator
+        function updateTerminal() {
+            if (!isRunning) return;
+
+            const line = document.createElement('div');
+            line.className = 'whitespace-nowrap flex gap-2 items-center';
+            
+            const isTokenLine = Math.random() > 0.4;
+            
+            if (isTokenLine) {
+                const token = generateToken();
+                line.innerHTML = `<span class="text-gray-500">[${new Date().toLocaleTimeString()}]</span> <span class="dynamic-color font-bold">TOKEN_EX:</span> <span class="text-gray-300 break-all">${token.substring(0, 45)}...</span>`;
+                
+                // Periodically update the main featured JWT Box
+                if (Math.random() > 0.7) {
+                    activeJWT.textContent = token;
+                    playBeep(1500, 'sine', 0.03, 0.02);
+                }
+                
+                tokenCount++;
+                document.getElementById('tokenCounter').textContent = tokenCount.toLocaleString();
+            } else {
+                const cmd = getRandomArr(sampleCommands);
+                const extra = cmd.includes("IP") ? generateIP() : generateHex(16);
+                line.innerHTML = `<span class="text-gray-500">[${new Date().toLocaleTimeString()}]</span> <span class="text-amber-400">EXEC:</span> <span class="text-white">${cmd}</span> <span class="dynamic-color">${extra}</span>`;
+            }
+
+            terminalStream.appendChild(line);
+            if (terminalStream.children.length > 25) {
+                terminalStream.removeChild(terminalStream.firstChild);
+            }
+            terminalStream.scrollTop = terminalStream.scrollHeight;
+
+            // Counters
+            keyCount += getRandomInt(1, 3);
+            pkgCount += getRandomInt(12, 85);
+            document.getElementById('keyCounter').textContent = keyCount.toLocaleString();
+            document.getElementById('pkgCount').textContent = pkgCount.toLocaleString();
+
+            // Random hash rate flicker
+            document.getElementById('hashRate').textContent = (940 + Math.random() * 20).toFixed(1) + " TH/s";
+        }
+
+        // IP Scanner Stream
+        function updateIPList() {
+            if (!isRunning) return;
+
+            const ip = generateIP();
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-center bg-black/40 p-1 rounded border border-white/5 text-[10px]';
+            row.innerHTML = `
+                <span class="text-gray-300">${ip}</span>
+                <span class="dynamic-color">CAP_OK</span>
+                <span class="text-gray-500">${getRandomInt(10, 80)}ms</span>
+            `;
+            
+            ipList.prepend(row);
+            if (ipList.children.length > 10) {
+                ipList.removeChild(ipList.lastChild);
+            }
+
+            // Update main targeted IP randomly
+            if (Math.random() > 0.8) {
+                document.getElementById('targetIP').textContent = ip;
+                document.getElementById('targetPort').textContent = getRandomArr([8080, 443, 8443, 3000, 22, 80]);
+                document.getElementById('targetPing').textContent = getRandomInt(4, 28) + 'ms';
+                playBeep(600, 'triangle', 0.04, 0.02);
+            }
+        }
+
+        // Memory Hex Dump Generator
+        function updateHexDump() {
+            if (!isRunning) return;
+
+            let hexHTML = '';
+            for (let i = 0; i < 14; i++) {
+                const addr = '0x' + (0x7FFF + i * 16).toString(16).toUpperCase();
+                const bytes = generateHex(16).match(/.{1,2}/g).join(' ');
+                hexHTML += `<div class="flex justify-between">
+                    <span class="text-gray-600">${addr}</span>
+                    <span class="text-gray-300">${bytes}</span>
+                </div>`;
+            }
+            hexDump.innerHTML = hexHTML;
+        }
+
+        // Progress bar dynamic loop
+        let progressVal = 68;
+        function updateProgress() {
+            if (!isRunning) return;
+            progressVal += Math.random() > 0.5 ? 1 : -0.8;
+            if (progressVal > 99) progressVal = 40;
+            if (progressVal < 20) progressVal = 20;
+
+            document.getElementById('progressBar').style.width = progressVal + '%';
+            document.getElementById('percentText').textContent = Math.floor(progressVal) + '%';
+        }
+
+        // High frequency loops
+        setInterval(updateTerminal, 90);
+        setInterval(updateIPList, 250);
+        setInterval(updateHexDump, 150);
+        setInterval(updateProgress, 400);
+
+        /* ===================================================================
+           5. DIRECTOR CONTROL ACTIONS & INTERACTION
+           =================================================================== */
+
+        // Play / Pause Toggle
+        function toggleAction() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('btnAction');
+            const icon = document.getElementById('iconAction');
+            const lbl = document.getElementById('lblAction');
+
+            if (isRunning) {
+                icon.className = 'fa-solid fa-pause';
+                lbl.textContent = 'PAUSAR';
+                btn.className = 'px-3 py-1 text-xs font-bold font-orbitron bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500/40 rounded transition flex items-center gap-1.5';
+            } else {
+                icon.className = 'fa-solid fa-play';
+                lbl.textContent = 'CONTINUAR';
+                btn.className = 'px-3 py-1 text-xs font-bold font-orbitron bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/40 rounded transition flex items-center gap-1.5';
+            }
+        }
+
+        // Trigger Target Lock Scene Effect
+        function triggerTargetLock() {
+            playBeep(2000, 'square', 0.2, 0.08);
+            setTimeout(() => playBeep(2400, 'square', 0.3, 0.08), 150);
+
+            const targetIPEl = document.getElementById('targetIP');
+            targetIPEl.classList.add('glitch-active', 'text-amber-400');
+            targetIPEl.textContent = "TARGET_LOCKED // " + generateIP();
+
+            setTimeout(() => {
+                targetIPEl.classList.remove('glitch-active', 'text-amber-400');
+            }, 2000);
+        }
+
+        // Trigger Red Emergency Alert Mode for Drama
+        function triggerAlert() {
+            setTheme('red');
+            const banner = document.getElementById('alertBanner');
+            const threat = document.getElementById('threatLevel');
+
+            banner.classList.remove('hidden');
+            threat.textContent = 'DEFCON 1 // CRITICAL BREACH';
+            threat.classList.add('pulse-alert');
+
+            playBeep(400, 'sawtooth', 0.4, 0.1);
+
+            setTimeout(() => {
+                banner.classList.add('hidden');
+                threat.classList.remove('pulse-alert');
+            }, 4000);
+        }
+
+        // Theme Switcher (Green / Red / Blue)
+        function setTheme(theme) {
+            document.body.classList.remove('theme-red', 'theme-blue');
+            if (theme === 'red') {
+                document.body.classList.add('theme-red');
+                currentColor = '#ff0055';
+            } else if (theme === 'blue') {
+                document.body.classList.add('theme-blue');
+                currentColor = '#00e5ff';
+            } else {
+                currentColor = '#00ff66';
+            }
+        }
+
+        // Fullscreen Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // FPS Counter
+        let frameCount = 0;
+        let lastTime = performance.now();
+        function calcFPS() {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('fpsCounter').textContent = frameCount;
+                frameCount = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(calcFPS);
+        }
+        requestAnimationFrame(calcFPS);
+
+        // Keyboard Shortcuts for Director Convenience
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleAction();
+            } else if (e.key === '1') {
+                setTheme('green');
+            } else if (e.key === '2') {
+                setTheme('red');
+            } else if (e.key === '3') {
+                setTheme('blue');
+            } else if (e.key.toLowerCase() === 'a') {
+                triggerAlert();
+            } else if (e.key.toLowerCase() === 'l') {
+                triggerTargetLock();
+            }
+        });
+    </script>
+</body>
+</html>
